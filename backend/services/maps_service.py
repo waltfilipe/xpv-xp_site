@@ -11,6 +11,7 @@ import xp_engine as xe
 import xp_stats_engine as xstats
 import xp_study_engine as xpe
 from passes_maps import draw_action_origin_smooth_heatmap
+from position_families import DEFAULT_POSITION_FAMILY, normalize_position_family
 from xp_study_maps import (
     CMAP_XP_GRAY_RED,
     draw_midfielder_common_passes_map,
@@ -26,9 +27,17 @@ from services.filters import all_position_filters, player_matches_position_filte
 APP_LEAGUE = "European leagues"
 
 
-@functools.lru_cache(maxsize=4)
-def load_xp_passes_grouped(cache_version: int = 0) -> dict[str, pd.DataFrame]:
-    return xe.load_european_league_xp_passes_grouped(cache_version=xe.XP_DATA_CACHE_VERSION)
+@functools.lru_cache(maxsize=8)
+def load_xp_passes_grouped(
+    position_family: str = DEFAULT_POSITION_FAMILY,
+    cache_version: int = 0,
+) -> dict[str, pd.DataFrame]:
+    _ = cache_version
+    family = normalize_position_family(position_family)
+    return xe.load_european_league_xp_passes_grouped(
+        position_family=family,
+        cache_version=xe.XP_DATA_CACHE_VERSION,
+    )
 
 
 def _top_position_pass_pool(completed: pd.DataFrame, top_n: int) -> dict:
@@ -42,9 +51,16 @@ def _top_position_pass_pool(completed: pd.DataFrame, top_n: int) -> dict:
     }
 
 
-@functools.lru_cache(maxsize=2)
-def load_aggregated_maps(top_n: int = 250) -> dict[str, Any]:
-    season = xe.load_european_league_season_passes(cache_version=xe.XP_DATA_CACHE_VERSION)
+@functools.lru_cache(maxsize=8)
+def load_aggregated_maps(
+    top_n: int = 250,
+    position_family: str = DEFAULT_POSITION_FAMILY,
+) -> dict[str, Any]:
+    family = normalize_position_family(position_family)
+    season = xe.load_european_league_season_passes(
+        position_family=family,
+        cache_version=xe.XP_DATA_CACHE_VERSION,
+    )
     if season is None or season.empty:
         return {"player_count": 0, "total_passes": 0, "quadrant_stats": []}
 
@@ -55,6 +71,7 @@ def load_aggregated_maps(top_n: int = 250) -> dict[str, Any]:
     pool = _top_position_pass_pool(completed, top_n)
     agg = xpe.aggregate_pass_destination_grids(pool["passes"])
     return {
+        "position_family": family,
         "player_count": pool["player_count"],
         "total_passes": int(len(pool["passes"])),
         "min_passes_cutoff": pool["min_passes_cutoff"],
@@ -98,8 +115,9 @@ def build_scatter_data(
     x_key: str = "xpass_coe_pct",
     y_key: str = "test_impact_v2_p90",
     highlight_player_id: str | None = None,
+    position_family: str = DEFAULT_POSITION_FAMILY,
 ) -> dict[str, Any]:
-    position_codes, position_groups = all_position_filters()
+    position_codes, position_groups = all_position_filters(position_family)
     passes_col = "passes_completed"
     thresholds = xstats.p20_pass_thresholds_by_group(list(xp_by_id.values()), passes_col)
 
@@ -138,6 +156,7 @@ def build_scatter_data(
     xs = [p["x"] for p in points]
     ys = [p["y"] for p in points]
     return {
+        "position_family": normalize_position_family(position_family),
         "points": points,
         "x_key": x_key,
         "y_key": y_key,
@@ -157,8 +176,9 @@ def build_pass_map_images(
     *,
     pass_filter: str = "progressive",
     round_key: str = "all",
+    position_family: str = DEFAULT_POSITION_FAMILY,
 ) -> dict[str, Any]:
-    xp_passes = load_xp_passes_grouped()
+    xp_passes = load_xp_passes_grouped(position_family)
     raw_passes = xp_passes.get(str(player_id))
     if raw_passes is None or raw_passes.empty:
         return {"pass_count": 0, "pass_map_b64": None, "dest_map_b64": None, "caption": ""}
@@ -208,8 +228,12 @@ def build_pass_map_images(
     }
 
 
-def get_round_options(player_id: str) -> list[dict[str, str]]:
-    xp_passes = load_xp_passes_grouped()
+def get_round_options(
+    player_id: str,
+    *,
+    position_family: str = DEFAULT_POSITION_FAMILY,
+) -> list[dict[str, str]]:
+    xp_passes = load_xp_passes_grouped(position_family)
     raw = xp_passes.get(str(player_id))
     if raw is None or raw.empty:
         return [{"key": "all", "label": "Todas"}]

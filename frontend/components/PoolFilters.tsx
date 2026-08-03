@@ -32,7 +32,7 @@ export function PoolFilters({ leagues, currentLeague, currentSearch, actionPath 
         <span className="filter-title">
           <i className="fa-solid fa-sliders" /> Filtros
         </span>
-        <span className="filter-sub">Refine o grupo de meio-campistas e selecione o jogador.</span>
+        <span className="filter-sub">Refine o grupo de jogadores e selecione o jogador.</span>
       </div>
       <form className="filters" style={{ marginBottom: 0 }} onSubmit={onSubmit}>
         <input

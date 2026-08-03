@@ -5,7 +5,7 @@ import { FormEvent, useEffect, useMemo, useState, useTransition } from "react";
 import { RangeDual } from "@/components/ui/RangeDual";
 import { getMeta } from "@/lib/api";
 import type { FilterOptionsMeta } from "@/lib/filterTypes";
-import { mergeFilterOptions } from "@/lib/filterDefaults";
+import { mergeFilterOptions, positionBlocksForFamily } from "@/lib/filterDefaults";
 import type { ProfileFilterState } from "@/lib/profileParams";
 import { buildProfileUrl } from "@/lib/profileParams";
 
@@ -61,6 +61,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
     efficiency_grade: current.efficiency_grade ?? "all",
     buildup_grade: current.buildup_grade ?? "all",
     chance_grade: current.chance_grade ?? "all",
+    position_family: current.position_family ?? defaults.position_family,
     position_block: current.position_block ?? defaults.position_block,
     regions: (current.regions?.split(",") ?? defaults.nationality_regions).filter(Boolean),
     countries: (current.countries?.split(",") ?? defaults.nationality_countries).filter(Boolean),
@@ -71,6 +72,12 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
   const countrySummary = state.countries.length
     ? `${state.countries.length} selecionada${state.countries.length > 1 ? "s" : ""}`
     : "Selecionar países";
+
+  const positionBlocks = useMemo(
+    () => positionBlocksForFamily(state.position_family),
+    [state.position_family],
+  );
+  const showMidfieldSubFilter = state.position_family === "midfielders";
 
   function toFilters(): ProfileFilterState {
     return {
@@ -97,6 +104,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
       efficiency_grade: state.efficiency_grade !== "all" ? state.efficiency_grade : undefined,
       buildup_grade: state.buildup_grade !== "all" ? state.buildup_grade : undefined,
       chance_grade: state.chance_grade !== "all" ? state.chance_grade : undefined,
+      position_family: state.position_family !== "midfielders" ? state.position_family : undefined,
       position_block: state.position_block !== "all" ? state.position_block : undefined,
       regions:
         state.regions.length && !(state.regions.length === 1 && state.regions[0] === "World")
@@ -130,6 +138,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
       efficiency_grade: "all",
       buildup_grade: "all",
       chance_grade: "all",
+      position_family: defaults.position_family,
       position_block: defaults.position_block,
       regions: [...defaults.nationality_regions],
       countries: [...defaults.nationality_countries],
@@ -173,6 +182,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
             </span>
             <span className="filter-sub">
               Refine posição, liga, idade, valor, contrato, minutos, altura, pass scores e nacionalidade.
+              Métricas e notas são sempre comparadas dentro do pool da posição selecionada.
             </span>
           </div>
           <i className={`fa-solid fa-chevron-${filtersOpen ? "up" : "down"} filter-panel-chevron`} />
@@ -190,14 +200,35 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
           <label className="filter-field">
             <span className="filter-label">Posição</span>
             <select
-              value={state.position_block}
-              onChange={(e) => setState((s) => ({ ...s, position_block: e.target.value }))}
+              value={state.position_family}
+              onChange={(e) => {
+                const position_family = e.target.value;
+                setState((s) => ({
+                  ...s,
+                  position_family,
+                  position_block: "all",
+                }));
+              }}
             >
-              {options.position_blocks.map((block) => (
-                <option key={block.key} value={block.key}>{block.label}</option>
+              {options.position_families.map((family) => (
+                <option key={family.key} value={family.key}>{family.label}</option>
               ))}
             </select>
           </label>
+
+          {showMidfieldSubFilter && (
+            <label className="filter-field">
+              <span className="filter-label">Subgrupo</span>
+              <select
+                value={state.position_block}
+                onChange={(e) => setState((s) => ({ ...s, position_block: e.target.value }))}
+              >
+                {positionBlocks.map((block) => (
+                  <option key={block.key} value={block.key}>{block.label}</option>
+                ))}
+              </select>
+            </label>
+          )}
 
           <label className="filter-field">
             <span className="filter-label">Liga</span>

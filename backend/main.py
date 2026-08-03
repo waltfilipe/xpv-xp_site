@@ -14,6 +14,12 @@ _BACKEND_ROOT = Path(__file__).resolve().parent
 if str(_BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(_BACKEND_ROOT))
 
+from position_families import (  # noqa: E402
+    DEFAULT_POSITION_FAMILY,
+    EUROPEAN_POSITION_FAMILIES,
+    normalize_position_family,
+    position_family_label,
+)
 from services.compare_service import build_compare_payload  # noqa: E402
 from services.filters import (  # noqa: E402
     LEAGUE_OPTIONS,
@@ -36,8 +42,8 @@ from services.serialization import sanitize_for_json  # noqa: E402
 
 app = FastAPI(
     title="Pass Scout API",
-    description="European midfielder pass analysis — xT, xP, progression ratings",
-    version="0.2.0",
+    description="European outfield pass analysis — xT, xP, progression ratings",
+    version="0.3.0",
 )
 
 _cors_origins = os.getenv(
@@ -55,7 +61,8 @@ app.add_middleware(
 )
 
 PLAYER_LIST_FIELDS = (
-    "player_id", "player_name", "position", "position_group", "league", "league_source",
+    "player_id", "player_name", "position", "position_group", "position_family",
+    "league", "league_source",
     "age", "height", "nationality", "dominant_foot", "market_value", "market_value_eur",
     "contract_until", "photo_url", "pass_rating", "pass_rating_rank", "pass_rating_total",
     "progression_rating", "progression_rating_rank", "progression_rating_total",
@@ -68,11 +75,18 @@ def _pick_fields(player: dict[str, Any], fields: tuple[str, ...]) -> dict[str, A
     return {k: player.get(k) for k in fields if k in player}
 
 
-def _unpack_bundle() -> tuple[Any, ...]:
-    return load_player_analysis_bundle()
+def _resolve_position_family(position_family: str | None) -> str:
+    try:
+        return normalize_position_family(position_family or DEFAULT_POSITION_FAMILY)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-def _bundle_parts() -> dict[str, Any]:
+def _unpack_bundle(position_family: str = DEFAULT_POSITION_FAMILY) -> tuple[Any, ...]:
+    return load_player_analysis_bundle(position_family)
+
+
+def _bundle_parts(position_family: str = DEFAULT_POSITION_FAMILY) -> dict[str, Any]:
     (
         analysis_players,
         passes_by_player,
@@ -83,8 +97,9 @@ def _bundle_parts() -> dict[str, Any]:
         _pool_by_position,
         _carries_pool,
         xp_by_id,
-    ) = _unpack_bundle()
+    ) = _unpack_bundle(position_family)
     return {
+        "position_family": position_family,
         "analysis_players": analysis_players,
         "passes_by_player": passes_by_player,
         "progression_by_id": progression_by_id,
@@ -99,21 +114,27 @@ def health() -> dict[str, str]:
 
 
 @app.get("/api/meta")
-def meta() -> dict[str, Any]:
-    parts = _bundle_parts()
+def meta(position_family: str = Query(DEFAULT_POSITION_FAMILY)) -> dict[str, Any]:
+    family = _resolve_position_family(position_family)
+    parts = _bundle_parts(family)
     analysis_players = parts["analysis_players"]
     leagues = sorted({str(p.get("league_source") or "") for p in analysis_players if p.get("league_source")})
     position_groups = sorted({str(p.get("position_group") or "") for p in analysis_players if p.get("position_group")})
+    family_label = position_family_label(family)
     return sanitize_for_json({
+        "position_family": family,
+        "position_family_label": family_label,
         "player_count": len(analysis_players),
         "leagues": leagues,
         "league_options": [{"key": k, "label": l} for k, l in LEAGUE_OPTIONS],
         "position_groups": position_groups,
+        "position_families": [{"key": k, "label": l} for k, l in EUROPEAN_POSITION_FAMILIES],
         "nationalities": available_nationalities(analysis_players),
-        "filter_options": filter_options_meta(),
+        "filter_options": filter_options_meta(family),
         "description": (
-            "Premier League, Serie A, La Liga, Bundesliga and Ligue 1 midfielders. "
-            "Pass ratings (xT v4), progression ratings, and xP analytics."
+            f"Premier League, Serie A, La Liga, Bundesliga and Ligue 1 {family_label.lower()} — "
+            "pass ratings (xT v4), progression ratings, and xP analytics. "
+            "All scores and ranks are computed within the selected position pool."
         ),
     })
 
@@ -123,10 +144,12 @@ def list_players(
     league: str | None = Query(None),
     position_group: str | None = Query(None),
     search: str | None = Query(None),
+    position_family: str = Query(DEFAULT_POSITION_FAMILY),
     limit: int = Query(200, ge=1, le=2000),
     offset: int = Query(0, ge=0),
 ) -> dict[str, Any]:
-    parts = _bundle_parts()
+    family = _resolve_position_family(position_family)
+    parts = _bundle_parts(family)
     analysis_players = parts["analysis_players"]
     progression_by_id = parts["progression_by_id"]
     players_by_id = parts["players_by_id"]
@@ -155,7 +178,13 @@ def list_players(
 
     total = len(rows)
     page = rows[offset : offset + limit]
-    return sanitize_for_json({"total": total, "offset": offset, "limit": limit, "players": page})
+    return sanitize_for_json({
+        "position_family": family,
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "players": page,
+    })
 
 
 @app.get("/api/players/options")
@@ -182,10 +211,12 @@ def players_options(
     buildup_grade: str = Query("all"),
     chance_grade: str = Query("all"),
     position_block: str = Query("all"),
+    position_family: str = Query(DEFAULT_POSITION_FAMILY),
 ) -> dict[str, Any]:
     import nationality_groups as ng
 
-    parts = _bundle_parts()
+    family = _resolve_position_family(position_family)
+    parts = _bundle_parts(family)
     analysis_players = parts["analysis_players"]
     progression_by_id = parts["progression_by_id"]
     xp_by_id = parts["xp_by_id"]
@@ -235,13 +266,18 @@ def players_options(
         xp_by_id=xp_by_id,
         exclude_player_id=exclude,
         position_block=position_block,
+        position_family=family,
     )
-    return sanitize_for_json({"options": options})
+    return sanitize_for_json({"position_family": family, "options": options})
 
 
 @app.get("/api/players/{player_id}")
-def get_player(player_id: str) -> dict[str, Any]:
-    parts = _bundle_parts()
+def get_player(
+    player_id: str,
+    position_family: str = Query(DEFAULT_POSITION_FAMILY),
+) -> dict[str, Any]:
+    family = _resolve_position_family(position_family)
+    parts = _bundle_parts(family)
     payload = build_profile_payload(
         player_id,
         players_by_id=parts["players_by_id"],
@@ -250,7 +286,7 @@ def get_player(player_id: str) -> dict[str, Any]:
         passes_by_player=parts["passes_by_player"],
     )
     if payload is None:
-        raise HTTPException(status_code=404, detail="Player not found")
+        raise HTTPException(status_code=404, detail="Player not found in this position pool")
     return sanitize_for_json(payload)
 
 
@@ -258,8 +294,10 @@ def get_player(player_id: str) -> dict[str, Any]:
 def compare_players(
     player_a: str = Query(...),
     player_b: str = Query(...),
+    position_family: str = Query(DEFAULT_POSITION_FAMILY),
 ) -> dict[str, Any]:
-    parts = _bundle_parts()
+    family = _resolve_position_family(position_family)
+    parts = _bundle_parts(family)
     payload = build_compare_payload(
         player_a, player_b,
         players_by_id=parts["players_by_id"],
@@ -277,11 +315,14 @@ def maps_scatter(
     x: str = Query("xpass_coe_pct"),
     y: str = Query("test_impact_v2_p90"),
     highlight: str | None = Query(None),
+    position_family: str = Query(DEFAULT_POSITION_FAMILY),
 ) -> dict[str, Any]:
-    parts = _bundle_parts()
+    family = _resolve_position_family(position_family)
+    parts = _bundle_parts(family)
     return sanitize_for_json(build_scatter_data(
         parts["analysis_players"], parts["progression_by_id"], parts["xp_by_id"],
         x_key=x, y_key=y, highlight_player_id=highlight,
+        position_family=family,
     ))
 
 
@@ -290,8 +331,10 @@ def maps_pass_map(
     player_id: str,
     pass_filter: str = Query("progressive"),
     round_key: str = Query("all"),
+    position_family: str = Query(DEFAULT_POSITION_FAMILY),
 ) -> dict[str, Any]:
-    parts = _bundle_parts()
+    family = _resolve_position_family(position_family)
+    parts = _bundle_parts(family)
     player = (
         parts["xp_by_id"].get(player_id)
         or parts["progression_by_id"].get(player_id)
@@ -302,17 +345,26 @@ def maps_pass_map(
     return sanitize_for_json(build_pass_map_images(
         player_id, str(player.get("player_name", "—")),
         pass_filter=pass_filter, round_key=round_key,
+        position_family=family,
     ))
 
 
 @app.get("/api/maps/players/{player_id}/rounds")
-def maps_rounds(player_id: str) -> dict[str, Any]:
-    return sanitize_for_json({"rounds": get_round_options(player_id)})
+def maps_rounds(
+    player_id: str,
+    position_family: str = Query(DEFAULT_POSITION_FAMILY),
+) -> dict[str, Any]:
+    family = _resolve_position_family(position_family)
+    return sanitize_for_json({"rounds": get_round_options(player_id, position_family=family)})
 
 
 @app.get("/api/maps/aggregated")
-def maps_aggregated(top_n: int = Query(250, ge=50, le=500)) -> dict[str, Any]:
-    return sanitize_for_json(load_aggregated_maps(top_n))
+def maps_aggregated(
+    top_n: int = Query(250, ge=50, le=500),
+    position_family: str = Query(DEFAULT_POSITION_FAMILY),
+) -> dict[str, Any]:
+    family = _resolve_position_family(position_family)
+    return sanitize_for_json(load_aggregated_maps(top_n, position_family=family))
 
 
 @app.get("/api/maps/options")

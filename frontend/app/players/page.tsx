@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { PageHero } from "@/components/PageHero";
+import { POSITION_FAMILIES } from "@/lib/filterDefaults";
 import { getMeta, getPlayers } from "@/lib/api";
 import { PlayersFilters } from "./PlayersFilters";
 
@@ -9,6 +10,7 @@ type PageProps = {
   searchParams: Promise<{
     league?: string;
     position_group?: string;
+    position_family?: string;
     search?: string;
   }>;
 };
@@ -24,12 +26,15 @@ export default async function PlayersPage({ searchParams }: PageProps) {
   let filters = { leagues: [] as string[], position_groups: [] as string[] };
   let error: string | null = null;
 
+  const family = params.position_family ?? "midfielders";
+
   try {
     const [meta, playersRes] = await Promise.all([
-      getMeta(),
+      getMeta(family),
       getPlayers({
         league: params.league,
         position_group: params.position_group,
+        position_family: family,
         search: params.search,
         limit: 500,
       }),
@@ -44,7 +49,7 @@ export default async function PlayersPage({ searchParams }: PageProps) {
     <div className="container">
       <PageHero
         title="Players"
-        subtitle="Meio-campistas das 5 grandes ligas europeias com ratings de passe e progressão."
+        subtitle="Jogadores das 5 grandes ligas europeias com ratings de passe e progressão por pool de posição."
         icon="fa-table-list"
       />
 
@@ -52,8 +57,10 @@ export default async function PlayersPage({ searchParams }: PageProps) {
         <PlayersFilters
           leagues={filters.leagues}
           positionGroups={filters.position_groups}
+          positionFamilies={POSITION_FAMILIES}
           currentLeague={params.league}
           currentPositionGroup={params.position_group}
+          currentPositionFamily={family}
           currentSearch={params.search}
         />
       </Suspense>
@@ -96,7 +103,7 @@ export default async function PlayersPage({ searchParams }: PageProps) {
                       <div className="player-avatar" />
                     )}
                     <div>
-                      <Link href={`/profile?player=${player.player_id}`}>{player.player_name}</Link>
+                      <Link href={`/profile?player=${player.player_id}&position_family=${family}`}>{player.player_name}</Link>
                       <div className="muted" style={{ fontSize: "0.8rem" }}>
                         {player.nationality ?? "—"}
                       </div>

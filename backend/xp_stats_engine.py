@@ -1953,7 +1953,7 @@ def _mean_z_columns(
         if col in invert:
             z = -z
         parts.append(z)
-    return sum(parts) / len(parts)
+    return (sum(parts) / len(parts)).fillna(0.0)
 
 
 def _attach_index_display_scores(
@@ -1967,8 +1967,15 @@ def _attach_index_display_scores(
     pool_size = len(rows)
     ranks = _rank_descending(composite)
     for i, row in enumerate(rows):
-        row[raw_key] = float(composite.iloc[i])
-        rank = int(ranks.iloc[i])
+        composite_val = composite.iloc[i]
+        row[raw_key] = float(composite_val) if pd.notna(composite_val) else None
+        rank_raw = ranks.iloc[i]
+        if pd.isna(rank_raw):
+            row[f"{raw_key}_rank_in_group"] = None
+            row[f"{raw_key}_rank_pool_in_group"] = pool_size
+            row[display_key] = None
+            continue
+        rank = int(rank_raw)
         row[f"{raw_key}_rank_in_group"] = rank
         row[f"{raw_key}_rank_pool_in_group"] = pool_size
         row[display_key] = float(pe.rank_to_display_score(rank, pool_size))

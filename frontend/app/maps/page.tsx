@@ -5,6 +5,7 @@ import { Suspense, useEffect, useState } from "react";
 import { LoadingState } from "@/components/LoadingState";
 import { PageHero } from "@/components/PageHero";
 import { ScatterChart } from "@/components/ScatterChart";
+import { POSITION_FAMILIES } from "@/lib/filterDefaults";
 import {
   getAggregatedMaps,
   getMapsOptions,
@@ -17,6 +18,7 @@ import {
 
 function MapsContent() {
   const searchParams = useSearchParams();
+  const [positionFamily, setPositionFamily] = useState("midfielders");
   const [options, setOptions] = useState<PlayerOption[]>([]);
   const [mapOpts, setMapOpts] = useState<{ scatter_metrics: { key: string; label: string }[]; pass_filters: { key: string; label: string }[] } | null>(null);
   const [playerId, setPlayerId] = useState(searchParams.get("player") ?? "");
@@ -31,42 +33,58 @@ function MapsContent() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    Promise.all([getPlayerOptions(), getMapsOptions(), getAggregatedMaps()])
+    Promise.all([
+      getPlayerOptions({ position_family: positionFamily }),
+      getMapsOptions(),
+      getAggregatedMaps(positionFamily),
+    ])
       .then(([opts, mopts, agg]) => {
         setOptions(opts.options);
         setMapOpts(mopts);
         setAggregated(agg);
-        if (!playerId && opts.options[0]) setPlayerId(opts.options[0].player_id);
+        setPlayerId((current) => {
+          const stillValid = opts.options.some((o) => o.player_id === current);
+          if (stillValid) return current;
+          return opts.options[0]?.player_id ?? "";
+        });
       })
       .catch(() => setError("Backend indisponível"));
-  }, [playerId]);
+  }, [positionFamily]);
 
   useEffect(() => {
     if (view !== "scatter" || !playerId) return;
     setLoading(true);
-    getScatter(xKey, yKey, playerId)
+    getScatter(xKey, yKey, playerId, positionFamily)
       .then(setScatter)
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
-  }, [view, xKey, yKey, playerId]);
+  }, [view, xKey, yKey, playerId, positionFamily]);
 
   useEffect(() => {
     if (view !== "pass_map" || !playerId) return;
     setLoading(true);
-    getPassMap(playerId, passFilter, "all")
+    getPassMap(playerId, passFilter, "all", positionFamily)
       .then(setPassMap)
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
-  }, [view, passFilter, playerId]);
+  }, [view, passFilter, playerId, positionFamily]);
 
   return (
     <div className="container">
-      <PageHero title="Maps" subtitle="Scatter de métricas ou mapas de passes por jogador." icon="fa-map-location-dot" />
+      <PageHero title="Maps" subtitle="Scatter e mapas de passes por pool de posição." icon="fa-map-location-dot" />
 
       {error && <div className="error-box">{error}</div>}
 
       <div className="filter-card">
         <div className="filters" style={{ marginBottom: 0 }}>
+          <label className="filter-field">
+            <span className="filter-label">Posição</span>
+            <select value={positionFamily} onChange={(e) => setPositionFamily(e.target.value)}>
+              {POSITION_FAMILIES.map((family) => (
+                <option key={family.key} value={family.key}>{family.label}</option>
+              ))}
+            </select>
+          </label>
           <select value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
             {options.map((o) => <option key={o.player_id} value={o.player_id}>{o.label}</option>)}
           </select>

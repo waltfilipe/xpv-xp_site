@@ -8,6 +8,14 @@ from typing import Any
 import nationality_groups as ng
 import player_profiles as pp
 import transfermarkt_profiles as tm
+from position_families import (
+    DEFAULT_POSITION_FAMILY,
+    EUROPEAN_POSITION_FAMILIES,
+    normalize_position_family,
+    position_codes_for_family,
+    position_family_label,
+    rating_groups_for_family,
+)
 
 VALUE_SLIDER_MAX_EUR = 150_000_000
 CONTRACT_YEAR_MIN = 2026
@@ -17,16 +25,12 @@ MINUTES_MAX = 3600
 HEIGHT_MIN_M = 1.60
 HEIGHT_MAX_M = 2.05
 
-POSITION_BLOCKS: tuple[tuple[str, str, frozenset[str] | None, str | None], ...] = (
-    ("cm", "Central Midfielders", None, "central_midfielders"),
-    ("am", "Attacking Midfielders", None, "attacking_midfielders"),
+MIDFIELD_POSITION_BLOCKS: tuple[tuple[str, str, frozenset[str] | None, str | None], ...] = (
+    ("cm", "Meio-campistas centrais", None, "central_midfielders"),
+    ("am", "Meio-campistas ofensivos", None, "attacking_midfielders"),
 )
 
-POSITION_BLOCK_OPTIONS = [
-    ("all", "Todos os meios-campistas"),
-    ("cm", "Meio-campistas centrais"),
-    ("am", "Meio-campistas ofensivos"),
-]
+POSITION_FAMILY_OPTIONS = list(EUROPEAN_POSITION_FAMILIES)
 
 PASS_SCORE_LETTER_FIELDS: dict[str, str] = {
     "volume_grade": "pass_volume_letter",
@@ -90,10 +94,21 @@ def parse_age_band(age_band: str | None) -> tuple[int | None, int | None]:
     return None, None
 
 
-def filter_options_meta() -> dict[str, Any]:
+def position_blocks_for_family(position_family: str = DEFAULT_POSITION_FAMILY) -> list[tuple[str, str]]:
+    family = normalize_position_family(position_family)
+    family_label = position_family_label(family).lower()
+    options: list[tuple[str, str]] = [("all", f"Todos os {family_label}")]
+    if family == "midfielders":
+        options.extend((block_id, label) for block_id, label, *_rest in MIDFIELD_POSITION_BLOCKS)
+    return options
+
+
+def filter_options_meta(position_family: str = DEFAULT_POSITION_FAMILY) -> dict[str, Any]:
     import nationality_groups as ng
 
+    family = normalize_position_family(position_family)
     return {
+        "position_families": [{"key": k, "label": l} for k, l in POSITION_FAMILY_OPTIONS],
         "leagues": [{"key": k, "label": l} for k, l in LEAGUE_OPTIONS],
         "foot": [{"key": k, "label": l} for k, l in FOOT_OPTIONS],
         "age_bands": [
@@ -113,9 +128,10 @@ def filter_options_meta() -> dict[str, Any]:
             {"key": "buildup_grade", "label": "Build-up"},
             {"key": "chance_grade", "label": "Chance creation"},
         ],
-        "position_blocks": [{"key": k, "label": l} for k, l in POSITION_BLOCK_OPTIONS],
+        "position_blocks": [{"key": k, "label": l} for k, l in position_blocks_for_family(family)],
         "defaults": {
             "league": "all",
+            "position_family": family,
             "position_block": "all",
             "age_band": "all",
             "age_slider": [pp.MIN_PLAYER_AGE, pp.MAX_PLAYER_AGE],
@@ -143,22 +159,21 @@ def normalize_filter_foot(value: str | None) -> str | None:
     return None
 
 
-def all_position_filters() -> tuple[frozenset[str], frozenset[str]]:
-    codes: set[str] = set()
-    groups: set[str] = set()
-    for _block_id, _label, block_codes, rating_group in POSITION_BLOCKS:
-        if block_codes:
-            codes.update(block_codes)
-        if rating_group:
-            groups.add(rating_group)
-    return frozenset(codes), frozenset(groups)
+def all_position_filters(position_family: str = DEFAULT_POSITION_FAMILY) -> tuple[frozenset[str], frozenset[str]]:
+    family = normalize_position_family(position_family)
+    return position_codes_for_family(family), rating_groups_for_family(family)
 
 
-def position_filter_from_block(position_block: str = "all") -> tuple[frozenset[str], frozenset[str]]:
+def position_filter_from_block(
+    position_block: str = "all",
+    *,
+    position_family: str = DEFAULT_POSITION_FAMILY,
+) -> tuple[frozenset[str], frozenset[str]]:
+    family = normalize_position_family(position_family)
     block_id = (position_block or "all").strip().lower()
-    if block_id in {"", "all"}:
-        return all_position_filters()
-    for bid, _label, block_codes, rating_group in POSITION_BLOCKS:
+    if family != "midfielders" or block_id in {"", "all"}:
+        return all_position_filters(family)
+    for bid, _label, block_codes, rating_group in MIDFIELD_POSITION_BLOCKS:
         if bid != block_id:
             continue
         codes: set[str] = set()
@@ -168,7 +183,7 @@ def position_filter_from_block(position_block: str = "all") -> tuple[frozenset[s
         if rating_group:
             groups.add(rating_group)
         return frozenset(codes), frozenset(groups)
-    return all_position_filters()
+    return all_position_filters(family)
 
 
 def player_matches_position_filter(
@@ -373,8 +388,12 @@ def player_options(
     exclude_player_id: str | None = None,
     sort_by: str = "xp_pass_rating",
     position_block: str = "all",
+    position_family: str = DEFAULT_POSITION_FAMILY,
 ) -> list[dict[str, str]]:
-    position_codes, position_groups = position_filter_from_block(position_block)
+    position_codes, position_groups = position_filter_from_block(
+        position_block,
+        position_family=position_family,
+    )
     ranked_rows: list[tuple[str, str, str, float]] = []
     for player in players:
         pid = str(player["player_id"])

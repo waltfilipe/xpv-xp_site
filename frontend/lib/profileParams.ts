@@ -18,6 +18,7 @@ export type ProfileFilterState = {
   efficiency_grade?: string;
   buildup_grade?: string;
   chance_grade?: string;
+  position_family?: string;
   position_block?: string;
   regions?: string;
   countries?: string;
@@ -48,6 +49,7 @@ export function filtersFromRecord(params: Record<string, string | string[] | und
     efficiency_grade: get("efficiency_grade"),
     buildup_grade: get("buildup_grade"),
     chance_grade: get("chance_grade"),
+    position_family: get("position_family"),
     position_block: get("position_block"),
     regions: get("regions"),
     countries: get("countries"),
@@ -78,6 +80,7 @@ export function buildProfileQuery(filters: ProfileFilterState): string {
   set("efficiency_grade", filters.efficiency_grade);
   set("buildup_grade", filters.buildup_grade);
   set("chance_grade", filters.chance_grade);
+  set("position_family", filters.position_family);
   set("position_block", filters.position_block);
   set("regions", filters.regions);
   set("countries", filters.countries);
@@ -94,6 +97,7 @@ export function filtersToApiParams(filters: ProfileFilterState): Record<string, 
     league: filters.league || "all",
     foot: filters.foot || "all",
     age_band: filters.age_band || "all",
+    position_family: filters.position_family || "midfielders",
     value_min_m: filters.value_min ?? "0",
     value_max_m: filters.value_max ?? "150",
     contract_year_min: filters.contract_min ?? "2026",

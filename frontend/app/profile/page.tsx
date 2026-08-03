@@ -18,8 +18,10 @@ export default async function ProfilePage({ searchParams }: Props) {
   let nationalities: string[] = [];
   let options: { player_id: string; label: string }[] = [];
 
+  const family = filters.position_family ?? "midfielders";
+
   try {
-    const meta = await getMeta();
+    const meta = await getMeta(family);
     filterOptions = mergeFilterOptions(meta);
     nationalities = meta.nationalities ?? [];
     const res = await getPlayerOptions(filters);
@@ -37,7 +39,7 @@ export default async function ProfilePage({ searchParams }: Props) {
           <div className="profile-page-hero-copy">
             <span className="profile-page-eyebrow">Pass Scout</span>
             <h1>Player Profile</h1>
-            <p>Análise completa de meio-campistas — xP, pass scores, índices e mapas de origem.</p>
+            <p>Análise completa por posição — xP, pass scores, índices e mapas de origem. Rankings dentro do pool selecionado.</p>
           </div>
         </div>
       </header>
@@ -59,7 +61,7 @@ export default async function ProfilePage({ searchParams }: Props) {
           </p>
         )}
 
-        {playerId ? <ProfileView playerId={playerId} /> : null}
+        {playerId ? <ProfileView playerId={playerId} positionFamily={family} /> : null}
       </div>
     </div>
   );

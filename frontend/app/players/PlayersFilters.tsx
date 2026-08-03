@@ -6,16 +6,20 @@ import { FormEvent, useTransition } from "react";
 type Props = {
   leagues: string[];
   positionGroups: string[];
+  positionFamilies: readonly { key: string; label: string }[];
   currentLeague?: string;
   currentPositionGroup?: string;
+  currentPositionFamily?: string;
   currentSearch?: string;
 };
 
 export function PlayersFilters({
   leagues,
   positionGroups,
+  positionFamilies,
   currentLeague,
   currentPositionGroup,
+  currentPositionFamily,
   currentSearch,
 }: Props) {
   const router = useRouter();
@@ -28,9 +32,11 @@ export function PlayersFilters({
     const params = new URLSearchParams();
     const league = String(form.get("league") || "");
     const positionGroup = String(form.get("position_group") || "");
+    const positionFamily = String(form.get("position_family") || "midfielders");
     const search = String(form.get("search") || "").trim();
     if (league) params.set("league", league);
     if (positionGroup) params.set("position_group", positionGroup);
+    if (positionFamily && positionFamily !== "midfielders") params.set("position_family", positionFamily);
     if (search) params.set("search", search);
     startTransition(() => {
       router.push(`/players?${params.toString()}`);
@@ -57,6 +63,14 @@ export function PlayersFilters({
           <option key={l} value={l}>
             {l}
           </option>
+        ))}
+      </select>
+      <select
+        name="position_family"
+        defaultValue={currentPositionFamily ?? searchParams.get("position_family") ?? "midfielders"}
+      >
+        {positionFamilies.map((family) => (
+          <option key={family.key} value={family.key}>{family.label}</option>
         ))}
       </select>
       <select

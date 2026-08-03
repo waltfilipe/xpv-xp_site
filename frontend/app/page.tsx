@@ -12,8 +12,8 @@ export default async function HomePage() {
       <section className="home-hero">
         <h1>Pass Scout</h1>
         <p>
-          Análise de passes de meio-campistas europeus — xT v4, xP, ratings de progressão
-          e perfis das 5 grandes ligas europeias.
+          Análise de passes por posição nas 5 grandes ligas europeias — xT v4, xP,
+          ratings de progressão e perfis comparativos dentro de cada pool.
         </p>
         <div className="home-cta">
           <Link href="/profile" className="btn btn-primary">
@@ -31,7 +31,7 @@ export default async function HomePage() {
       <div className="stats-grid">
         <div className="card stat-card">
           <div className="value">{meta.player_count || "—"}</div>
-          <div className="label">Meio-campistas</div>
+          <div className="label">Jogadores no pool</div>
         </div>
         <div className="card stat-card">
           <div className="value">{meta.leagues.length || 5}</div>

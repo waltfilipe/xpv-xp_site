@@ -20,7 +20,13 @@ function FactIcon({ icon }: { icon: string }) {
   );
 }
 
-export function ProfileView({ playerId }: { playerId: string }) {
+export function ProfileView({
+  playerId,
+  positionFamily = "midfielders",
+}: {
+  playerId: string;
+  positionFamily?: string;
+}) {
   const [data, setData] = useState<PlayerProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,7 +34,7 @@ export function ProfileView({ playerId }: { playerId: string }) {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    getPlayerProfile(playerId)
+    getPlayerProfile(playerId, positionFamily)
       .then(setData)
       .catch((e) => {
         const msg = e instanceof Error ? e.message : "Erro";
@@ -39,7 +45,7 @@ export function ProfileView({ playerId }: { playerId: string }) {
         );
       })
       .finally(() => setLoading(false));
-  }, [playerId]);
+  }, [playerId, positionFamily]);
 
   if (loading) return <LoadingState message="Carregando perfil do jogador…" />;
   if (error) return <div className="error-box">{error}</div>;

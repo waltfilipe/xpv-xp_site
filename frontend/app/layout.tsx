@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Pass Scout",
-  description: "European midfielder pass analysis — xT, xP, progression ratings",
+  description: "European outfield pass analysis — xT, xP, progression ratings by position pool",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

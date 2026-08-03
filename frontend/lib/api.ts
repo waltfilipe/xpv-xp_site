@@ -118,22 +118,32 @@ export type ScatterData = {
   count: number;
 };
 
-export function getMeta() {
+export function getMeta(positionFamily = "midfielders") {
   return fetchApi<{
+    position_family?: string;
+    position_family_label?: string;
     player_count: number;
     leagues: string[];
     league_options: { key: string; label: string }[];
     position_groups: string[];
+    position_families?: { key: string; label: string }[];
     nationalities: string[];
     filter_options?: Record<string, unknown>;
     description: string;
-  }>("/api/meta");
+  }>(`/api/meta?position_family=${encodeURIComponent(positionFamily)}`);
 }
 
-export function getPlayers(params?: { league?: string; position_group?: string; search?: string; limit?: number }) {
+export function getPlayers(params?: {
+  league?: string;
+  position_group?: string;
+  position_family?: string;
+  search?: string;
+  limit?: number;
+}) {
   const qs = new URLSearchParams();
   if (params?.league) qs.set("league", params.league);
   if (params?.position_group) qs.set("position_group", params.position_group);
+  if (params?.position_family) qs.set("position_family", params.position_family);
   if (params?.search) qs.set("search", params.search);
   if (params?.limit) qs.set("limit", String(params.limit));
   const q = qs.toString();
@@ -147,31 +157,52 @@ export function getPlayerOptions(filters: ProfileFilterState = {}) {
   return fetchApi<{ options: PlayerOption[] }>(`/api/players/options${q ? `?${q}` : ""}`);
 }
 
-export function getPlayerOptionsLegacy(params?: { league?: string; exclude?: string; search?: string }) {
+export function getPlayerOptionsLegacy(params?: {
+  league?: string;
+  exclude?: string;
+  search?: string;
+  position_family?: string;
+}) {
   const qs = new URLSearchParams();
   if (params?.league) qs.set("league", params.league);
   if (params?.exclude) qs.set("exclude", params.exclude);
   if (params?.search) qs.set("search", params.search);
+  if (params?.position_family) qs.set("position_family", params.position_family);
   const q = qs.toString();
   return fetchApi<{ options: PlayerOption[] }>(`/api/players/options${q ? `?${q}` : ""}`);
 }
 
-export function getPlayerProfile(id: string) {
-  return fetchApi<PlayerProfile>(`/api/players/${id}`);
+export function getPlayerProfile(id: string, positionFamily = "midfielders") {
+  const qs = new URLSearchParams({ position_family: positionFamily });
+  return fetchApi<PlayerProfile>(`/api/players/${id}?${qs}`);
 }
 
-export function getCompare(playerA: string, playerB: string) {
-  return fetchApi<ComparePayload>(`/api/compare?player_a=${playerA}&player_b=${playerB}`);
+export function getCompare(playerA: string, playerB: string, positionFamily = "midfielders") {
+  const qs = new URLSearchParams({
+    player_a: playerA,
+    player_b: playerB,
+    position_family: positionFamily,
+  });
+  return fetchApi<ComparePayload>(`/api/compare?${qs}`);
 }
 
-export function getScatter(x: string, y: string, highlight?: string) {
-  const qs = new URLSearchParams({ x, y });
+export function getScatter(x: string, y: string, highlight?: string, positionFamily = "midfielders") {
+  const qs = new URLSearchParams({ x, y, position_family: positionFamily });
   if (highlight) qs.set("highlight", highlight);
   return fetchApi<ScatterData>(`/api/maps/scatter?${qs}`);
 }
 
-export function getPassMap(playerId: string, passFilter: string, roundKey: string) {
-  const qs = new URLSearchParams({ pass_filter: passFilter, round_key: roundKey });
+export function getPassMap(
+  playerId: string,
+  passFilter: string,
+  roundKey: string,
+  positionFamily = "midfielders",
+) {
+  const qs = new URLSearchParams({
+    pass_filter: passFilter,
+    round_key: roundKey,
+    position_family: positionFamily,
+  });
   return fetchApi<{
     pass_count: number;
     pass_map_b64?: string | null;
@@ -190,12 +221,13 @@ export function getMapsOptions() {
   }>("/api/maps/options");
 }
 
-export function getAggregatedMaps() {
+export function getAggregatedMaps(positionFamily = "midfielders") {
+  const qs = new URLSearchParams({ position_family: positionFamily });
   return fetchApi<{
     player_count: number;
     total_passes: number;
     quadrant_stats: { quadrant: string; passes: number; share_pct: number }[];
     common_map_b64?: string | null;
     rare_map_b64?: string | null;
-  }>("/api/maps/aggregated");
+  }>(`/api/maps/aggregated?${qs}`);
 }

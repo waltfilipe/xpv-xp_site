@@ -7,9 +7,11 @@ import { LoadingState } from "@/components/LoadingState";
 import { PageHero } from "@/components/PageHero";
 import { PassLengthMix } from "@/components/PassLengthMix";
 import { XpProfileBars } from "@/components/XpProfileBars";
+import { POSITION_FAMILIES } from "@/lib/filterDefaults";
 import { getCompare, getPlayerOptionsLegacy, type ComparePayload, type PlayerOption } from "@/lib/api";
 
 export default function ComparePage() {
+  const [positionFamily, setPositionFamily] = useState("midfielders");
   const [options, setOptions] = useState<PlayerOption[]>([]);
   const [playerA, setPlayerA] = useState("");
   const [playerB, setPlayerB] = useState("");
@@ -18,21 +20,21 @@ export default function ComparePage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getPlayerOptionsLegacy().then((r) => {
+    getPlayerOptionsLegacy({ position_family: positionFamily }).then((r) => {
       setOptions(r.options);
       if (r.options[0]) setPlayerA(r.options[0].player_id);
       if (r.options[1]) setPlayerB(r.options[1].player_id);
     }).catch(() => setError("Backend indisponível"));
-  }, []);
+  }, [positionFamily]);
 
   useEffect(() => {
     if (!playerA || !playerB || playerA === playerB) return;
     setLoading(true);
-    getCompare(playerA, playerB)
+    getCompare(playerA, playerB, positionFamily)
       .then(setData)
       .catch((e) => setError(e instanceof Error ? e.message : "Erro"))
       .finally(() => setLoading(false));
-  }, [playerA, playerB]);
+  }, [playerA, playerB, positionFamily]);
 
   function PlayerCard({ side, player, heatmap }: { side: "a" | "b"; player: Record<string, unknown>; heatmap?: string | null }) {
     const bars = (player.xp_bars as { key: string; label: string; value?: number }[]) ?? [];
@@ -73,10 +75,22 @@ export default function ComparePage() {
 
   return (
     <div className="container">
-      <PageHero title="Compare" subtitle="Compare dois meio-campistas lado a lado." icon="fa-scale-balanced" />
+      <PageHero
+        title="Compare"
+        subtitle="Compare dois jogadores do mesmo pool de posição. Métricas e notas são relativas aos pares da posição."
+        icon="fa-scale-balanced"
+      />
 
       <div className="filter-card">
         <div className="filters" style={{ marginBottom: 0 }}>
+          <label className="filter-field">
+            <span className="filter-label">Posição</span>
+            <select value={positionFamily} onChange={(e) => setPositionFamily(e.target.value)}>
+              {POSITION_FAMILIES.map((family) => (
+                <option key={family.key} value={family.key}>{family.label}</option>
+              ))}
+            </select>
+          </label>
           <select value={playerA} onChange={(e) => setPlayerA(e.target.value)}>
             {options.map((o) => <option key={o.player_id} value={o.player_id}>{o.label}</option>)}
           </select>

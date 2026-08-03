@@ -1,6 +1,26 @@
 import type { FilterOptionsMeta } from "@/lib/filterTypes";
 import { LETTER_GRADE_FILTER_OPTIONS } from "@/lib/gradeColors";
 
+export const POSITION_FAMILIES = [
+  { key: "centerbacks", label: "Zagueiros" },
+  { key: "fullbacks", label: "Laterais" },
+  { key: "midfielders", label: "Meio-campistas" },
+  { key: "wingers", label: "Extremos" },
+] as const;
+
+export function positionBlocksForFamily(family: string): { key: string; label: string }[] {
+  const match = POSITION_FAMILIES.find((f) => f.key === family);
+  const label = match?.label.toLowerCase() ?? "jogadores";
+  const blocks = [{ key: "all", label: `Todos os ${label}` }];
+  if (family === "midfielders") {
+    blocks.push(
+      { key: "cm", label: "Meio-campistas centrais" },
+      { key: "am", label: "Meio-campistas ofensivos" },
+    );
+  }
+  return blocks;
+}
+
 export const DEFAULT_FILTER_OPTIONS: FilterOptionsMeta = {
   leagues: [
     { key: "all", label: "All leagues" },
@@ -42,13 +62,11 @@ export const DEFAULT_FILTER_OPTIONS: FilterOptionsMeta = {
     { key: "buildup_grade", label: "Build-up" },
     { key: "chance_grade", label: "Chance creation" },
   ],
-  position_blocks: [
-    { key: "all", label: "Todos os meios-campistas" },
-    { key: "cm", label: "Meio-campistas centrais" },
-    { key: "am", label: "Meio-campistas ofensivos" },
-  ],
+  position_families: [...POSITION_FAMILIES],
+  position_blocks: positionBlocksForFamily("midfielders"),
   defaults: {
     league: "all",
+    position_family: "midfielders",
     position_block: "all",
     age_band: "all",
     age_slider: [16, 42],
@@ -83,6 +101,7 @@ export function mergeFilterOptions(
     height_range_m: fo?.height_range_m ?? base.height_range_m,
     letter_grades: fo?.letter_grades?.length ? fo.letter_grades : base.letter_grades,
     pass_score_filters: fo?.pass_score_filters?.length ? fo.pass_score_filters : base.pass_score_filters,
+    position_families: fo?.position_families?.length ? fo.position_families : base.position_families,
     position_blocks: fo?.position_blocks?.length ? fo.position_blocks : base.position_blocks,
     defaults: { ...base.defaults, ...(fo?.defaults ?? {}) },
   };
