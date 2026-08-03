@@ -5,9 +5,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { LoadingState } from "@/components/LoadingState";
 import { PassGradePanel } from "@/components/PassGradePanel";
+import { PassLengthMix } from "@/components/PassLengthMix";
 import { PassScoreSections } from "@/components/PassScoreSections";
 import { XpProfileBars } from "@/components/XpProfileBars";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { getPlayerProfile, type PlayerProfile } from "@/lib/api";
+import { INDEX_TOOLTIPS } from "@/lib/tooltips";
 
 export function ProfileView({ playerId }: { playerId: string }) {
   const [data, setData] = useState<PlayerProfile | null>(null);
@@ -39,7 +42,6 @@ export function ProfileView({ playerId }: { playerId: string }) {
   return (
     <>
       <div className="pa-layout">
-        {/* Coluna 1 — Identidade */}
         <div className="pa-col pa-col-identity">
           <div className="player-card identity-card">
             <div className="identity-header">
@@ -60,13 +62,13 @@ export function ProfileView({ playerId }: { playerId: string }) {
             <div className="identity-divider" />
 
             <div className="metric-lines">
-              <div className="metric-line"><span>Idade</span><span className="stat-val">{p.age != null ? String(p.age) : "—"}</span></div>
+              <div className="metric-line"><span>Idade</span><span className="stat-val tabular">{p.age != null ? String(p.age) : "—"}</span></div>
               <div className="metric-line"><span>Altura</span><span className="stat-val">{String(p.height ?? "—")}</span></div>
               <div className="metric-line"><span>Nacionalidade</span><span className="stat-val">{String(p.nationality ?? "—")}</span></div>
               <div className="metric-line"><span>Pé</span><span className="stat-val">{String(p.dominant_foot ?? "—")}</span></div>
               <div className="metric-line"><span>Valor</span><span className="stat-val">{String(p.market_value ?? "—")}</span></div>
               <div className="metric-line"><span>Contrato</span><span className="stat-val">{String(p.contract_until ?? "—")}</span></div>
-              <div className="metric-line"><span>Minutos</span><span className="stat-val">{p.minutes != null ? String(p.minutes) : "—"}</span></div>
+              <div className="metric-line"><span>Minutos</span><span className="stat-val tabular">{p.minutes != null ? String(p.minutes) : "—"}</span></div>
             </div>
 
             {data.origin_heatmap_b64 && (
@@ -75,7 +77,6 @@ export function ProfileView({ playerId }: { playerId: string }) {
           </div>
         </div>
 
-        {/* Coluna 2 — Scores */}
         <div className="pa-col pa-col-score">
           <div className="score-stack">
             <PassGradePanel rating={data.xp_pass_rating} />
@@ -87,31 +88,30 @@ export function ProfileView({ playerId }: { playerId: string }) {
               <div className="xp-index-wrap">
                 <h4 className="section-label-sm">xP Indices</h4>
                 <div className="xp-index-list">
-                  <div className="xp-index-row">
-                    <span>Consistency</span>
-                    <span className="stat-val">{data.xp_game_consistency_score != null ? Number(data.xp_game_consistency_score).toFixed(1) : "—"}</span>
-                  </div>
-                  <div className="xp-index-row">
-                    <span>Impact</span>
-                    <span className="stat-val">{data.test_impact_v2_p90 != null ? Number(data.test_impact_v2_p90).toFixed(2) : "—"}</span>
-                  </div>
+                  <Tooltip content={INDEX_TOOLTIPS.Consistency} block>
+                    <div className="xp-index-row">
+                      <span>Consistency</span>
+                      <span className="stat-val tabular">
+                        {data.xp_game_consistency_score != null ? Number(data.xp_game_consistency_score).toFixed(1) : "—"}
+                      </span>
+                    </div>
+                  </Tooltip>
+                  <Tooltip content={INDEX_TOOLTIPS.Impact} block>
+                    <div className="xp-index-row">
+                      <span>Impact</span>
+                      <span className="stat-val tabular">
+                        {data.test_impact_v2_p90 != null ? Number(data.test_impact_v2_p90).toFixed(2) : "—"}
+                      </span>
+                    </div>
+                  </Tooltip>
                 </div>
               </div>
 
-              {data.long_pass_share_pct != null && (
-                <div className="pass-length-mix">
-                  <span className="section-label-sm">Pass length mix</span>
-                  <div className="length-bar-track">
-                    <div className="length-bar-long" style={{ width: `${Number(data.long_pass_share_pct)}%` }} />
-                  </div>
-                  <span className="length-label">Long passes: {Number(data.long_pass_share_pct).toFixed(1)}%</span>
-                </div>
-              )}
+              <PassLengthMix data={data} />
             </div>
           </div>
         </div>
 
-        {/* Coluna 3 — Pass Scores */}
         <div className="pa-col pa-col-pillars">
           <div className="player-card pillars-card">
             <h3 className="section-label">Pass Scores</h3>

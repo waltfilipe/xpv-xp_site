@@ -94,6 +94,8 @@ def build_profile_payload(
         "xp_bars": build_xp_profile_bars(xp) if xp else [],
         "origin_heatmap_b64": origin_heatmap_b64(player_id, passes_by_player, merged.get("player_name", "")),
         "long_pass_share_pct": xp.get("long_pass_share_pct") if xp else None,
+        "long_pass_share_ref_avg_pct": xp.get("long_pass_share_ref_avg_pct") if xp else None,
+        "long_pass_share_pctile": xp.get("long_pass_share_pctile") if xp else None,
         "xp_pass_rating": xp.get("xp_pass_rating"),
         "xp_game_consistency_score": xp.get("xp_game_consistency_score"),
         "test_impact_v2_p90": xp.get("test_impact_v2_p90"),

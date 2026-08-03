@@ -119,6 +119,8 @@ def build_compare_payload(
             "minutes": source.get("minutes"),
             "minutes_pct": source.get("minutes_pct"),
             "long_pass_share_pct": xp.get("long_pass_share_pct"),
+            "long_pass_share_ref_avg_pct": xp.get("long_pass_share_ref_avg_pct"),
+            "long_pass_share_pctile": xp.get("long_pass_share_pctile"),
             "xp_bars": build_xp_profile_bars(xp),
             "xp_game_consistency_score": xp.get("xp_game_consistency_score"),
             "test_impact_v2_p90": xp.get("test_impact_v2_p90"),

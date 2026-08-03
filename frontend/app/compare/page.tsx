@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { CompareCenter } from "@/components/CompareCenter";
 import { LoadingState } from "@/components/LoadingState";
 import { PageHero } from "@/components/PageHero";
+import { PassLengthMix } from "@/components/PassLengthMix";
 import { XpProfileBars } from "@/components/XpProfileBars";
 import { getCompare, getPlayerOptions, type ComparePayload, type PlayerOption } from "@/lib/api";
 
@@ -61,6 +62,11 @@ export default function ComparePage() {
         <div style={{ marginTop: "0.75rem" }}>
           <XpProfileBars bars={bars} />
         </div>
+        <PassLengthMix data={{
+          long_pass_share_pct: player.long_pass_share_pct as number | null | undefined,
+          long_pass_share_ref_avg_pct: player.long_pass_share_ref_avg_pct as number | null | undefined,
+          long_pass_share_pctile: player.long_pass_share_pctile as number | null | undefined,
+        }} />
       </div>
     );
   }

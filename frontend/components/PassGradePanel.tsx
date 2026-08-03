@@ -1,9 +1,36 @@
+"use client";
+
+import { PASS_GRADE_TOOLTIP } from "@/lib/tooltips";
 import { gradeColor, gradeTier } from "@/lib/gradeColors";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 type Props = { rating: number | null | undefined };
 
+function ScoreArc({ rating, color }: { rating: number; color: string }) {
+  const pct = Math.min(100, Math.max(0, rating * 100));
+  const circumference = 2 * Math.PI * 54;
+  const offset = circumference - (pct / 100) * circumference * 0.75;
+
+  return (
+    <svg className="score-arc" viewBox="0 0 120 120" aria-hidden="true">
+      <circle cx="60" cy="60" r="54" className="score-arc-bg" />
+      <circle
+        cx="60"
+        cy="60"
+        r="54"
+        className="score-arc-fill"
+        stroke={color}
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+      />
+    </svg>
+  );
+}
+
 export function PassGradePanel({ rating }: Props) {
-  if (rating == null) {
+  const displayScore = rating != null ? rating * 10 : null;
+
+  if (rating == null || displayScore == null) {
     return (
       <div className="player-card pass-grade-card">
         <div className="pass-grade-head">
@@ -15,30 +42,30 @@ export function PassGradePanel({ rating }: Props) {
     );
   }
 
-  const color = gradeColor(rating, 1);
-  const tier = gradeTier(rating, 1);
-  const pct = Math.max(1.5, Math.min(98.5, rating * 100));
+  const color = gradeColor(displayScore);
+  const tier = gradeTier(displayScore);
 
-  return (
+  const panel = (
     <div className="player-card pass-grade-card">
       <div className="pass-grade-head">
         <span className="pass-grade-icon"><i className="fa-solid fa-award" /></span>
         <span className="pass-grade-title">Overall Pass Grade</span>
-        <span className="pass-grade-tier" style={{ color, borderColor: `${color}55`, background: `${color}1a` }}>
+        <span className="pass-grade-tier" style={{ color, borderColor: `${color}55`, background: `${color}14` }}>
           {tier}
         </span>
       </div>
       <div className="pass-grade-body">
-        <div className="pass-grade-value">
-          <span className="pass-grade-score" style={{ color }}>{rating.toFixed(1)}</span>
-          <span className="pass-grade-scale">/ 10 · xP pass rating</span>
-        </div>
-        <div className="pass-grade-meter">
-          <div className="pass-grade-track">
-            <span className="pass-grade-marker" style={{ left: `${pct}%`, background: color }} />
+        <div className="pass-grade-visual">
+          <ScoreArc rating={rating} color={color} />
+          <div className="pass-grade-center">
+            <span className="pass-grade-score tabular" style={{ color }}>{displayScore.toFixed(1)}</span>
+            <span className="pass-grade-scale">/ 10</span>
           </div>
         </div>
+        <p className="pass-grade-caption">xP pass rating · within position pool</p>
       </div>
     </div>
   );
+
+  return <Tooltip content={PASS_GRADE_TOOLTIP} block>{panel}</Tooltip>;
 }

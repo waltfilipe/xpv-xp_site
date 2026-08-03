@@ -59,6 +59,8 @@ export type PlayerProfile = {
   xp_bars: XpBar[];
   origin_heatmap_b64?: string | null;
   long_pass_share_pct?: number | null;
+  long_pass_share_ref_avg_pct?: number | null;
+  long_pass_share_pctile?: number | null;
   xp_pass_rating?: number | null;
   xp_game_consistency_score?: number | null;
   test_impact_v2_p90?: number | null;
