@@ -32,7 +32,11 @@ export function PassScoreSections({ sections }: { sections: PassScoreSection[] }
                         {formatMetric(c.value, c.key)}
                       </span>
                     </div>
-                    <MetricGradientBar score={barScore} />
+                    <MetricGradientBar
+                      score={barScore}
+                      letter={s.letter}
+                      displayScore={s.display_score}
+                    />
                   </div>
                 </Tooltip>
               );

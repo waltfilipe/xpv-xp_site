@@ -41,8 +41,12 @@ type Props = {
   current: ProfileFilterState;
 };
 
-function formatHeight(m: number): string {
-  return m.toFixed(2);
+function formatHeightFromCm(cm: number): string {
+  return (cm / 100).toFixed(2);
+}
+
+function metersToCm(m: number): number {
+  return Math.round(m * 100);
 }
 
 export function ProfileFilters({ options: initialOptions, nationalities: initialNats, current }: Props) {
@@ -76,8 +80,8 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
     contract_max: Number(current.contract_max ?? defaults.contract_year[1]),
     minutes_min: Number(current.minutes_min ?? defaults.minutes_slider[0]),
     minutes_max: Number(current.minutes_max ?? defaults.minutes_slider[1]),
-    height_min: Number(current.height_min ?? defaults.height_slider_m[0]),
-    height_max: Number(current.height_max ?? defaults.height_slider_m[1]),
+    height_min_cm: metersToCm(Number(current.height_min ?? defaults.height_slider_m[0])),
+    height_max_cm: metersToCm(Number(current.height_max ?? defaults.height_slider_m[1])),
     regions: (current.regions?.split(",") ?? defaults.nationality_regions).filter(Boolean),
     countries: (current.countries?.split(",") ?? defaults.nationality_countries).filter(Boolean),
   }));
@@ -103,8 +107,12 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
       contract_max: state.contract_max < defaults.contract_year[1] ? String(state.contract_max) : undefined,
       minutes_min: state.minutes_min > defaults.minutes_slider[0] ? String(state.minutes_min) : undefined,
       minutes_max: state.minutes_max < defaults.minutes_slider[1] ? String(state.minutes_max) : undefined,
-      height_min: state.height_min > defaults.height_slider_m[0] ? formatHeight(state.height_min) : undefined,
-      height_max: state.height_max < defaults.height_slider_m[1] ? formatHeight(state.height_max) : undefined,
+      height_min: state.height_min_cm > metersToCm(defaults.height_slider_m[0])
+        ? formatHeightFromCm(state.height_min_cm)
+        : undefined,
+      height_max: state.height_max_cm < metersToCm(defaults.height_slider_m[1])
+        ? formatHeightFromCm(state.height_max_cm)
+        : undefined,
       regions:
         state.regions.length && !(state.regions.length === 1 && state.regions[0] === "World")
           ? state.regions.join(",")
@@ -131,8 +139,8 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
       contract_max: defaults.contract_year[1],
       minutes_min: defaults.minutes_slider[0],
       minutes_max: defaults.minutes_slider[1],
-      height_min: defaults.height_slider_m[0],
-      height_max: defaults.height_slider_m[1],
+      height_min_cm: metersToCm(defaults.height_slider_m[0]),
+      height_max_cm: metersToCm(defaults.height_slider_m[1]),
       regions: [...defaults.nationality_regions],
       countries: [...defaults.nationality_countries],
     });
@@ -266,15 +274,15 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
 
           <div className="filter-field filter-range filter-range-compact">
             <span className="filter-label">
-              Altura (m) <strong className="tabular">{formatHeight(state.height_min)}–{formatHeight(state.height_max)}</strong>
+              Altura (m) <strong className="tabular">{formatHeightFromCm(state.height_min_cm)}–{formatHeightFromCm(state.height_max_cm)}</strong>
             </span>
             <RangeDual
               className="range-dual-compact"
-              min={options.height_range_m.min}
-              max={options.height_range_m.max}
-              step={0.01}
-              values={[state.height_min, state.height_max]}
-              onChange={([height_min, height_max]) => setState((s) => ({ ...s, height_min, height_max }))}
+              min={metersToCm(options.height_range_m.min)}
+              max={metersToCm(options.height_range_m.max)}
+              step={1}
+              values={[state.height_min_cm, state.height_max_cm]}
+              onChange={([height_min_cm, height_max_cm]) => setState((s) => ({ ...s, height_min_cm, height_max_cm }))}
             />
           </div>
         </div>

@@ -45,18 +45,18 @@ export function ProfileView({ playerId }: { playerId: string }) {
         <div className="pa-col pa-col-identity">
           <div className="player-card identity-card">
             <div className="identity-hero identity-hero-xl">
-              <div className="identity-photo-wrap identity-photo-wrap-xl">
+              <div className="identity-photo-wrap identity-photo-wrap-xxl">
                 {p.photo_url ? (
                   <Image
                     src={String(p.photo_url)}
                     alt=""
-                    width={168}
-                    height={168}
+                    width={208}
+                    height={208}
                     className="identity-photo"
                     unoptimized
                   />
                 ) : (
-                  <div className="identity-photo-placeholder identity-photo-placeholder-xl">
+                  <div className="identity-photo-placeholder identity-photo-placeholder-xxl">
                     {String(p.player_name ?? "?").charAt(0)}
                   </div>
                 )}
@@ -70,19 +70,19 @@ export function ProfileView({ playerId }: { playerId: string }) {
 
                 <dl className="identity-facts">
                   <div className="identity-fact">
-                    <dt>Idade</dt>
+                    <dt><span className="identity-fact-icon" aria-hidden="true">🎂</span> Idade</dt>
                     <dd className="tabular">{p.age != null ? String(p.age) : "—"}</dd>
                   </div>
                   <div className="identity-fact">
-                    <dt>Altura</dt>
+                    <dt><span className="identity-fact-icon" aria-hidden="true">📏</span> Altura</dt>
                     <dd>{String(p.height ?? "—")}</dd>
                   </div>
                   <div className="identity-fact">
-                    <dt>Nacionalidade</dt>
+                    <dt><span className="identity-fact-icon" aria-hidden="true">🌍</span> Nacionalidade</dt>
                     <dd>{String(p.nationality ?? "—")}</dd>
                   </div>
                   <div className="identity-fact">
-                    <dt>Pé</dt>
+                    <dt><span className="identity-fact-icon" aria-hidden="true">🦶</span> Pé</dt>
                     <dd>{String(p.dominant_foot ?? "—")}</dd>
                   </div>
                 </dl>
@@ -91,15 +91,15 @@ export function ProfileView({ playerId }: { playerId: string }) {
 
             <div className="identity-meta-row">
               <div className="identity-meta-pill">
-                <span>Valor</span>
+                <span><span className="identity-fact-icon" aria-hidden="true">💰</span> Valor</span>
                 <strong>{String(p.market_value ?? "—")}</strong>
               </div>
               <div className="identity-meta-pill">
-                <span>Contrato</span>
+                <span>📅 Contrato</span>
                 <strong>{formatContractUntil(p.contract_until)}</strong>
               </div>
               <div className="identity-meta-pill">
-                <span>Minutos</span>
+                <span>⏱️ Minutos</span>
                 <strong className="tabular">{p.minutes != null ? String(p.minutes) : "—"}</strong>
               </div>
             </div>

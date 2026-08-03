@@ -1,29 +1,43 @@
 "use client";
 
-import { barPosition, gradeColor, gradientBarTier } from "@/lib/gradeColors";
+import { barPosition, letterGradePillColor, passGradeGradientColor, passGradePct } from "@/lib/gradeColors";
 
 type Props = {
   score: number | null | undefined;
+  letter?: string | null;
+  displayScore?: number | null;
 };
 
-export function MetricGradientBar({ score }: Props) {
+export function MetricGradientBar({ score, letter, displayScore }: Props) {
   const pos = barPosition(score);
-  const tier = score != null ? gradientBarTier(score) : "cool";
-  const glowColor = gradeColor(score ?? 0, 10);
+  const sectionColor = letterGradePillColor(letter, displayScore);
+  const metricColor = score != null ? passGradeGradientColor(passGradePct(score)) : sectionColor;
 
   return (
-    <div className={`metric-gradient-bar metric-gradient-bar-tier-${tier}${score == null ? " metric-gradient-bar-empty" : ""}`}>
+    <div className={`metric-gradient-bar${score == null ? " metric-gradient-bar-empty" : ""}`}>
       <div className="metric-gradient-bar-track">
-        <div className="metric-gradient-bar-clip">
-          {score != null && (
-            <span
-              className="metric-gradient-bar-glow"
-              style={{ left: `${pos}%`, background: glowColor }}
-            />
-          )}
-        </div>
+        <div
+          className="metric-gradient-bar-spectrum"
+          aria-hidden="true"
+        />
         {score != null && (
-          <span className="metric-gradient-bar-marker" style={{ left: `${pos}%` }} />
+          <div
+            className="metric-gradient-bar-fill"
+            style={{
+              width: `${pos}%`,
+              background: `linear-gradient(90deg, ${sectionColor}33 0%, ${metricColor}88 100%)`,
+            }}
+          />
+        )}
+        {score != null && (
+          <span
+            className="metric-gradient-bar-marker"
+            style={{
+              left: `${pos}%`,
+              background: metricColor,
+              boxShadow: `0 0 10px ${metricColor}66`,
+            }}
+          />
         )}
       </div>
     </div>

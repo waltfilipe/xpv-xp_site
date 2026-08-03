@@ -779,12 +779,26 @@ button, input, select { font: inherit; }
     0 0 0 1px rgba(255, 255, 255, 0.04) inset;
 }
 
+.identity-photo-wrap-xxl {
+  width: 208px;
+  height: 208px;
+  border-radius: 20px;
+  border: 1px solid rgba(147, 197, 253, 0.32);
+  box-shadow:
+    0 20px 44px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+}
+
 .identity-photo-placeholder-lg {
   font-size: 2.35rem;
 }
 
 .identity-photo-placeholder-xl {
   font-size: 3rem;
+}
+
+.identity-photo-placeholder-xxl {
+  font-size: 3.6rem;
 }
 
 .identity-hero-text {
@@ -855,11 +869,31 @@ button, input, select { font: inherit; }
 }
 
 .identity-fact dt {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.76rem;
   font-weight: 600;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.identity-fact-icon {
+  font-size: 0.82rem;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.identity-meta-pill span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
 }
 
 .identity-fact dd {
@@ -883,14 +917,6 @@ button, input, select { font: inherit; }
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
   background: rgba(15, 23, 42, 0.55);
-}
-
-.identity-meta-pill span {
-  font-size: 0.68rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
 }
 
 .identity-meta-pill strong {
@@ -1521,13 +1547,17 @@ button, input, select { font: inherit; }
   justify-content: space-between;
   gap: 0.5rem;
   margin-bottom: 0.55rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.06) 0%, transparent 100%);
+  border-left: 2px solid rgba(167, 139, 250, 0.35);
 }
 
 .pass-score-section-title {
-  font-size: 0.92rem;
+  font-size: 0.94rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: #f1f5f9;
+  color: #f8fafc;
 }
 
 .pass-score-metrics {
@@ -1563,55 +1593,46 @@ button, input, select { font: inherit; }
 
 .metric-gradient-bar-track {
   position: relative;
-  height: 6px;
+  height: 5px;
   border-radius: 999px;
-  background: rgba(30, 41, 59, 0.85);
+  background: rgba(30, 41, 59, 0.55);
   overflow: hidden;
 }
 
-.metric-gradient-bar-clip {
+.metric-gradient-bar-spectrum {
   position: absolute;
   inset: 0;
   border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    rgba(127, 29, 29, 0.22) 0%,
+    rgba(180, 83, 9, 0.2) 24%,
+    rgba(202, 138, 4, 0.2) 42%,
+    rgba(101, 163, 13, 0.2) 68%,
+    rgba(22, 163, 74, 0.22) 100%
+  );
+  opacity: 0.85;
 }
 
-.metric-gradient-bar-tier-cool .metric-gradient-bar-clip {
-  background: linear-gradient(90deg, #1e3a5f 0%, #2563eb 45%, #38bdf8 100%);
-}
-
-.metric-gradient-bar-tier-warm .metric-gradient-bar-clip {
-  background: linear-gradient(90deg, #78350f 0%, #ca8a04 45%, #facc15 100%);
-}
-
-.metric-gradient-bar-tier-hot .metric-gradient-bar-clip {
-  background: linear-gradient(90deg, #14532d 0%, #16a34a 45%, #4ade80 100%);
-}
-
-.metric-gradient-bar-glow {
+.metric-gradient-bar-fill {
   position: absolute;
-  top: 50%;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  filter: blur(4px);
-  opacity: 0.95;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 .metric-gradient-bar-marker {
   position: absolute;
   top: 50%;
-  width: 3px;
-  height: 10px;
+  width: 2px;
+  height: 9px;
   border-radius: 2px;
-  background: #f8fafc;
-  box-shadow: 0 0 8px rgba(248, 250, 252, 0.55);
   transform: translate(-50%, -50%);
   z-index: 2;
 }
 
-.metric-gradient-bar-empty .metric-gradient-bar-clip {
-  background: rgba(51, 65, 85, 0.55);
+.metric-gradient-bar-empty .metric-gradient-bar-spectrum {
+  opacity: 0.35;
 }
 
 .grade-accordion {

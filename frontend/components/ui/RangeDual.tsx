@@ -11,7 +11,7 @@ type Props = {
 
 export function RangeDual({ min, max, values, onChange, step = 1, className }: Props) {
   const [lo, hi] = values;
-  const span = Math.max(1, max - min);
+  const span = Math.max(step, max - min);
   const loPct = ((lo - min) / span) * 100;
   const hiPct = ((hi - min) / span) * 100;
 
