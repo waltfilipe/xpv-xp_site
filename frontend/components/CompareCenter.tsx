@@ -48,13 +48,13 @@ export function CompareCenter({ pillars, passGrid }: { pillars: CompareMetric[];
                 <div className="compare-metric-label">{m.label}</div>
                 <div className="compare-letters">
                   <span className={`compare-grade-side${m.winner === "a" ? " compare-grade-winner" : ""}`}>
-                    <GradeBadge letter={m.letter_a} size="sm" />
+                    <GradeBadge letter={m.letter_a} displayScore={m.value_a} size="sm" />
                     <span className="tabular grade-a-score" style={{ color: gradeColor(scoreA) }}>
                       {m.value_a?.toFixed(1) ?? "—"}
                     </span>
                   </span>
                   <span className={`compare-grade-side${m.winner === "b" ? " compare-grade-winner" : ""}`}>
-                    <GradeBadge letter={m.letter_b} size="sm" />
+                    <GradeBadge letter={m.letter_b} displayScore={m.value_b} size="sm" />
                     <span className="tabular grade-b-score" style={{ color: gradeColor(scoreB) }}>
                       {m.value_b?.toFixed(1) ?? "—"}
                     </span>

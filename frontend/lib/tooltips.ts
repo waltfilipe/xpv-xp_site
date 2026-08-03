@@ -46,8 +46,10 @@ export const COMPONENT_LABELS: Record<string, string> = {
 };
 
 export const INDEX_TOOLTIPS: Record<string, string> = {
-  Consistency: "How stable game-to-game delivery grades are (low MAD of per-match scores).",
-  Impact: "Completed Test Impact v2 passes per game — high-value progression attempts.",
+  Consistency:
+    "Each match gets a 3–9 grade from game xP vs. all peer matches in the position. Badge when dispersion of those grades is low (MAD).",
+  Impact:
+    "50% xPV per completed pass and 50% Pass Impact v2 per game — destination value plus selective high-progression deliveries.",
 };
 
 export const PASS_GRADE_TOOLTIP =

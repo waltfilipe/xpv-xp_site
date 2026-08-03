@@ -1,28 +1,31 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { buildProfileUrl, type ProfileFilterState } from "@/lib/profileParams";
 
 type Option = { player_id: string; label: string };
 
-export function PlayerSelector({ options, currentId, league, search }: {
+export function PlayerSelector({
+  options,
+  currentId,
+  filters,
+}: {
   options: Option[];
   currentId?: string;
-  league?: string;
-  search?: string;
+  filters: ProfileFilterState;
 }) {
   const router = useRouter();
   if (!options.length) return null;
 
   return (
-    <div className="filters">
+    <div className="player-select-row">
+      <label className="filter-label" htmlFor="player-select">Jogador</label>
       <select
+        id="player-select"
+        className="player-select"
         value={currentId ?? options[0].player_id}
         onChange={(e) => {
-          const params = new URLSearchParams();
-          params.set("player", e.target.value);
-          if (league) params.set("league", league);
-          if (search) params.set("search", search);
-          router.push(`/profile?${params.toString()}`);
+          router.push(buildProfileUrl({ ...filters, player: e.target.value }));
         }}
       >
         {options.map((o) => (

@@ -7,10 +7,9 @@ import { LoadingState } from "@/components/LoadingState";
 import { PassGradePanel } from "@/components/PassGradePanel";
 import { PassLengthMix } from "@/components/PassLengthMix";
 import { PassScoreSections } from "@/components/PassScoreSections";
+import { XpIndicesPanel } from "@/components/XpIndicesPanel";
 import { XpProfileBars } from "@/components/XpProfileBars";
-import { Tooltip } from "@/components/ui/Tooltip";
 import { getPlayerProfile, type PlayerProfile } from "@/lib/api";
-import { INDEX_TOOLTIPS } from "@/lib/tooltips";
 
 export function ProfileView({ playerId }: { playerId: string }) {
   const [data, setData] = useState<PlayerProfile | null>(null);
@@ -44,18 +43,31 @@ export function ProfileView({ playerId }: { playerId: string }) {
       <div className="pa-layout">
         <div className="pa-col pa-col-identity">
           <div className="player-card identity-card">
-            <div className="identity-header">
-              <div className="identity-photo-wrap">
+            <div className="identity-hero">
+              <div className="identity-photo-wrap identity-photo-wrap-lg">
                 {p.photo_url ? (
-                  <Image src={String(p.photo_url)} alt="" width={58} height={58} className="identity-photo" unoptimized />
+                  <Image
+                    src={String(p.photo_url)}
+                    alt=""
+                    width={96}
+                    height={96}
+                    className="identity-photo"
+                    unoptimized
+                  />
                 ) : (
-                  <div className="identity-photo-placeholder">{String(p.player_name ?? "?").charAt(0)}</div>
+                  <div className="identity-photo-placeholder identity-photo-placeholder-lg">
+                    {String(p.player_name ?? "?").charAt(0)}
+                  </div>
                 )}
               </div>
-              <div className="identity-head-text">
+              <div className="identity-hero-text">
                 <h2 className="identity-title">{String(p.player_name ?? "—")}</h2>
-                <p className="identity-meta">{String(p.team ?? "—")} · {String(p.position ?? "—")}</p>
-                <span className="identity-chip">{String(p.league_source ?? p.league ?? "—").replace(/_/g, " ")}</span>
+                <p className="identity-subline">
+                  {String(p.team ?? "—")} · {String(p.position ?? "—")}
+                </p>
+                <span className="identity-chip">
+                  {String(p.league_source ?? p.league ?? "—").replace(/_/g, " ")}
+                </span>
               </div>
             </div>
 
@@ -84,29 +96,7 @@ export function ProfileView({ playerId }: { playerId: string }) {
             <div className="player-card xp-profile-card">
               <h3 className="section-label">xP Profile</h3>
               <XpProfileBars bars={data.xp_bars} />
-
-              <div className="xp-index-wrap">
-                <h4 className="section-label-sm">xP Indices</h4>
-                <div className="xp-index-list">
-                  <Tooltip content={INDEX_TOOLTIPS.Consistency} block>
-                    <div className="xp-index-row">
-                      <span>Consistency</span>
-                      <span className="stat-val tabular">
-                        {data.xp_game_consistency_score != null ? Number(data.xp_game_consistency_score).toFixed(1) : "—"}
-                      </span>
-                    </div>
-                  </Tooltip>
-                  <Tooltip content={INDEX_TOOLTIPS.Impact} block>
-                    <div className="xp-index-row">
-                      <span>Impact</span>
-                      <span className="stat-val tabular">
-                        {data.test_impact_v2_p90 != null ? Number(data.test_impact_v2_p90).toFixed(2) : "—"}
-                      </span>
-                    </div>
-                  </Tooltip>
-                </div>
-              </div>
-
+              <XpIndicesPanel indices={data.xp_indices ?? []} />
               <PassLengthMix data={data} />
             </div>
           </div>

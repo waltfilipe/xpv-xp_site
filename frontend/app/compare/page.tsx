@@ -7,7 +7,7 @@ import { LoadingState } from "@/components/LoadingState";
 import { PageHero } from "@/components/PageHero";
 import { PassLengthMix } from "@/components/PassLengthMix";
 import { XpProfileBars } from "@/components/XpProfileBars";
-import { getCompare, getPlayerOptions, type ComparePayload, type PlayerOption } from "@/lib/api";
+import { getCompare, getPlayerOptionsLegacy, type ComparePayload, type PlayerOption } from "@/lib/api";
 
 export default function ComparePage() {
   const [options, setOptions] = useState<PlayerOption[]>([]);
@@ -18,7 +18,7 @@ export default function ComparePage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getPlayerOptions().then((r) => {
+    getPlayerOptionsLegacy().then((r) => {
       setOptions(r.options);
       if (r.options[0]) setPlayerA(r.options[0].player_id);
       if (r.options[1]) setPlayerB(r.options[1].player_id);

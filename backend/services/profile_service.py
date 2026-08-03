@@ -99,4 +99,20 @@ def build_profile_payload(
         "xp_pass_rating": xp.get("xp_pass_rating"),
         "xp_game_consistency_score": xp.get("xp_game_consistency_score"),
         "test_impact_v2_p90": xp.get("test_impact_v2_p90"),
+        "xp_indices": [
+            {
+                "key": "consistency",
+                "label": "Consistency",
+                "tier": xp.get("xp_idx_consistency_tier"),
+                "value": xp.get("xp_game_consistency_score"),
+                "icon": "fa-wave-square",
+            },
+            {
+                "key": "impact",
+                "label": "Impact",
+                "tier": xp.get("xp_idx_impact_tier"),
+                "value": xp.get("test_impact_v2_p90"),
+                "icon": "fa-crosshairs",
+            },
+        ] if xp else [],
     }

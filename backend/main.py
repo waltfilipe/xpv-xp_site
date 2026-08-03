@@ -18,7 +18,9 @@ from services.compare_service import build_compare_payload  # noqa: E402
 from services.filters import (  # noqa: E402
     LEAGUE_OPTIONS,
     available_nationalities,
+    filter_options_meta,
     filter_player_pool,
+    parse_age_band,
     player_options,
 )
 from services.maps_service import (  # noqa: E402
@@ -107,6 +109,7 @@ def meta() -> dict[str, Any]:
         "league_options": [{"key": k, "label": l} for k, l in LEAGUE_OPTIONS],
         "position_groups": position_groups,
         "nationalities": available_nationalities(analysis_players),
+        "filter_options": filter_options_meta(),
         "description": (
             "Premier League, Serie A, La Liga, Bundesliga and Ligue 1 midfielders. "
             "Pass ratings (xT v4), progression ratings, and xP analytics."
@@ -160,14 +163,45 @@ def players_options(
     foot: str = Query("all"),
     search: str | None = Query(None),
     exclude: str | None = Query(None),
+    age_band: str = Query("all"),
+    age_slider_min: int | None = Query(None, ge=16, le=42),
+    age_slider_max: int | None = Query(None, ge=16, le=42),
+    value_min_m: int = Query(0, ge=0),
+    value_max_m: int = Query(150, ge=0),
+    contract_year_min: int = Query(2026),
+    contract_year_max: int = Query(2033),
+    nationality_regions: str | None = Query(None),
+    nationality_countries: str | None = Query(None),
 ) -> dict[str, Any]:
+    import nationality_groups as ng
+
     parts = _bundle_parts()
     analysis_players = parts["analysis_players"]
     progression_by_id = parts["progression_by_id"]
-    players_by_id = parts["players_by_id"]
     xp_by_id = parts["xp_by_id"]
 
-    pool = filter_player_pool(analysis_players, progression_by_id, league=league, foot=foot)
+    age_min, age_max = parse_age_band(age_band)
+    regions = [r.strip() for r in (nationality_regions or "").split(",") if r.strip()]
+    countries = [c.strip() for c in (nationality_countries or "").split(",") if c.strip()]
+    if not regions:
+        regions = [ng.NATIONALITY_REGION_WORLD]
+    allowed_nationalities = ng.resolve_nationality_filter(regions, countries)
+
+    pool = filter_player_pool(
+        analysis_players,
+        progression_by_id,
+        league=league,
+        age_min=age_min,
+        age_max=age_max,
+        age_slider_min=age_slider_min,
+        age_slider_max=age_slider_max,
+        foot=foot,
+        value_min_eur=int(value_min_m) * 1_000_000,
+        value_max_eur=int(value_max_m) * 1_000_000,
+        contract_year_min=contract_year_min,
+        contract_year_max=contract_year_max,
+        nationalities=list(allowed_nationalities) if allowed_nationalities else None,
+    )
     if search:
         q = search.lower()
         pool = [p for p in pool if q in str(p.get("player_name", "")).lower()]

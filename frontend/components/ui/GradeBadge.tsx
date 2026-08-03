@@ -1,14 +1,19 @@
-import { letterGradeBg, letterGradeColor } from "@/lib/gradeColors";
+import { badgeTextColor, letterGradePillColor } from "@/lib/gradeColors";
 
-type Props = { letter: string | null | undefined; size?: "sm" | "md" | "lg" };
+type Props = {
+  letter: string | null | undefined;
+  displayScore?: number | null;
+  size?: "sm" | "md" | "lg";
+};
 
-export function GradeBadge({ letter, size = "md" }: Props) {
+export function GradeBadge({ letter, displayScore, size = "md" }: Props) {
   const l = letter ?? "—";
-  const color = letterGradeColor(letter);
+  const bg = letterGradePillColor(letter, displayScore);
+  const color = badgeTextColor(bg);
   return (
     <span
       className={`grade-badge grade-badge-${size}`}
-      style={{ color, background: letterGradeBg(letter), borderColor: `${color}44` }}
+      style={{ color, background: bg, borderColor: `${bg}88` }}
     >
       {l}
     </span>

@@ -2,6 +2,9 @@
  * Browser → same origin (/api/...) proxied by Next.js rewrites.
  * Server  → backend directly (BACKEND_URL / 127.0.0.1:8000).
  */
+import type { ProfileFilterState } from "@/lib/profileParams";
+import { filtersToApiParams } from "@/lib/profileParams";
+
 function getApiBase(): string {
   if (typeof window !== "undefined") return "";
   return process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
@@ -52,6 +55,14 @@ export type PassScoreSection = {
 
 export type XpBar = { key: string; label: string; value?: number | null; rank?: number | null };
 
+export type XpIndexItem = {
+  key: string;
+  label: string;
+  tier?: string | null;
+  value?: number | null;
+  icon?: string;
+};
+
 export type PlayerProfile = {
   player: Record<string, unknown>;
   xp: Record<string, unknown>;
@@ -64,6 +75,7 @@ export type PlayerProfile = {
   xp_pass_rating?: number | null;
   xp_game_consistency_score?: number | null;
   test_impact_v2_p90?: number | null;
+  xp_indices?: XpIndexItem[];
 };
 
 export type CompareMetric = {
@@ -110,6 +122,7 @@ export function getMeta() {
     league_options: { key: string; label: string }[];
     position_groups: string[];
     nationalities: string[];
+    filter_options?: Record<string, unknown>;
     description: string;
   }>("/api/meta");
 }
@@ -124,7 +137,14 @@ export function getPlayers(params?: { league?: string; position_group?: string; 
   return fetchApi<{ total: number; players: PlayerSummary[] }>(`/api/players${q ? `?${q}` : ""}`);
 }
 
-export function getPlayerOptions(params?: { league?: string; exclude?: string; search?: string }) {
+export function getPlayerOptions(filters: ProfileFilterState = {}) {
+  const qs = new URLSearchParams(filtersToApiParams(filters));
+  if (filters.search) qs.set("search", filters.search);
+  const q = qs.toString();
+  return fetchApi<{ options: PlayerOption[] }>(`/api/players/options${q ? `?${q}` : ""}`);
+}
+
+export function getPlayerOptionsLegacy(params?: { league?: string; exclude?: string; search?: string }) {
   const qs = new URLSearchParams();
   if (params?.league) qs.set("league", params.league);
   if (params?.exclude) qs.set("exclude", params.exclude);

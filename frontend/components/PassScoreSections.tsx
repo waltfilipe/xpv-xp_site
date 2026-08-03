@@ -19,7 +19,7 @@ export function PassScoreSections({ sections }: { sections: PassScoreSection[] }
                   <Tooltip content={PASS_SCORE_TOOLTIPS[s.title] ?? ""}>
                     <span className="grade-card-title">{s.title}</span>
                   </Tooltip>
-                  <GradeBadge letter={s.letter} size="sm" />
+                  <GradeBadge letter={s.letter} displayScore={s.display_score} size="sm" />
                   <span className="grade-card-score tabular" style={{ color }}>
                     {s.display_score != null ? s.display_score.toFixed(1) : "—"}
                   </span>

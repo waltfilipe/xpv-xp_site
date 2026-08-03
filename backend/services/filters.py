@@ -27,6 +27,64 @@ LEAGUE_OPTIONS = [
     ("ligue1", "Ligue 1"),
 ]
 
+FOOT_OPTIONS = [
+    ("all", "Todos"),
+    ("left", "Esquerdo"),
+    ("right", "Direito"),
+    ("both", "Ambidestro"),
+]
+
+AGE_BAND_OPTIONS: tuple[tuple[str, int | None, int | None], ...] = (
+    ("all", None, None),
+    ("u21", None, 21),
+    ("u23", 22, 23),
+    ("24_30", 24, 30),
+    ("over30", 31, None),
+)
+
+AGE_BAND_LABELS = {
+    "all": "Todas as idades",
+    "u21": "U21",
+    "u23": "U23",
+    "24_30": "24-30",
+    "over30": ">30",
+}
+
+
+def parse_age_band(age_band: str | None) -> tuple[int | None, int | None]:
+    key = (age_band or "all").strip().lower()
+    for band_key, lo, hi in AGE_BAND_OPTIONS:
+        if band_key == key:
+            return lo, hi
+    return None, None
+
+
+def filter_options_meta() -> dict[str, Any]:
+    import nationality_groups as ng
+
+    return {
+        "leagues": [{"key": k, "label": l} for k, l in LEAGUE_OPTIONS],
+        "foot": [{"key": k, "label": l} for k, l in FOOT_OPTIONS],
+        "age_bands": [
+            {"key": k, "label": AGE_BAND_LABELS.get(k, k), "min": lo, "max": hi}
+            for k, lo, hi in AGE_BAND_OPTIONS
+        ],
+        "nationality_regions": list(ng.NATIONALITY_REGION_OPTIONS),
+        "age_range": {"min": pp.MIN_PLAYER_AGE, "max": pp.MAX_PLAYER_AGE},
+        "value_range_m": {"min": 0, "max": int(VALUE_SLIDER_MAX_EUR / 1_000_000)},
+        "contract_year_range": {"min": CONTRACT_YEAR_MIN, "max": CONTRACT_YEAR_MAX},
+        "defaults": {
+            "league": "all",
+            "age_band": "all",
+            "age_slider": [pp.MIN_PLAYER_AGE, pp.MAX_PLAYER_AGE],
+            "foot": "all",
+            "value_slider_m": [0, int(VALUE_SLIDER_MAX_EUR / 1_000_000)],
+            "contract_year": [CONTRACT_YEAR_MIN, CONTRACT_YEAR_MAX],
+            "nationality_regions": [ng.NATIONALITY_REGION_WORLD],
+            "nationality_countries": [],
+        },
+    }
+
 
 def normalize_filter_foot(value: str | None) -> str | None:
     if not value:
