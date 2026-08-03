@@ -7,7 +7,7 @@ import { LoadingState } from "@/components/LoadingState";
 import { PageHero } from "@/components/PageHero";
 import { PassLengthMix } from "@/components/PassLengthMix";
 import { XpProfileBars } from "@/components/XpProfileBars";
-import { POSITION_FAMILIES } from "@/lib/filterDefaults";
+import { POSITION_FAMILIES } from "@/lib/positionFamilies";
 import { getCompare, getPlayerOptionsLegacy, type ComparePayload, type PlayerOption } from "@/lib/api";
 
 export default function ComparePage() {

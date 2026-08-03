@@ -5,7 +5,8 @@ import { FormEvent, useEffect, useMemo, useState, useTransition } from "react";
 import { RangeDual } from "@/components/ui/RangeDual";
 import { getMeta } from "@/lib/api";
 import type { FilterOptionsMeta } from "@/lib/filterTypes";
-import { mergeFilterOptions, positionBlocksForFamily } from "@/lib/filterDefaults";
+import { mergeFilterOptions } from "@/lib/filterDefaults";
+import { positionBlocksForFamily } from "@/lib/positionFamilies";
 import type { ProfileFilterState } from "@/lib/profileParams";
 import { buildProfileUrl } from "@/lib/profileParams";
 

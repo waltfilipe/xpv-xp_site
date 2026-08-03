@@ -5,7 +5,7 @@ import { Suspense, useEffect, useState } from "react";
 import { LoadingState } from "@/components/LoadingState";
 import { PageHero } from "@/components/PageHero";
 import { ScatterChart } from "@/components/ScatterChart";
-import { POSITION_FAMILIES } from "@/lib/filterDefaults";
+import { POSITION_FAMILIES } from "@/lib/positionFamilies";
 import {
   getAggregatedMaps,
   getMapsOptions,

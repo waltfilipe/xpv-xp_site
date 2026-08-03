@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { PageHero } from "@/components/PageHero";
-import { POSITION_FAMILIES } from "@/lib/filterDefaults";
+import { POSITION_FAMILIES } from "@/lib/positionFamilies";
 import { getMeta, getPlayers } from "@/lib/api";
 import { PlayersFilters } from "./PlayersFilters";
 
