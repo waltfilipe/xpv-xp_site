@@ -1,4 +1,4 @@
-import type { FilterOptionsMeta } from "@/components/ProfileFilters";
+import type { FilterOptionsMeta } from "@/lib/filterTypes";
 import { LETTER_GRADE_FILTER_OPTIONS } from "@/lib/gradeColors";
 
 export const DEFAULT_FILTER_OPTIONS: FilterOptionsMeta = {
