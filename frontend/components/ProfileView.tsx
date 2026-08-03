@@ -52,16 +52,16 @@ export function ProfileView({ playerId }: { playerId: string }) {
       <div className="pa-layout">
         <div className="pa-col pa-col-identity">
           <div className="player-card identity-card">
-            <div className="identity-photo-wrap identity-photo-hero">
+            <div className="identity-photo-hero">
               {p.photo_url ? (
                 <Image
                   src={String(p.photo_url)}
                   alt=""
-                  width={400}
-                  height={400}
+                  fill
                   className="identity-photo"
                   unoptimized
                   priority
+                  sizes="(max-width: 1100px) 90vw, 420px"
                 />
               ) : (
                 <div className="identity-photo-placeholder identity-photo-placeholder-hero">
