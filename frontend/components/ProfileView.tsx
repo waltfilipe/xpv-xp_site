@@ -44,41 +44,64 @@ export function ProfileView({ playerId }: { playerId: string }) {
       <div className="pa-layout">
         <div className="pa-col pa-col-identity">
           <div className="player-card identity-card">
-            <div className="identity-hero">
-              <div className="identity-photo-wrap identity-photo-wrap-lg">
+            <div className="identity-hero identity-hero-xl">
+              <div className="identity-photo-wrap identity-photo-wrap-xl">
                 {p.photo_url ? (
                   <Image
                     src={String(p.photo_url)}
                     alt=""
-                    width={120}
-                    height={120}
+                    width={168}
+                    height={168}
                     className="identity-photo"
                     unoptimized
                   />
                 ) : (
-                  <div className="identity-photo-placeholder identity-photo-placeholder-lg">
+                  <div className="identity-photo-placeholder identity-photo-placeholder-xl">
                     {String(p.player_name ?? "?").charAt(0)}
                   </div>
                 )}
               </div>
+
               <div className="identity-hero-text">
                 <h2 className="identity-title">{String(p.player_name ?? "—")}</h2>
                 <p className="identity-subline">
                   {String(p.team ?? "—")} · {String(p.position ?? "—")}
                 </p>
+
+                <dl className="identity-facts">
+                  <div className="identity-fact">
+                    <dt>Idade</dt>
+                    <dd className="tabular">{p.age != null ? String(p.age) : "—"}</dd>
+                  </div>
+                  <div className="identity-fact">
+                    <dt>Altura</dt>
+                    <dd>{String(p.height ?? "—")}</dd>
+                  </div>
+                  <div className="identity-fact">
+                    <dt>Nacionalidade</dt>
+                    <dd>{String(p.nationality ?? "—")}</dd>
+                  </div>
+                  <div className="identity-fact">
+                    <dt>Pé</dt>
+                    <dd>{String(p.dominant_foot ?? "—")}</dd>
+                  </div>
+                </dl>
               </div>
             </div>
 
-            <div className="identity-divider" />
-
-            <div className="metric-lines">
-              <div className="metric-line"><span>Idade</span><span className="stat-val tabular">{p.age != null ? String(p.age) : "—"}</span></div>
-              <div className="metric-line"><span>Altura</span><span className="stat-val">{String(p.height ?? "—")}</span></div>
-              <div className="metric-line"><span>Nacionalidade</span><span className="stat-val">{String(p.nationality ?? "—")}</span></div>
-              <div className="metric-line"><span>Pé</span><span className="stat-val">{String(p.dominant_foot ?? "—")}</span></div>
-              <div className="metric-line"><span>Valor</span><span className="stat-val">{String(p.market_value ?? "—")}</span></div>
-              <div className="metric-line"><span>Contrato</span><span className="stat-val">{formatContractUntil(p.contract_until)}</span></div>
-              <div className="metric-line"><span>Minutos</span><span className="stat-val tabular">{p.minutes != null ? String(p.minutes) : "—"}</span></div>
+            <div className="identity-meta-row">
+              <div className="identity-meta-pill">
+                <span>Valor</span>
+                <strong>{String(p.market_value ?? "—")}</strong>
+              </div>
+              <div className="identity-meta-pill">
+                <span>Contrato</span>
+                <strong>{formatContractUntil(p.contract_until)}</strong>
+              </div>
+              <div className="identity-meta-pill">
+                <span>Minutos</span>
+                <strong className="tabular">{p.minutes != null ? String(p.minutes) : "—"}</strong>
+              </div>
             </div>
 
             {data.origin_heatmap_b64 && (

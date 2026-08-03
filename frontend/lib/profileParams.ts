@@ -10,6 +10,10 @@ export type ProfileFilterState = {
   value_max?: string;
   contract_min?: string;
   contract_max?: string;
+  minutes_min?: string;
+  minutes_max?: string;
+  height_min?: string;
+  height_max?: string;
   regions?: string;
   countries?: string;
 };
@@ -31,6 +35,10 @@ export function filtersFromRecord(params: Record<string, string | string[] | und
     value_max: get("value_max"),
     contract_min: get("contract_min"),
     contract_max: get("contract_max"),
+    minutes_min: get("minutes_min"),
+    minutes_max: get("minutes_max"),
+    height_min: get("height_min"),
+    height_max: get("height_max"),
     regions: get("regions"),
     countries: get("countries"),
   };
@@ -52,6 +60,10 @@ export function buildProfileQuery(filters: ProfileFilterState): string {
   set("value_max", filters.value_max);
   set("contract_min", filters.contract_min);
   set("contract_max", filters.contract_max);
+  set("minutes_min", filters.minutes_min);
+  set("minutes_max", filters.minutes_max);
+  set("height_min", filters.height_min);
+  set("height_max", filters.height_max);
   set("regions", filters.regions);
   set("countries", filters.countries);
   return params.toString();
@@ -71,6 +83,10 @@ export function filtersToApiParams(filters: ProfileFilterState): Record<string, 
     value_max_m: filters.value_max ?? "150",
     contract_year_min: filters.contract_min ?? "2026",
     contract_year_max: filters.contract_max ?? "2033",
+    minutes_min: filters.minutes_min ?? "0",
+    minutes_max: filters.minutes_max ?? "3600",
+    height_min_m: filters.height_min ?? "1.60",
+    height_max_m: filters.height_max ?? "2.05",
   };
   if (filters.search) out.search = filters.search;
   if (filters.age_min) out.age_slider_min = filters.age_min;

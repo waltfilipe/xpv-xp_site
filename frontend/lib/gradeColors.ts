@@ -112,6 +112,13 @@ export function gradientBarTier(score: number): "cool" | "warm" | "hot" {
   return "cool";
 }
 
+/** Map pool rank (1 = best) to a 0–10 bar score for gradient bars. */
+export function rankToBarScore(rank?: number | null, rankPool?: number | null): number | null {
+  if (rank == null || rankPool == null || rankPool <= 1) return null;
+  const pct = 1 - (rank - 1) / (rankPool - 1);
+  return 4.5 + pct * 4.5;
+}
+
 export const XP_INDEX_TIER_LABELS: Record<string, string> = {
   elite: "Elite",
   above: "Above average",

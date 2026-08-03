@@ -32,6 +32,8 @@ export const DEFAULT_FILTER_OPTIONS: FilterOptionsMeta = {
   age_range: { min: 16, max: 42 },
   value_range_m: { min: 0, max: 150 },
   contract_year_range: { min: 2026, max: 2033 },
+  minutes_range: { min: 0, max: 3600 },
+  height_range_m: { min: 1.6, max: 2.05 },
   defaults: {
     league: "all",
     age_band: "all",
@@ -39,6 +41,8 @@ export const DEFAULT_FILTER_OPTIONS: FilterOptionsMeta = {
     foot: "all",
     value_slider_m: [0, 150],
     contract_year: [2026, 2033],
+    minutes_slider: [0, 3600],
+    height_slider_m: [1.6, 2.05],
     nationality_regions: ["World"],
     nationality_countries: [],
   },
@@ -61,6 +65,8 @@ export function mergeFilterOptions(
     age_range: fo?.age_range ?? base.age_range,
     value_range_m: fo?.value_range_m ?? base.value_range_m,
     contract_year_range: fo?.contract_year_range ?? base.contract_year_range,
+    minutes_range: fo?.minutes_range ?? base.minutes_range,
+    height_range_m: fo?.height_range_m ?? base.height_range_m,
     defaults: { ...base.defaults, ...(fo?.defaults ?? {}) },
   };
 }

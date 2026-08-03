@@ -170,6 +170,10 @@ def players_options(
     value_max_m: int = Query(150, ge=0),
     contract_year_min: int = Query(2026),
     contract_year_max: int = Query(2033),
+    minutes_min: int = Query(0, ge=0),
+    minutes_max: int = Query(3600, ge=0),
+    height_min_m: float = Query(1.60, ge=1.4, le=2.2),
+    height_max_m: float = Query(2.05, ge=1.4, le=2.2),
     nationality_regions: str | None = Query(None),
     nationality_countries: str | None = Query(None),
 ) -> dict[str, Any]:
@@ -200,6 +204,10 @@ def players_options(
         value_max_eur=int(value_max_m) * 1_000_000,
         contract_year_min=contract_year_min,
         contract_year_max=contract_year_max,
+        minutes_min=minutes_min,
+        minutes_max=minutes_max,
+        height_min_m=height_min_m,
+        height_max_m=height_max_m,
         nationalities=list(allowed_nationalities) if allowed_nationalities else None,
     )
     if search:

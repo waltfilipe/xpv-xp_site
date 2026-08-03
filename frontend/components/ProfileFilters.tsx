@@ -19,6 +19,8 @@ export type FilterOptionsMeta = {
   age_range: { min: number; max: number };
   value_range_m: { min: number; max: number };
   contract_year_range: { min: number; max: number };
+  minutes_range: { min: number; max: number };
+  height_range_m: { min: number; max: number };
   defaults: {
     league: string;
     age_band: string;
@@ -26,6 +28,8 @@ export type FilterOptionsMeta = {
     foot: string;
     value_slider_m: [number, number];
     contract_year: [number, number];
+    minutes_slider: [number, number];
+    height_slider_m: [number, number];
     nationality_regions: string[];
     nationality_countries: string[];
   };
@@ -37,11 +41,16 @@ type Props = {
   current: ProfileFilterState;
 };
 
+function formatHeight(m: number): string {
+  return m.toFixed(2);
+}
+
 export function ProfileFilters({ options: initialOptions, nationalities: initialNats, current }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [options, setOptions] = useState(initialOptions);
   const [nationalities, setNationalities] = useState(initialNats);
+  const [countriesOpen, setCountriesOpen] = useState(false);
 
   useEffect(() => {
     if (options.leagues.length > 1 && nationalities.length > 0) return;
@@ -65,11 +74,19 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
     value_max: Number(current.value_max ?? defaults.value_slider_m[1]),
     contract_min: Number(current.contract_min ?? defaults.contract_year[0]),
     contract_max: Number(current.contract_max ?? defaults.contract_year[1]),
+    minutes_min: Number(current.minutes_min ?? defaults.minutes_slider[0]),
+    minutes_max: Number(current.minutes_max ?? defaults.minutes_slider[1]),
+    height_min: Number(current.height_min ?? defaults.height_slider_m[0]),
+    height_max: Number(current.height_max ?? defaults.height_slider_m[1]),
     regions: (current.regions?.split(",") ?? defaults.nationality_regions).filter(Boolean),
     countries: (current.countries?.split(",") ?? defaults.nationality_countries).filter(Boolean),
   }));
 
   const selectedCountries = useMemo(() => new Set(state.countries), [state.countries]);
+
+  const countrySummary = state.countries.length
+    ? `${state.countries.length} selecionada${state.countries.length > 1 ? "s" : ""}`
+    : "Selecionar países";
 
   function toFilters(): ProfileFilterState {
     return {
@@ -84,6 +101,10 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
       value_max: state.value_max < defaults.value_slider_m[1] ? String(state.value_max) : undefined,
       contract_min: state.contract_min > defaults.contract_year[0] ? String(state.contract_min) : undefined,
       contract_max: state.contract_max < defaults.contract_year[1] ? String(state.contract_max) : undefined,
+      minutes_min: state.minutes_min > defaults.minutes_slider[0] ? String(state.minutes_min) : undefined,
+      minutes_max: state.minutes_max < defaults.minutes_slider[1] ? String(state.minutes_max) : undefined,
+      height_min: state.height_min > defaults.height_slider_m[0] ? formatHeight(state.height_min) : undefined,
+      height_max: state.height_max < defaults.height_slider_m[1] ? formatHeight(state.height_max) : undefined,
       regions:
         state.regions.length && !(state.regions.length === 1 && state.regions[0] === "World")
           ? state.regions.join(",")
@@ -108,9 +129,14 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
       value_max: defaults.value_slider_m[1],
       contract_min: defaults.contract_year[0],
       contract_max: defaults.contract_year[1],
+      minutes_min: defaults.minutes_slider[0],
+      minutes_max: defaults.minutes_slider[1],
+      height_min: defaults.height_slider_m[0],
+      height_max: defaults.height_slider_m[1],
       regions: [...defaults.nationality_regions],
       countries: [...defaults.nationality_countries],
     });
+    setCountriesOpen(false);
     startTransition(() => router.push("/profile"));
   }
 
@@ -142,7 +168,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
             <i className="fa-solid fa-sliders" /> Filtros do grupo
           </span>
           <span className="filter-sub">
-            Refine liga, idade, valor, contrato e nacionalidade do pool de meio-campistas.
+            Refine liga, idade, valor, contrato, minutos, altura e nacionalidade.
           </span>
         </div>
         <button type="button" className="btn btn-ghost btn-sm" onClick={clearFilters}>
@@ -181,11 +207,12 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
             </select>
           </label>
 
-          <div className="filter-field filter-range">
+          <div className="filter-field filter-range filter-range-compact">
             <span className="filter-label">
-              Ajuste fino de idade <strong className="tabular">{state.age_min}–{state.age_max}</strong>
+              Idade <strong className="tabular">{state.age_min}–{state.age_max}</strong>
             </span>
             <RangeDual
+              className="range-dual-compact"
               min={options.age_range.min}
               max={options.age_range.max}
               values={[state.age_min, state.age_max]}
@@ -195,11 +222,12 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
         </div>
 
         <div className="filter-grid filter-grid-2">
-          <div className="filter-field filter-range">
+          <div className="filter-field filter-range filter-range-compact">
             <span className="filter-label">
-              Valor de mercado (€M) <strong className="tabular">{state.value_min}–{state.value_max}</strong>
+              Valor (€M) <strong className="tabular">{state.value_min}–{state.value_max}</strong>
             </span>
             <RangeDual
+              className="range-dual-compact"
               min={options.value_range_m.min}
               max={options.value_range_m.max}
               values={[state.value_min, state.value_max]}
@@ -207,15 +235,46 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
             />
           </div>
 
-          <div className="filter-field filter-range">
+          <div className="filter-field filter-range filter-range-compact">
             <span className="filter-label">
-              Fim de contrato <strong className="tabular">{state.contract_min}–{state.contract_max}</strong>
+              Contrato <strong className="tabular">{state.contract_min}–{state.contract_max}</strong>
             </span>
             <RangeDual
+              className="range-dual-compact"
               min={options.contract_year_range.min}
               max={options.contract_year_range.max}
               values={[state.contract_min, state.contract_max]}
               onChange={([contract_min, contract_max]) => setState((s) => ({ ...s, contract_min, contract_max }))}
+            />
+          </div>
+        </div>
+
+        <div className="filter-grid filter-grid-2">
+          <div className="filter-field filter-range filter-range-compact">
+            <span className="filter-label">
+              Minutos <strong className="tabular">{state.minutes_min}–{state.minutes_max}</strong>
+            </span>
+            <RangeDual
+              className="range-dual-compact"
+              min={options.minutes_range.min}
+              max={options.minutes_range.max}
+              step={90}
+              values={[state.minutes_min, state.minutes_max]}
+              onChange={([minutes_min, minutes_max]) => setState((s) => ({ ...s, minutes_min, minutes_max }))}
+            />
+          </div>
+
+          <div className="filter-field filter-range filter-range-compact">
+            <span className="filter-label">
+              Altura (m) <strong className="tabular">{formatHeight(state.height_min)}–{formatHeight(state.height_max)}</strong>
+            </span>
+            <RangeDual
+              className="range-dual-compact"
+              min={options.height_range_m.min}
+              max={options.height_range_m.max}
+              step={0.01}
+              values={[state.height_min, state.height_max]}
+              onChange={([height_min, height_max]) => setState((s) => ({ ...s, height_min, height_max }))}
             />
           </div>
         </div>
@@ -235,17 +294,48 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
                 </button>
               ))}
             </div>
-            <div className="chip-group chip-group-scroll">
-              {nationalities.map((country) => (
-                <button
-                  key={country}
-                  type="button"
-                  className={`chip chip-sm${selectedCountries.has(country) ? " chip-active" : ""}`}
-                  onClick={() => toggleCountry(country)}
-                >
-                  {country}
-                </button>
-              ))}
+
+            <div className="nationality-countries-box">
+              <button
+                type="button"
+                className="nationality-countries-toggle"
+                onClick={() => setCountriesOpen((o) => !o)}
+                aria-expanded={countriesOpen}
+              >
+                <span>{countrySummary}</span>
+                <i className={`fa-solid fa-chevron-${countriesOpen ? "up" : "down"}`} />
+              </button>
+
+              {countriesOpen && (
+                <div className="nationality-countries-panel">
+                  {state.countries.length > 0 && (
+                    <div className="nationality-selected-chips">
+                      {state.countries.map((country) => (
+                        <button
+                          key={country}
+                          type="button"
+                          className="chip chip-sm chip-active"
+                          onClick={() => toggleCountry(country)}
+                        >
+                          {country} <i className="fa-solid fa-xmark" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="chip-group chip-group-scroll nationality-countries-list">
+                    {nationalities.map((country) => (
+                      <button
+                        key={country}
+                        type="button"
+                        className={`chip chip-sm${selectedCountries.has(country) ? " chip-active" : ""}`}
+                        onClick={() => toggleCountry(country)}
+                      >
+                        {country}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

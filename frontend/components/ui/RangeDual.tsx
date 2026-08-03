@@ -6,16 +6,17 @@ type Props = {
   values: [number, number];
   onChange: (values: [number, number]) => void;
   step?: number;
+  className?: string;
 };
 
-export function RangeDual({ min, max, values, onChange, step = 1 }: Props) {
+export function RangeDual({ min, max, values, onChange, step = 1, className }: Props) {
   const [lo, hi] = values;
   const span = Math.max(1, max - min);
   const loPct = ((lo - min) / span) * 100;
   const hiPct = ((hi - min) / span) * 100;
 
   return (
-    <div className="range-dual">
+    <div className={`range-dual${className ? ` ${className}` : ""}`}>
       <div className="range-dual-rail" aria-hidden="true">
         <div
           className="range-dual-fill"

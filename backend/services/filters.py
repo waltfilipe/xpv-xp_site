@@ -12,6 +12,10 @@ import transfermarkt_profiles as tm
 VALUE_SLIDER_MAX_EUR = 150_000_000
 CONTRACT_YEAR_MIN = 2026
 CONTRACT_YEAR_MAX = 2033
+MINUTES_MIN = 0
+MINUTES_MAX = 3600
+HEIGHT_MIN_M = 1.60
+HEIGHT_MAX_M = 2.05
 
 POSITION_BLOCKS: tuple[tuple[str, str, frozenset[str] | None, str | None], ...] = (
     ("cm", "Central Midfielders", None, "central_midfielders"),
@@ -73,6 +77,8 @@ def filter_options_meta() -> dict[str, Any]:
         "age_range": {"min": pp.MIN_PLAYER_AGE, "max": pp.MAX_PLAYER_AGE},
         "value_range_m": {"min": 0, "max": int(VALUE_SLIDER_MAX_EUR / 1_000_000)},
         "contract_year_range": {"min": CONTRACT_YEAR_MIN, "max": CONTRACT_YEAR_MAX},
+        "minutes_range": {"min": MINUTES_MIN, "max": MINUTES_MAX},
+        "height_range_m": {"min": HEIGHT_MIN_M, "max": HEIGHT_MAX_M},
         "defaults": {
             "league": "all",
             "age_band": "all",
@@ -80,6 +86,8 @@ def filter_options_meta() -> dict[str, Any]:
             "foot": "all",
             "value_slider_m": [0, int(VALUE_SLIDER_MAX_EUR / 1_000_000)],
             "contract_year": [CONTRACT_YEAR_MIN, CONTRACT_YEAR_MAX],
+            "minutes_slider": [MINUTES_MIN, MINUTES_MAX],
+            "height_slider_m": [HEIGHT_MIN_M, HEIGHT_MAX_M],
             "nationality_regions": [ng.NATIONALITY_REGION_WORLD],
             "nationality_countries": [],
         },
@@ -141,12 +149,18 @@ def filter_player_pool(
     value_max_eur: int = VALUE_SLIDER_MAX_EUR,
     contract_year_min: int = CONTRACT_YEAR_MIN,
     contract_year_max: int = CONTRACT_YEAR_MAX,
+    minutes_min: int = MINUTES_MIN,
+    minutes_max: int = MINUTES_MAX,
+    height_min_m: float = HEIGHT_MIN_M,
+    height_max_m: float = HEIGHT_MAX_M,
     nationalities: list[str] | None = None,
 ) -> list[dict]:
     effective_age_min = max(age_min or pp.MIN_PLAYER_AGE, age_slider_min or pp.MIN_PLAYER_AGE)
     effective_age_max = min(age_max or pp.MAX_PLAYER_AGE, age_slider_max or pp.MAX_PLAYER_AGE)
     filter_by_value = value_min_eur > 0 or value_max_eur < VALUE_SLIDER_MAX_EUR
     filter_by_contract = contract_year_min > CONTRACT_YEAR_MIN or contract_year_max < CONTRACT_YEAR_MAX
+    filter_by_minutes = minutes_min > MINUTES_MIN or minutes_max < MINUTES_MAX
+    filter_by_height = height_min_m > HEIGHT_MIN_M or height_max_m < HEIGHT_MAX_M
     allowed_nationalities = set(nationalities) if nationalities else None
 
     out: list[dict] = []
@@ -189,6 +203,23 @@ def filter_player_pool(
             except (TypeError, ValueError):
                 continue
             if contract_year < contract_year_min or contract_year > contract_year_max:
+                continue
+        if filter_by_minutes:
+            minutes = player.get("minutes")
+            if minutes is None:
+                continue
+            try:
+                minutes_val = int(minutes)
+            except (TypeError, ValueError):
+                continue
+            if minutes_val < minutes_min or minutes_val > minutes_max:
+                continue
+        if filter_by_height:
+            height_raw = player.get("height") or pp.read_cached_profile(pid).get("height")
+            height_m = pp.parse_height_meters(height_raw)
+            if height_m is None:
+                continue
+            if height_m < height_min_m or height_m > height_max_m:
                 continue
         if allowed_nationalities is not None:
             nationality = player.get("nationality") or pp.read_cached_nationality(pid)

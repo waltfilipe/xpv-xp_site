@@ -592,6 +592,35 @@ def read_cached_height_display(player_id: str) -> str | None:
     return format_height_display(read_cached_profile(player_id).get("height"))
 
 
+def parse_height_meters(value: str | float | int | None) -> float | None:
+    """Parse height labels to meters for filtering."""
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        meters = float(value)
+        return meters if 1.40 <= meters <= 2.20 else None
+    text = str(value).strip()
+    if not text:
+        return None
+    meters_match = re.search(r"(\d+(?:\.\d+)?)\s*m\b", text, flags=re.IGNORECASE)
+    if meters_match:
+        meters = float(meters_match.group(1))
+        if 1.40 <= meters <= 2.20:
+            return meters
+    cm_match = re.search(r"(\d{2,3})\s*cm\b", text, flags=re.IGNORECASE)
+    if cm_match:
+        cm = int(cm_match.group(1))
+        if 140 <= cm <= 220:
+            return cm / 100.0
+    ft_match = re.search(r"(\d+)\s*['\u2019]\s*(\d+)", text)
+    if ft_match:
+        total_in = int(ft_match.group(1)) * 12 + int(ft_match.group(2))
+        meters = total_in * 0.0254
+        if 1.40 <= meters <= 2.20:
+            return meters
+    return None
+
+
 def format_contract_until_display(value: str | None) -> str | None:
     if not value:
         return None
