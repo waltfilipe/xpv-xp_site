@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Image from "next/image";
-import { getPlayers } from "@/lib/api";
+import Link from "next/link";
+import { getMeta, getPlayers } from "@/lib/api";
 import { PlayersFilters } from "./PlayersFilters";
 
 type PageProps = {
@@ -18,19 +19,24 @@ function formatRating(value: number | null | undefined): string {
 
 export default async function PlayersPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  let data;
+  let data = { total: 0, players: [] as Awaited<ReturnType<typeof getPlayers>>["players"] };
+  let filters = { leagues: [] as string[], position_groups: [] as string[] };
   let error: string | null = null;
 
   try {
-    data = await getPlayers({
-      league: params.league,
-      position_group: params.position_group,
-      search: params.search,
-      limit: 500,
-    });
+    const [meta, playersRes] = await Promise.all([
+      getMeta(),
+      getPlayers({
+        league: params.league,
+        position_group: params.position_group,
+        search: params.search,
+        limit: 500,
+      }),
+    ]);
+    data = playersRes;
+    filters = { leagues: meta.leagues, position_groups: meta.position_groups ?? [] };
   } catch (e) {
     error = e instanceof Error ? e.message : "Falha ao carregar jogadores";
-    data = { total: 0, offset: 0, limit: 500, filters: { leagues: [], position_groups: [] }, players: [] };
   }
 
   return (
@@ -44,8 +50,8 @@ export default async function PlayersPage({ searchParams }: PageProps) {
 
       <Suspense fallback={<div className="muted">Carregando filtros...</div>}>
         <PlayersFilters
-          leagues={data.filters.leagues}
-          positionGroups={data.filters.position_groups}
+          leagues={filters.leagues}
+          positionGroups={filters.position_groups}
           currentLeague={params.league}
           currentPositionGroup={params.position_group}
           currentSearch={params.search}
@@ -90,7 +96,7 @@ export default async function PlayersPage({ searchParams }: PageProps) {
                       <div className="player-avatar" />
                     )}
                     <div>
-                      <div>{player.player_name}</div>
+                      <Link href={`/profile?player=${player.player_id}`}>{player.player_name}</Link>
                       <div className="muted" style={{ fontSize: "0.8rem" }}>
                         {player.nationality ?? "—"}
                       </div>
