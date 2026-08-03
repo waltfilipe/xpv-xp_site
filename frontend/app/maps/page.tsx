@@ -2,6 +2,8 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { LoadingState } from "@/components/LoadingState";
+import { PageHero } from "@/components/PageHero";
 import { ScatterChart } from "@/components/ScatterChart";
 import {
   getAggregatedMaps,
@@ -26,6 +28,7 @@ function MapsContent() {
   const [passMap, setPassMap] = useState<{ pass_map_b64?: string | null; dest_map_b64?: string | null; caption: string } | null>(null);
   const [aggregated, setAggregated] = useState<{ common_map_b64?: string | null; rare_map_b64?: string | null; quadrant_stats: { quadrant: string; passes: number; share_pct: number }[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     Promise.all([getPlayerOptions(), getMapsOptions(), getAggregatedMaps()])
@@ -40,34 +43,43 @@ function MapsContent() {
 
   useEffect(() => {
     if (view !== "scatter" || !playerId) return;
-    getScatter(xKey, yKey, playerId).then(setScatter).catch((e) => setError(String(e)));
+    setLoading(true);
+    getScatter(xKey, yKey, playerId)
+      .then(setScatter)
+      .catch((e) => setError(String(e)))
+      .finally(() => setLoading(false));
   }, [view, xKey, yKey, playerId]);
 
   useEffect(() => {
     if (view !== "pass_map" || !playerId) return;
-    getPassMap(playerId, passFilter, "all").then(setPassMap).catch((e) => setError(String(e)));
+    setLoading(true);
+    getPassMap(playerId, passFilter, "all")
+      .then(setPassMap)
+      .catch((e) => setError(String(e)))
+      .finally(() => setLoading(false));
   }, [view, passFilter, playerId]);
 
   return (
     <div className="container">
-      <section className="hero">
-        <h1>Maps</h1>
-        <p className="muted">Scatter de métricas ou mapas de passes por jogador.</p>
-      </section>
+      <PageHero title="Maps" subtitle="Scatter de métricas ou mapas de passes por jogador." icon="fa-map-location-dot" />
 
       {error && <div className="error-box">{error}</div>}
 
-      <div className="filters">
-        <select value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
-          {options.map((o) => <option key={o.player_id} value={o.player_id}>{o.label}</option>)}
-        </select>
-        <select value={view} onChange={(e) => setView(e.target.value as "scatter" | "pass_map")}>
-          <option value="scatter">Scatter</option>
-          <option value="pass_map">Pass map</option>
-        </select>
+      <div className="filter-card">
+        <div className="filters" style={{ marginBottom: 0 }}>
+          <select value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
+            {options.map((o) => <option key={o.player_id} value={o.player_id}>{o.label}</option>)}
+          </select>
+          <div className="view-toggle">
+            <button type="button" className={view === "scatter" ? "active" : ""} onClick={() => setView("scatter")}>Scatter</button>
+            <button type="button" className={view === "pass_map" ? "active" : ""} onClick={() => setView("pass_map")}>Pass map</button>
+          </div>
+        </div>
       </div>
 
-      {view === "scatter" && mapOpts && (
+      {loading && <LoadingState message="Gerando mapas…" />}
+
+      {view === "scatter" && mapOpts && !loading && (
         <>
           <div className="filters">
             <select value={xKey} onChange={(e) => setXKey(e.target.value)}>
@@ -81,7 +93,7 @@ function MapsContent() {
         </>
       )}
 
-      {view === "pass_map" && mapOpts && (
+      {view === "pass_map" && mapOpts && !loading && (
         <>
           <div className="filters">
             <select value={passFilter} onChange={(e) => setPassFilter(e.target.value)}>
@@ -92,7 +104,7 @@ function MapsContent() {
             <div className="maps-grid">
               {passMap.pass_map_b64 && <img src={`data:image/png;base64,${passMap.pass_map_b64}`} alt="Pass map" className="map-img" />}
               {passMap.dest_map_b64 && <img src={`data:image/png;base64,${passMap.dest_map_b64}`} alt="Destination heatmap" className="map-img" />}
-              <p className="muted">{passMap.caption}</p>
+              <p className="muted" style={{ gridColumn: "1 / -1" }}>{passMap.caption}</p>
             </div>
           )}
         </>
@@ -100,21 +112,11 @@ function MapsContent() {
 
       {aggregated && (
         <section style={{ marginTop: "2rem" }}>
-          <h2>Visão agregada (top 250 por volume)</h2>
+          <h3 className="section-label" style={{ fontSize: "0.75rem", marginBottom: "0.75rem" }}>Visão agregada · top 250 por volume</h3>
           <div className="maps-grid">
             {aggregated.common_map_b64 && <img src={`data:image/png;base64,${aggregated.common_map_b64}`} alt="Common passes" className="map-img" />}
             {aggregated.rare_map_b64 && <img src={`data:image/png;base64,${aggregated.rare_map_b64}`} alt="Rare passes" className="map-img" />}
           </div>
-          {aggregated.quadrant_stats?.length > 0 && (
-            <table style={{ marginTop: "1rem" }}>
-              <thead><tr><th>Quadrante</th><th>Passes</th><th>%</th></tr></thead>
-              <tbody>
-                {aggregated.quadrant_stats.map((q) => (
-                  <tr key={q.quadrant}><td>{q.quadrant}</td><td>{q.passes}</td><td>{q.share_pct?.toFixed(1)}%</td></tr>
-                ))}
-              </tbody>
-            </table>
-          )}
         </section>
       )}
     </div>
@@ -123,7 +125,7 @@ function MapsContent() {
 
 export default function MapsPage() {
   return (
-    <Suspense fallback={<p className="muted">Carregando…</p>}>
+    <Suspense fallback={<LoadingState />}>
       <MapsContent />
     </Suspense>
   );

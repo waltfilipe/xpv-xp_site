@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { CompareCenter } from "@/components/CompareCenter";
+import { LoadingState } from "@/components/LoadingState";
+import { PageHero } from "@/components/PageHero";
 import { XpProfileBars } from "@/components/XpProfileBars";
 import { getCompare, getPlayerOptions, type ComparePayload, type PlayerOption } from "@/lib/api";
 
@@ -34,52 +36,62 @@ export default function ComparePage() {
   function PlayerCard({ side, player, heatmap }: { side: "a" | "b"; player: Record<string, unknown>; heatmap?: string | null }) {
     const bars = (player.xp_bars as { key: string; label: string; value?: number }[]) ?? [];
     return (
-      <div className={`card compare-side compare-side-${side}`}>
-        <div className="profile-identity">
+      <div className={`player-card compare-side compare-side-${side}`}>
+        <div className="identity-header">
           {player.photo_url ? (
-            <Image src={String(player.photo_url)} alt="" width={64} height={64} className="profile-photo" unoptimized />
-          ) : <div className="profile-photo placeholder" />}
-          <div>
-            <h3>{String(player.player_name)}</h3>
-            <p className="muted">{String(player.team)} · {String(player.position)}</p>
+            <div className="identity-photo-wrap">
+              <Image src={String(player.photo_url)} alt="" width={58} height={58} className="identity-photo" unoptimized />
+            </div>
+          ) : (
+            <div className="identity-photo-wrap">
+              <div className="identity-photo-placeholder">{String(player.player_name ?? "?").charAt(0)}</div>
+            </div>
+          )}
+          <div className="identity-head-text">
+            <h3 className="identity-title" style={{ fontSize: "1rem" }}>{String(player.player_name)}</h3>
+            <p className="identity-meta">{String(player.team)} · {String(player.position)}</p>
           </div>
         </div>
-        <dl className="profile-facts compact">
-          <div><dt>Valor</dt><dd>{String(player.market_value ?? "—")}</dd></div>
-          <div><dt>Idade</dt><dd>{String(player.age ?? "—")}</dd></div>
-          <div><dt>Minutos</dt><dd>{String(player.minutes ?? "—")}</dd></div>
-        </dl>
+        <div className="metric-lines" style={{ marginTop: "0.5rem" }}>
+          <div className="metric-line"><span>Valor</span><span className="stat-val">{String(player.market_value ?? "—")}</span></div>
+          <div className="metric-line"><span>Idade</span><span className="stat-val">{String(player.age ?? "—")}</span></div>
+          <div className="metric-line"><span>Minutos</span><span className="stat-val">{String(player.minutes ?? "—")}</span></div>
+        </div>
         {heatmap && <img src={`data:image/png;base64,${heatmap}`} alt="Heatmap" className="heatmap-img" />}
-        <XpProfileBars bars={bars} />
+        <div style={{ marginTop: "0.75rem" }}>
+          <XpProfileBars bars={bars} />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="container">
-      <section className="hero">
-        <h1>Compare</h1>
-        <p className="muted">Compare dois meio-campistas lado a lado.</p>
-      </section>
+      <PageHero title="Compare" subtitle="Compare dois meio-campistas lado a lado." icon="fa-scale-balanced" />
 
-      <div className="filters">
-        <select value={playerA} onChange={(e) => setPlayerA(e.target.value)}>
-          {options.map((o) => <option key={o.player_id} value={o.player_id}>{o.label}</option>)}
-        </select>
-        <select value={playerB} onChange={(e) => setPlayerB(e.target.value)}>
-          {options.filter((o) => o.player_id !== playerA).map((o) => (
-            <option key={o.player_id} value={o.player_id}>{o.label}</option>
-          ))}
-        </select>
+      <div className="filter-card">
+        <div className="filters" style={{ marginBottom: 0 }}>
+          <select value={playerA} onChange={(e) => setPlayerA(e.target.value)}>
+            {options.map((o) => <option key={o.player_id} value={o.player_id}>{o.label}</option>)}
+          </select>
+          <span className="muted" style={{ fontWeight: 700 }}>vs</span>
+          <select value={playerB} onChange={(e) => setPlayerB(e.target.value)}>
+            {options.filter((o) => o.player_id !== playerA).map((o) => (
+              <option key={o.player_id} value={o.player_id}>{o.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {loading && <p className="muted">Carregando comparação…</p>}
+      {loading && <LoadingState message="Carregando comparação…" />}
       {error && <div className="error-box">{error}</div>}
 
       {data && !loading && (
         <div className="compare-layout">
           <PlayerCard side="a" player={data.player_a} heatmap={data.heatmap_a_b64} />
-          <div className="card"><CompareCenter pillars={data.pillars} passGrid={data.pass_grid} /></div>
+          <div className="player-card" style={{ padding: "1rem" }}>
+            <CompareCenter pillars={data.pillars} passGrid={data.pass_grid} />
+          </div>
           <PlayerCard side="b" player={data.player_b} heatmap={data.heatmap_b_b64} />
         </div>
       )}

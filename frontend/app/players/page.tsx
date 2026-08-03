@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { PageHero } from "@/components/PageHero";
 import { getMeta, getPlayers } from "@/lib/api";
 import { PlayersFilters } from "./PlayersFilters";
 
@@ -41,12 +42,11 @@ export default async function PlayersPage({ searchParams }: PageProps) {
 
   return (
     <div className="container">
-      <section className="hero">
-        <h1>Jogadores</h1>
-        <p className="muted">
-          Meio-campistas das 5 grandes ligas europeias com ratings de passe e progressão.
-        </p>
-      </section>
+      <PageHero
+        title="Players"
+        subtitle="Meio-campistas das 5 grandes ligas europeias com ratings de passe e progressão."
+        icon="fa-table-list"
+      />
 
       <Suspense fallback={<div className="muted">Carregando filtros...</div>}>
         <PlayersFilters

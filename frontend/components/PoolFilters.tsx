@@ -27,14 +27,29 @@ export function PoolFilters({ leagues, currentLeague, currentSearch, actionPath 
   }
 
   return (
-    <form className="filters" onSubmit={onSubmit}>
-      <input name="search" type="search" placeholder="Buscar jogador..." defaultValue={currentSearch ?? searchParams.get("search") ?? ""} />
-      <select name="league" defaultValue={currentLeague ?? searchParams.get("league") ?? "all"}>
-        {leagues.map((l) => (
-          <option key={l.key} value={l.key}>{l.label}</option>
-        ))}
-      </select>
-      <button type="submit" className="btn" disabled={pending}>{pending ? "..." : "Filtrar"}</button>
-    </form>
+    <div className="filter-card">
+      <div className="filter-head">
+        <span className="filter-title">
+          <i className="fa-solid fa-sliders" /> Filtros
+        </span>
+        <span className="filter-sub">Refine o grupo de meio-campistas e selecione o jogador.</span>
+      </div>
+      <form className="filters" style={{ marginBottom: 0 }} onSubmit={onSubmit}>
+        <input
+          name="search"
+          type="search"
+          placeholder="Buscar jogador…"
+          defaultValue={currentSearch ?? searchParams.get("search") ?? ""}
+        />
+        <select name="league" defaultValue={currentLeague ?? searchParams.get("league") ?? "all"}>
+          {leagues.map((l) => (
+            <option key={l.key} value={l.key}>{l.label}</option>
+          ))}
+        </select>
+        <button type="submit" className="btn btn-primary" disabled={pending}>
+          {pending ? "…" : "Filtrar"}
+        </button>
+      </form>
+    </div>
   );
 }

@@ -26,9 +26,9 @@ export function CompareCenter({ pillars, passGrid }: { pillars: CompareMetric[];
   const colorB = "#86efac";
   return (
     <div className="compare-center">
-      <h3>xP Pillars</h3>
+      <h3 className="section-label">xP Pillars</h3>
       {pillars.map((m) => <DualBar key={m.key} metric={m} colorA={colorA} colorB={colorB} />)}
-      <h3 style={{ marginTop: "1.5rem" }}>Pass Profile</h3>
+      <h3 className="section-label" style={{ marginTop: "1.25rem" }}>Pass Profile</h3>
       <div className="compare-pass-grid">
         {passGrid.map((m) => (
           <div key={m.key} className="compare-pass-cell">

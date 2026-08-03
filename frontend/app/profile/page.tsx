@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { PageHero } from "@/components/PageHero";
 import { getMeta, getPlayerOptions } from "@/lib/api";
 import { PoolFilters } from "@/components/PoolFilters";
 import { PlayerSelector } from "@/components/PlayerSelector";
@@ -20,13 +21,19 @@ export default async function ProfilePage({ searchParams }: Props) {
 
   return (
     <div className="container">
-      <section className="hero">
-        <h1>Player Profile</h1>
-        <p className="muted">Perfil completo com xP, pass scores e heatmap de origem.</p>
-      </section>
+      <PageHero
+        title="Player Profile"
+        subtitle="Perfil completo com xP, pass scores e heatmap de origem dos passes."
+        icon="fa-user"
+      />
 
       <Suspense fallback={null}>
-        <PoolFilters leagues={meta.league_options} currentLeague={params.league} currentSearch={params.search} actionPath="/profile" />
+        <PoolFilters
+          leagues={meta.league_options}
+          currentLeague={params.league}
+          currentSearch={params.search}
+          actionPath="/profile"
+        />
       </Suspense>
 
       {options.length > 0 && (
