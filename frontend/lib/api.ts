@@ -1,7 +1,14 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+/**
+ * Browser → same origin (/api/...) proxied by Next.js rewrites.
+ * Server  → backend directly (BACKEND_URL / 127.0.0.1:8000).
+ */
+function getApiBase(): string {
+  if (typeof window !== "undefined") return "";
+  return process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+}
 
 async function fetchApi<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${getApiBase()}${path}`, {
     ...init,
     headers: { Accept: "application/json", ...init?.headers },
     cache: "no-store",

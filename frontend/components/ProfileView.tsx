@@ -14,9 +14,17 @@ export function ProfileView({ playerId }: { playerId: string }) {
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
     getPlayerProfile(playerId)
       .then(setData)
-      .catch((e) => setError(e instanceof Error ? e.message : "Erro"))
+      .catch((e) => {
+        const msg = e instanceof Error ? e.message : "Erro";
+        setError(
+          msg === "Failed to fetch"
+            ? "Não foi possível conectar ao backend. Verifique se o FastAPI está rodando (porta 8000)."
+            : msg,
+        );
+      })
       .finally(() => setLoading(false));
   }, [playerId]);
 
