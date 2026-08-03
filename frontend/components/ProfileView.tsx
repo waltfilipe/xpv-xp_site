@@ -12,6 +12,14 @@ import { XpProfileBars } from "@/components/XpProfileBars";
 import { getPlayerProfile, type PlayerProfile } from "@/lib/api";
 import { formatContractUntil } from "@/lib/formatters";
 
+function FactIcon({ icon }: { icon: string }) {
+  return (
+    <span className="identity-fact-icon" aria-hidden="true">
+      <i className={`fa-solid ${icon}`} />
+    </span>
+  );
+}
+
 export function ProfileView({ playerId }: { playerId: string }) {
   const [data, setData] = useState<PlayerProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -44,62 +52,65 @@ export function ProfileView({ playerId }: { playerId: string }) {
       <div className="pa-layout">
         <div className="pa-col pa-col-identity">
           <div className="player-card identity-card">
-            <div className="identity-hero identity-hero-xl">
-              <div className="identity-photo-wrap identity-photo-wrap-xxl">
-                {p.photo_url ? (
-                  <Image
-                    src={String(p.photo_url)}
-                    alt=""
-                    width={208}
-                    height={208}
-                    className="identity-photo"
-                    unoptimized
-                  />
-                ) : (
-                  <div className="identity-photo-placeholder identity-photo-placeholder-xxl">
-                    {String(p.player_name ?? "?").charAt(0)}
-                  </div>
-                )}
-              </div>
+            <div className="identity-photo-wrap identity-photo-hero">
+              {p.photo_url ? (
+                <Image
+                  src={String(p.photo_url)}
+                  alt=""
+                  width={400}
+                  height={400}
+                  className="identity-photo"
+                  unoptimized
+                  priority
+                />
+              ) : (
+                <div className="identity-photo-placeholder identity-photo-placeholder-hero">
+                  {String(p.player_name ?? "?").charAt(0)}
+                </div>
+              )}
+            </div>
 
-              <div className="identity-hero-text">
-                <h2 className="identity-title">{String(p.player_name ?? "—")}</h2>
-                <p className="identity-subline">
-                  {String(p.team ?? "—")} · {String(p.position ?? "—")}
-                </p>
+            <div className="identity-hero-text">
+              <h2 className="identity-title">{String(p.player_name ?? "—")}</h2>
+              <p className="identity-subline">
+                {String(p.team ?? "—")} · {String(p.position ?? "—")}
+              </p>
 
-                <dl className="identity-facts">
-                  <div className="identity-fact">
-                    <dt><span className="identity-fact-icon" aria-hidden="true">🎂</span> Idade</dt>
-                    <dd className="tabular">{p.age != null ? String(p.age) : "—"}</dd>
-                  </div>
-                  <div className="identity-fact">
-                    <dt><span className="identity-fact-icon" aria-hidden="true">📏</span> Altura</dt>
-                    <dd>{String(p.height ?? "—")}</dd>
-                  </div>
-                  <div className="identity-fact">
-                    <dt><span className="identity-fact-icon" aria-hidden="true">🌍</span> Nacionalidade</dt>
-                    <dd>{String(p.nationality ?? "—")}</dd>
-                  </div>
-                  <div className="identity-fact">
-                    <dt><span className="identity-fact-icon" aria-hidden="true">🦶</span> Pé</dt>
-                    <dd>{String(p.dominant_foot ?? "—")}</dd>
-                  </div>
-                </dl>
+              <div className="identity-facts">
+                <div className="identity-fact">
+                  <FactIcon icon="fa-cake-candles" />
+                  <span className="identity-fact-label">Idade</span>
+                  <span className="identity-fact-value tabular">{p.age != null ? String(p.age) : "—"}</span>
+                </div>
+                <div className="identity-fact">
+                  <FactIcon icon="fa-ruler-vertical" />
+                  <span className="identity-fact-label">Altura</span>
+                  <span className="identity-fact-value">{String(p.height ?? "—")}</span>
+                </div>
+                <div className="identity-fact">
+                  <FactIcon icon="fa-earth-americas" />
+                  <span className="identity-fact-label">Nacionalidade</span>
+                  <span className="identity-fact-value">{String(p.nationality ?? "—")}</span>
+                </div>
+                <div className="identity-fact">
+                  <FactIcon icon="fa-shoe-prints" />
+                  <span className="identity-fact-label">Pé</span>
+                  <span className="identity-fact-value">{String(p.dominant_foot ?? "—")}</span>
+                </div>
               </div>
             </div>
 
             <div className="identity-meta-row">
               <div className="identity-meta-pill">
-                <span><span className="identity-fact-icon" aria-hidden="true">💰</span> Valor</span>
+                <span><FactIcon icon="fa-coins" /> Valor</span>
                 <strong>{String(p.market_value ?? "—")}</strong>
               </div>
               <div className="identity-meta-pill">
-                <span>📅 Contrato</span>
+                <span><FactIcon icon="fa-calendar-days" /> Contrato</span>
                 <strong>{formatContractUntil(p.contract_until)}</strong>
               </div>
               <div className="identity-meta-pill">
-                <span>⏱️ Minutos</span>
+                <span><FactIcon icon="fa-clock" /> Minutos</span>
                 <strong className="tabular">{p.minutes != null ? String(p.minutes) : "—"}</strong>
               </div>
             </div>
