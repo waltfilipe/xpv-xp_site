@@ -22,6 +22,27 @@ POSITION_BLOCKS: tuple[tuple[str, str, frozenset[str] | None, str | None], ...] 
     ("am", "Attacking Midfielders", None, "attacking_midfielders"),
 )
 
+PASS_SCORE_LETTER_FIELDS: dict[str, str] = {
+    "volume_grade": "pass_volume_letter",
+    "efficiency_grade": "pass_efficiency_letter",
+    "buildup_grade": "pass_buildup_letter",
+    "chance_grade": "pass_chance_creation_letter",
+}
+
+LETTER_GRADE_OPTIONS = [
+    ("all", "Todas"),
+    ("A+", "A+"),
+    ("A", "A"),
+    ("A-", "A−"),
+    ("B+", "B+"),
+    ("B", "B"),
+    ("B-", "B−"),
+    ("C+", "C+"),
+    ("C", "C"),
+    ("C-", "C−"),
+    ("D", "D"),
+]
+
 LEAGUE_OPTIONS = [
     ("all", "All leagues"),
     ("premier_league", "Premier League"),
@@ -79,6 +100,13 @@ def filter_options_meta() -> dict[str, Any]:
         "contract_year_range": {"min": CONTRACT_YEAR_MIN, "max": CONTRACT_YEAR_MAX},
         "minutes_range": {"min": MINUTES_MIN, "max": MINUTES_MAX},
         "height_range_m": {"min": HEIGHT_MIN_M, "max": HEIGHT_MAX_M},
+        "letter_grades": [{"key": k, "label": l} for k, l in LETTER_GRADE_OPTIONS],
+        "pass_score_filters": [
+            {"key": "volume_grade", "label": "Volume"},
+            {"key": "efficiency_grade", "label": "Efficiency"},
+            {"key": "buildup_grade", "label": "Build-up"},
+            {"key": "chance_grade", "label": "Chance creation"},
+        ],
         "defaults": {
             "league": "all",
             "age_band": "all",
@@ -226,6 +254,56 @@ def filter_player_pool(
             if not ng.nationality_matches_filter(nationality, allowed=allowed_nationalities):
                 continue
         out.append(player)
+    return out
+
+
+def matches_pass_letter_filters(
+    xp_profile: dict,
+    *,
+    volume_grade: str = "all",
+    efficiency_grade: str = "all",
+    buildup_grade: str = "all",
+    chance_grade: str = "all",
+) -> bool:
+    checks = {
+        "volume_grade": volume_grade,
+        "efficiency_grade": efficiency_grade,
+        "buildup_grade": buildup_grade,
+        "chance_grade": chance_grade,
+    }
+    for param_key, selected in checks.items():
+        if not selected or selected == "all":
+            continue
+        letter_key = PASS_SCORE_LETTER_FIELDS[param_key]
+        player_letter = str(xp_profile.get(letter_key) or "").strip().upper()
+        if player_letter != selected.strip().upper():
+            return False
+    return True
+
+
+def filter_players_by_pass_letters(
+    players: list[dict],
+    xp_by_id: dict[str, dict],
+    *,
+    volume_grade: str = "all",
+    efficiency_grade: str = "all",
+    buildup_grade: str = "all",
+    chance_grade: str = "all",
+) -> list[dict]:
+    if all(g == "all" for g in (volume_grade, efficiency_grade, buildup_grade, chance_grade)):
+        return players
+    out: list[dict] = []
+    for player in players:
+        pid = str(player["player_id"])
+        xp_profile = xp_by_id.get(pid, {})
+        if matches_pass_letter_filters(
+            xp_profile,
+            volume_grade=volume_grade,
+            efficiency_grade=efficiency_grade,
+            buildup_grade=buildup_grade,
+            chance_grade=chance_grade,
+        ):
+            out.append(player)
     return out
 
 

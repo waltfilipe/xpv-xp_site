@@ -119,6 +119,47 @@ export function rankToBarScore(rank?: number | null, rankPool?: number | null): 
   return 4.5 + pct * 4.5;
 }
 
+function lerpChannel(a: number, b: number, t: number): number {
+  return Math.round(a + (b - a) * t);
+}
+
+function lerpHex(a: string, b: string, t: number): string {
+  const parse = (hex: string) => [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ] as const;
+  const [ar, ag, ab] = parse(a);
+  const [br, bg, bb] = parse(b);
+  const rgb = [
+    lerpChannel(ar, br, t),
+    lerpChannel(ag, bg, t),
+    lerpChannel(ab, bb, t),
+  ];
+  return `#${rgb.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** Gray → yellow (mid) → strong red for xP profile bars. */
+export function heatBarColor(positionPct: number): string {
+  const p = Math.max(0, Math.min(100, positionPct));
+  if (p <= 50) return lerpHex("#64748b", "#facc15", p / 50);
+  return lerpHex("#facc15", "#dc2626", (p - 50) / 50);
+}
+
+export const LETTER_GRADE_FILTER_OPTIONS = [
+  { key: "all", label: "Todas" },
+  { key: "A+", label: "A+" },
+  { key: "A", label: "A" },
+  { key: "A-", label: "A−" },
+  { key: "B+", label: "B+" },
+  { key: "B", label: "B" },
+  { key: "B-", label: "B−" },
+  { key: "C+", label: "C+" },
+  { key: "C", label: "C" },
+  { key: "C-", label: "C−" },
+  { key: "D", label: "D" },
+] as const;
+
 export const XP_INDEX_TIER_LABELS: Record<string, string> = {
   elite: "Elite",
   above: "Above average",

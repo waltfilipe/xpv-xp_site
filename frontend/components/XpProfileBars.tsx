@@ -1,5 +1,6 @@
 import type { XpBar } from "@/lib/api";
-import { XpGradientBar } from "@/components/XpGradientBar";
+import { XpHeatBar } from "@/components/ui/XpHeatBar";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { XP_PROFILE_BAR_TOOLTIPS } from "@/lib/tooltips";
 
 const ICONS: Record<string, string> = {
@@ -12,13 +13,19 @@ export function XpProfileBars({ bars }: { bars: XpBar[] }) {
   return (
     <div className="xp-profile-bars">
       {bars.map((bar) => (
-        <XpGradientBar
-          key={bar.key}
-          label={bar.label}
-          value={bar.value}
-          icon={ICONS[bar.key] ?? "fa-circle"}
-          tooltip={XP_PROFILE_BAR_TOOLTIPS[bar.key]}
-        />
+        <Tooltip key={bar.key} content={XP_PROFILE_BAR_TOOLTIPS[bar.key] ?? ""} block>
+          <div className="xp-metric-block">
+            <div className="pass-metric-head">
+              <span className="pass-metric-label xp-metric-label">
+                {ICONS[bar.key] && (
+                  <i className={`fa-solid ${ICONS[bar.key]} xp-metric-icon`} aria-hidden="true" />
+                )}
+                {bar.label}
+              </span>
+            </div>
+            <XpHeatBar value={bar.value} />
+          </div>
+        </Tooltip>
       ))}
     </div>
   );

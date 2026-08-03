@@ -261,10 +261,19 @@ button, input, select { font: inherit; }
   align-items: end;
 }
 
+.filter-grid-pass-grades {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 @media (max-width: 900px) {
   .filter-grid-2,
   .filter-grid-3,
-  .filter-grid-age { grid-template-columns: 1fr; }
+  .filter-grid-age,
+  .filter-grid-pass-grades { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 1100px) and (min-width: 901px) {
+  .filter-grid-pass-grades { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .filter-field {
@@ -793,6 +802,54 @@ button, input, select { font: inherit; }
   align-items: flex-start;
 }
 
+.identity-hero-side {
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.identity-photo-side {
+  position: relative;
+  flex-shrink: 0;
+  width: 156px;
+  height: 156px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(147, 197, 253, 0.28);
+  box-shadow:
+    0 14px 32px rgba(0, 0, 0, 0.38),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  background: linear-gradient(160deg, #1a2238 0%, #0f172a 100%);
+}
+
+.identity-photo-placeholder-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 3rem;
+  font-weight: 800;
+  color: #475569;
+}
+
+.identity-facts-side {
+  margin-top: 0.55rem;
+}
+
+.identity-facts-side .identity-fact {
+  grid-template-columns: 1.35rem 1fr auto;
+  gap: 0.45rem;
+  padding: 0.28rem 0;
+}
+
+.identity-facts-side .identity-fact-label {
+  font-size: 0.72rem;
+}
+
+.identity-facts-side .identity-fact-value {
+  font-size: 0.84rem;
+}
+
 .identity-hero-xl {
   gap: 1rem;
   align-items: flex-start;
@@ -1204,7 +1261,59 @@ button, input, select { font: inherit; }
 .xp-profile-bars {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.65rem;
+}
+
+.xp-metric-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+}
+
+.xp-metric-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.xp-metric-icon {
+  color: var(--accent);
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+
+.xp-heat-bar-track {
+  position: relative;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(30, 41, 59, 0.55);
+  overflow: hidden;
+}
+
+.xp-heat-bar-spectrum {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    rgba(100, 116, 139, 0.55) 0%,
+    rgba(250, 204, 21, 0.65) 50%,
+    rgba(220, 38, 38, 0.75) 100%
+  );
+}
+
+.xp-heat-bar-marker {
+  position: absolute;
+  top: 50%;
+  width: 2px;
+  height: 9px;
+  border-radius: 2px;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.xp-heat-bar-empty .xp-heat-bar-spectrum {
+  opacity: 0.35;
 }
 
 /* xP gradient bars */

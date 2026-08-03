@@ -21,6 +21,8 @@ export type FilterOptionsMeta = {
   contract_year_range: { min: number; max: number };
   minutes_range: { min: number; max: number };
   height_range_m: { min: number; max: number };
+  letter_grades: { key: string; label: string }[];
+  pass_score_filters: { key: string; label: string }[];
   defaults: {
     league: string;
     age_band: string;
@@ -82,6 +84,10 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
     minutes_max: Number(current.minutes_max ?? defaults.minutes_slider[1]),
     height_min_cm: metersToCm(Number(current.height_min ?? defaults.height_slider_m[0])),
     height_max_cm: metersToCm(Number(current.height_max ?? defaults.height_slider_m[1])),
+    volume_grade: current.volume_grade ?? "all",
+    efficiency_grade: current.efficiency_grade ?? "all",
+    buildup_grade: current.buildup_grade ?? "all",
+    chance_grade: current.chance_grade ?? "all",
     regions: (current.regions?.split(",") ?? defaults.nationality_regions).filter(Boolean),
     countries: (current.countries?.split(",") ?? defaults.nationality_countries).filter(Boolean),
   }));
@@ -113,6 +119,10 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
       height_max: state.height_max_cm < metersToCm(defaults.height_slider_m[1])
         ? formatHeightFromCm(state.height_max_cm)
         : undefined,
+      volume_grade: state.volume_grade !== "all" ? state.volume_grade : undefined,
+      efficiency_grade: state.efficiency_grade !== "all" ? state.efficiency_grade : undefined,
+      buildup_grade: state.buildup_grade !== "all" ? state.buildup_grade : undefined,
+      chance_grade: state.chance_grade !== "all" ? state.chance_grade : undefined,
       regions:
         state.regions.length && !(state.regions.length === 1 && state.regions[0] === "World")
           ? state.regions.join(",")
@@ -141,6 +151,10 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
       minutes_max: defaults.minutes_slider[1],
       height_min_cm: metersToCm(defaults.height_slider_m[0]),
       height_max_cm: metersToCm(defaults.height_slider_m[1]),
+      volume_grade: "all",
+      efficiency_grade: "all",
+      buildup_grade: "all",
+      chance_grade: "all",
       regions: [...defaults.nationality_regions],
       countries: [...defaults.nationality_countries],
     });
@@ -176,7 +190,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
             <i className="fa-solid fa-sliders" /> Filtros do grupo
           </span>
           <span className="filter-sub">
-            Refine liga, idade, valor, contrato, minutos, altura e nacionalidade.
+            Refine liga, idade, valor, contrato, minutos, altura, pass scores e nacionalidade.
           </span>
         </div>
         <button type="button" className="btn btn-ghost btn-sm" onClick={clearFilters}>
@@ -285,6 +299,25 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
               onChange={([height_min_cm, height_max_cm]) => setState((s) => ({ ...s, height_min_cm, height_max_cm }))}
             />
           </div>
+        </div>
+
+        <div className="filter-grid filter-grid-pass-grades">
+          {options.pass_score_filters.map((filter) => {
+            const key = filter.key as "volume_grade" | "efficiency_grade" | "buildup_grade" | "chance_grade";
+            return (
+              <label key={filter.key} className="filter-field">
+                <span className="filter-label">{filter.label}</span>
+                <select
+                  value={state[key]}
+                  onChange={(e) => setState((s) => ({ ...s, [key]: e.target.value }))}
+                >
+                  {options.letter_grades.map((grade) => (
+                    <option key={grade.key} value={grade.key}>{grade.label}</option>
+                  ))}
+                </select>
+              </label>
+            );
+          })}
         </div>
 
         <div className="filter-field filter-nationality">

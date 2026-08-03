@@ -14,6 +14,10 @@ export type ProfileFilterState = {
   minutes_max?: string;
   height_min?: string;
   height_max?: string;
+  volume_grade?: string;
+  efficiency_grade?: string;
+  buildup_grade?: string;
+  chance_grade?: string;
   regions?: string;
   countries?: string;
 };
@@ -39,6 +43,10 @@ export function filtersFromRecord(params: Record<string, string | string[] | und
     minutes_max: get("minutes_max"),
     height_min: get("height_min"),
     height_max: get("height_max"),
+    volume_grade: get("volume_grade"),
+    efficiency_grade: get("efficiency_grade"),
+    buildup_grade: get("buildup_grade"),
+    chance_grade: get("chance_grade"),
     regions: get("regions"),
     countries: get("countries"),
   };
@@ -64,6 +72,10 @@ export function buildProfileQuery(filters: ProfileFilterState): string {
   set("minutes_max", filters.minutes_max);
   set("height_min", filters.height_min);
   set("height_max", filters.height_max);
+  set("volume_grade", filters.volume_grade);
+  set("efficiency_grade", filters.efficiency_grade);
+  set("buildup_grade", filters.buildup_grade);
+  set("chance_grade", filters.chance_grade);
   set("regions", filters.regions);
   set("countries", filters.countries);
   return params.toString();
@@ -93,5 +105,9 @@ export function filtersToApiParams(filters: ProfileFilterState): Record<string, 
   if (filters.age_max) out.age_slider_max = filters.age_max;
   if (filters.regions) out.nationality_regions = filters.regions;
   if (filters.countries) out.nationality_countries = filters.countries;
+  if (filters.volume_grade) out.volume_grade = filters.volume_grade;
+  if (filters.efficiency_grade) out.efficiency_grade = filters.efficiency_grade;
+  if (filters.buildup_grade) out.buildup_grade = filters.buildup_grade;
+  if (filters.chance_grade) out.chance_grade = filters.chance_grade;
   return out;
 }

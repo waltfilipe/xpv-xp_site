@@ -52,50 +52,52 @@ export function ProfileView({ playerId }: { playerId: string }) {
       <div className="pa-layout">
         <div className="pa-col pa-col-identity">
           <div className="player-card identity-card">
-            <div className="identity-photo-hero">
-              {p.photo_url ? (
-                <Image
-                  src={String(p.photo_url)}
-                  alt=""
-                  fill
-                  className="identity-photo"
-                  unoptimized
-                  priority
-                  sizes="(max-width: 1100px) 90vw, 420px"
-                />
-              ) : (
-                <div className="identity-photo-placeholder identity-photo-placeholder-hero">
-                  {String(p.player_name ?? "?").charAt(0)}
-                </div>
-              )}
-            </div>
+            <div className="identity-hero identity-hero-side">
+              <div className="identity-photo-side">
+                {p.photo_url ? (
+                  <Image
+                    src={String(p.photo_url)}
+                    alt=""
+                    width={156}
+                    height={156}
+                    className="identity-photo"
+                    unoptimized
+                    priority
+                  />
+                ) : (
+                  <div className="identity-photo-placeholder identity-photo-placeholder-side">
+                    {String(p.player_name ?? "?").charAt(0)}
+                  </div>
+                )}
+              </div>
 
-            <div className="identity-hero-text">
-              <h2 className="identity-title">{String(p.player_name ?? "—")}</h2>
-              <p className="identity-subline">
-                {String(p.team ?? "—")} · {String(p.position ?? "—")}
-              </p>
+              <div className="identity-hero-text">
+                <h2 className="identity-title">{String(p.player_name ?? "—")}</h2>
+                <p className="identity-subline">
+                  {String(p.team ?? "—")} · {String(p.position ?? "—")}
+                </p>
 
-              <div className="identity-facts">
-                <div className="identity-fact">
-                  <FactIcon icon="fa-cake-candles" />
-                  <span className="identity-fact-label">Idade</span>
-                  <span className="identity-fact-value tabular">{p.age != null ? String(p.age) : "—"}</span>
-                </div>
-                <div className="identity-fact">
-                  <FactIcon icon="fa-ruler-vertical" />
-                  <span className="identity-fact-label">Altura</span>
-                  <span className="identity-fact-value">{String(p.height ?? "—")}</span>
-                </div>
-                <div className="identity-fact">
-                  <FactIcon icon="fa-earth-americas" />
-                  <span className="identity-fact-label">Nacionalidade</span>
-                  <span className="identity-fact-value">{String(p.nationality ?? "—")}</span>
-                </div>
-                <div className="identity-fact">
-                  <FactIcon icon="fa-shoe-prints" />
-                  <span className="identity-fact-label">Pé</span>
-                  <span className="identity-fact-value">{String(p.dominant_foot ?? "—")}</span>
+                <div className="identity-facts identity-facts-side">
+                  <div className="identity-fact">
+                    <FactIcon icon="fa-cake-candles" />
+                    <span className="identity-fact-label">Idade</span>
+                    <span className="identity-fact-value tabular">{p.age != null ? String(p.age) : "—"}</span>
+                  </div>
+                  <div className="identity-fact">
+                    <FactIcon icon="fa-ruler-vertical" />
+                    <span className="identity-fact-label">Altura</span>
+                    <span className="identity-fact-value">{String(p.height ?? "—")}</span>
+                  </div>
+                  <div className="identity-fact">
+                    <FactIcon icon="fa-earth-americas" />
+                    <span className="identity-fact-label">Nacionalidade</span>
+                    <span className="identity-fact-value">{String(p.nationality ?? "—")}</span>
+                  </div>
+                  <div className="identity-fact">
+                    <FactIcon icon="fa-shoe-prints" />
+                    <span className="identity-fact-label">Pé</span>
+                    <span className="identity-fact-value">{String(p.dominant_foot ?? "—")}</span>
+                  </div>
                 </div>
               </div>
             </div>

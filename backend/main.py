@@ -20,6 +20,7 @@ from services.filters import (  # noqa: E402
     available_nationalities,
     filter_options_meta,
     filter_player_pool,
+    filter_players_by_pass_letters,
     parse_age_band,
     player_options,
 )
@@ -176,6 +177,10 @@ def players_options(
     height_max_m: float = Query(2.05, ge=1.4, le=2.2),
     nationality_regions: str | None = Query(None),
     nationality_countries: str | None = Query(None),
+    volume_grade: str = Query("all"),
+    efficiency_grade: str = Query("all"),
+    buildup_grade: str = Query("all"),
+    chance_grade: str = Query("all"),
 ) -> dict[str, Any]:
     import nationality_groups as ng
 
@@ -213,6 +218,15 @@ def players_options(
     if search:
         q = search.lower()
         pool = [p for p in pool if q in str(p.get("player_name", "")).lower()]
+
+    pool = filter_players_by_pass_letters(
+        pool,
+        xp_by_id,
+        volume_grade=volume_grade,
+        efficiency_grade=efficiency_grade,
+        buildup_grade=buildup_grade,
+        chance_grade=chance_grade,
+    )
 
     options = player_options(pool, progression_by_id, xp_by_id=xp_by_id, exclude_player_id=exclude)
     return sanitize_for_json({"options": options})
