@@ -7,8 +7,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -18,13 +16,10 @@ if str(_BACKEND_ROOT) not in sys.path:
 
 from position_families import (  # noqa: E402
     DEFAULT_POSITION_FAMILY,
-    EUROPEAN_POSITION_FAMILIES,
     normalize_position_family,
-    position_family_label,
 )
 from services.compare_service import build_compare_payload  # noqa: E402
 from services.filters import (  # noqa: E402
-    LEAGUE_OPTIONS,
     filter_player_pool,
     filter_players_by_pass_letters,
     parse_age_band,
@@ -37,26 +32,17 @@ from services.maps_service import (  # noqa: E402
     get_round_options,
     load_aggregated_maps,
 )
-from services.player_bundle import load_player_analysis_bundle  # noqa: E402
+from services.player_pool_service import get_pool_parts, pool_cache_available  # noqa: E402
 from services.profile_service import build_profile_payload  # noqa: E402
 from services.serialization import sanitize_for_json  # noqa: E402
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Kick off default bundle pre-warm in the background (first load can take a few minutes)."""
-    import asyncio
-
-    loop = asyncio.get_event_loop()
-    loop.run_in_executor(None, load_player_analysis_bundle, DEFAULT_POSITION_FAMILY)
-    yield
-
+# Heavy parquet/map endpoints need more RAM than Render free tier (512 MB).
+HEAVY_MAPS_ENABLED = os.getenv("HEAVY_MAPS_ENABLED", "").strip().lower() in {"1", "true", "yes"}
 
 app = FastAPI(
     title="Pass Scout API",
     description="European outfield pass analysis — xT, xP, progression ratings",
-    version="0.3.0",
-    lifespan=lifespan,
+    version="0.4.0",
 )
 
 _cors_origins = os.getenv(
@@ -95,30 +81,32 @@ def _resolve_position_family(position_family: str | None) -> str:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-def _unpack_bundle(position_family: str = DEFAULT_POSITION_FAMILY) -> tuple[Any, ...]:
-    return load_player_analysis_bundle(position_family)
+def _pool_parts(position_family: str = DEFAULT_POSITION_FAMILY) -> dict[str, Any]:
+    family = _resolve_position_family(position_family)
+    if not pool_cache_available(family):
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"Player pool for {family!r} is not available on this deployment. "
+                "Run scripts/build_api_pool_cache.py and redeploy the JSON cache."
+            ),
+        )
+    try:
+        return get_pool_parts(family)
+    except (FileNotFoundError, ValueError, OSError) as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
-def _bundle_parts(position_family: str = DEFAULT_POSITION_FAMILY) -> dict[str, Any]:
-    (
-        analysis_players,
-        passes_by_player,
-        progression_by_id,
-        players_by_id,
-        _carries_by_id,
-        _progression_pool,
-        _pool_by_position,
-        _carries_pool,
-        xp_by_id,
-    ) = _unpack_bundle(position_family)
-    return {
-        "position_family": position_family,
-        "analysis_players": analysis_players,
-        "passes_by_player": passes_by_player,
-        "progression_by_id": progression_by_id,
-        "players_by_id": players_by_id,
-        "xp_by_id": xp_by_id,
-    }
+def _require_heavy_maps(feature: str) -> None:
+    if HEAVY_MAPS_ENABLED:
+        return
+    raise HTTPException(
+        status_code=503,
+        detail=(
+            f"{feature} is disabled on this deployment to stay within memory limits. "
+            "Set HEAVY_MAPS_ENABLED=1 on a larger instance to enable it."
+        ),
+    )
 
 
 @app.get("/health")
@@ -142,7 +130,7 @@ def list_players(
     offset: int = Query(0, ge=0),
 ) -> dict[str, Any]:
     family = _resolve_position_family(position_family)
-    parts = _bundle_parts(family)
+    parts = _pool_parts(family)
     analysis_players = parts["analysis_players"]
     progression_by_id = parts["progression_by_id"]
     players_by_id = parts["players_by_id"]
@@ -209,7 +197,7 @@ def players_options(
     import nationality_groups as ng
 
     family = _resolve_position_family(position_family)
-    parts = _bundle_parts(family)
+    parts = _pool_parts(family)
     analysis_players = parts["analysis_players"]
     progression_by_id = parts["progression_by_id"]
     xp_by_id = parts["xp_by_id"]
@@ -270,7 +258,7 @@ def get_player(
     position_family: str = Query(DEFAULT_POSITION_FAMILY),
 ) -> dict[str, Any]:
     family = _resolve_position_family(position_family)
-    parts = _bundle_parts(family)
+    parts = _pool_parts(family)
     payload = build_profile_payload(
         player_id,
         players_by_id=parts["players_by_id"],
@@ -290,7 +278,7 @@ def compare_players(
     position_family: str = Query(DEFAULT_POSITION_FAMILY),
 ) -> dict[str, Any]:
     family = _resolve_position_family(position_family)
-    parts = _bundle_parts(family)
+    parts = _pool_parts(family)
     payload = build_compare_payload(
         player_a, player_b,
         players_by_id=parts["players_by_id"],
@@ -311,7 +299,7 @@ def maps_scatter(
     position_family: str = Query(DEFAULT_POSITION_FAMILY),
 ) -> dict[str, Any]:
     family = _resolve_position_family(position_family)
-    parts = _bundle_parts(family)
+    parts = _pool_parts(family)
     return sanitize_for_json(build_scatter_data(
         parts["analysis_players"], parts["progression_by_id"], parts["xp_by_id"],
         x_key=x, y_key=y, highlight_player_id=highlight,
@@ -326,8 +314,9 @@ def maps_pass_map(
     round_key: str = Query("all"),
     position_family: str = Query(DEFAULT_POSITION_FAMILY),
 ) -> dict[str, Any]:
+    _require_heavy_maps("Pass maps")
     family = _resolve_position_family(position_family)
-    parts = _bundle_parts(family)
+    parts = _pool_parts(family)
     player = (
         parts["xp_by_id"].get(player_id)
         or parts["progression_by_id"].get(player_id)
@@ -347,6 +336,7 @@ def maps_rounds(
     player_id: str,
     position_family: str = Query(DEFAULT_POSITION_FAMILY),
 ) -> dict[str, Any]:
+    _require_heavy_maps("Round filters for pass maps")
     family = _resolve_position_family(position_family)
     return sanitize_for_json({"rounds": get_round_options(player_id, position_family=family)})
 
@@ -356,6 +346,7 @@ def maps_aggregated(
     top_n: int = Query(250, ge=50, le=500),
     position_family: str = Query(DEFAULT_POSITION_FAMILY),
 ) -> dict[str, Any]:
+    _require_heavy_maps("Aggregated pass maps")
     family = _resolve_position_family(position_family)
     return sanitize_for_json(load_aggregated_maps(top_n, position_family=family))
 

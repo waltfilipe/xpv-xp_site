@@ -15,6 +15,7 @@ from position_families import (
     rating_groups_for_family,
 )
 from services.filters import LEAGUE_OPTIONS, filter_options_meta
+from services.player_pool_service import pool_cache_available
 from xp_engine import european_passes_meta_path
 
 LEAGUE_SOURCE_KEYS = sorted(key for key, _label in LEAGUE_OPTIONS if key != "all")
@@ -62,7 +63,11 @@ def build_meta_payload(position_family: str) -> dict[str, Any]:
         "leagues": LEAGUE_SOURCE_KEYS,
         "league_options": [{"key": key, "label": label} for key, label in LEAGUE_OPTIONS],
         "position_groups": sorted(rating_groups_for_family(family)),
-        "position_families": [{"key": key, "label": label} for key, label in EUROPEAN_POSITION_FAMILIES],
+        "position_families": [
+            {"key": key, "label": label}
+            for key, label in EUROPEAN_POSITION_FAMILIES
+            if pool_cache_available(key)
+        ],
         "nationalities": list(cached_nationalities()),
         "filter_options": filter_options_meta(family),
         "description": (
