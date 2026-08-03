@@ -10,6 +10,7 @@ import { PassScoreSections } from "@/components/PassScoreSections";
 import { XpIndicesPanel } from "@/components/XpIndicesPanel";
 import { XpProfileBars } from "@/components/XpProfileBars";
 import { getPlayerProfile, type PlayerProfile } from "@/lib/api";
+import { formatContractUntil } from "@/lib/formatters";
 
 export function ProfileView({ playerId }: { playerId: string }) {
   const [data, setData] = useState<PlayerProfile | null>(null);
@@ -79,7 +80,7 @@ export function ProfileView({ playerId }: { playerId: string }) {
               <div className="metric-line"><span>Nacionalidade</span><span className="stat-val">{String(p.nationality ?? "—")}</span></div>
               <div className="metric-line"><span>Pé</span><span className="stat-val">{String(p.dominant_foot ?? "—")}</span></div>
               <div className="metric-line"><span>Valor</span><span className="stat-val">{String(p.market_value ?? "—")}</span></div>
-              <div className="metric-line"><span>Contrato</span><span className="stat-val">{String(p.contract_until ?? "—")}</span></div>
+              <div className="metric-line"><span>Contrato</span><span className="stat-val">{formatContractUntil(p.contract_until)}</span></div>
               <div className="metric-line"><span>Minutos</span><span className="stat-val tabular">{p.minutes != null ? String(p.minutes) : "—"}</span></div>
             </div>
 

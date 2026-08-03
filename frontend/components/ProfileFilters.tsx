@@ -1,7 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState, useTransition } from "react";
+import { FormEvent, useEffect, useMemo, useState, useTransition } from "react";
+import { getMeta } from "@/lib/api";
+import { mergeFilterOptions } from "@/lib/filterDefaults";
 import {
   buildProfileUrl,
   filtersFromRecord,
@@ -34,9 +36,22 @@ type Props = {
   current: ProfileFilterState;
 };
 
-export function ProfileFilters({ options, nationalities, current }: Props) {
+export function ProfileFilters({ options: initialOptions, nationalities: initialNats, current }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [options, setOptions] = useState(initialOptions);
+  const [nationalities, setNationalities] = useState(initialNats);
+
+  useEffect(() => {
+    if (options.leagues.length > 1 && nationalities.length > 0) return;
+    getMeta()
+      .then((meta) => {
+        setOptions(mergeFilterOptions(meta));
+        if (meta.nationalities?.length) setNationalities(meta.nationalities);
+      })
+      .catch(() => { /* keep defaults */ });
+  }, [options.leagues.length, nationalities.length]);
+
   const defaults = options.defaults;
 
   const [state, setState] = useState(() => ({

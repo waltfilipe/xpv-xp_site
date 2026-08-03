@@ -50,7 +50,9 @@ export type PassScoreSection = {
   title: string;
   display_score?: number | null;
   letter?: string | null;
-  components: { key: string; value: unknown }[];
+  rank?: number | null;
+  rank_pool?: number | null;
+  components: { key: string; value: unknown; rank?: number | null; rank_pool?: number | null }[];
 };
 
 export type XpBar = { key: string; label: string; value?: number | null; rank?: number | null };
@@ -59,6 +61,7 @@ export type XpIndexItem = {
   key: string;
   label: string;
   tier?: string | null;
+  tier_key?: string | null;
   value?: number | null;
   icon?: string;
 };

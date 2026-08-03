@@ -32,12 +32,16 @@ def build_pass_score_sections(xp_profile: dict) -> list[dict[str, Any]]:
             components.append({
                 "key": ck,
                 "value": xp_profile.get(ck),
+                "rank": xp_profile.get(f"{ck}_rank_in_group"),
+                "rank_pool": xp_profile.get(f"{ck}_rank_pool_in_group"),
             })
         sections.append({
             "title": title,
             "display_score": xp_profile.get(display_key),
             "letter": xp_profile.get(letter_key),
             "index": xp_profile.get(index_key),
+            "rank": xp_profile.get(f"{index_key}_rank_in_group"),
+            "rank_pool": xp_profile.get(f"{index_key}_rank_pool_in_group"),
             "components": components,
         })
     return sections
@@ -50,9 +54,8 @@ def build_xp_profile_bars(xp_profile: dict) -> list[dict[str, Any]]:
             "key": key,
             "label": XP_PROFILE_BAR_LABELS.get(key, key),
             "value": xp_profile.get(key),
-            "rank": xp_profile.get(f"{key.replace('_display', '')}_rank_in_group")
-            if key == "xp_activity_display"
-            else xp_profile.get(f"xp_{key.split('_')[1]}_rank_in_group"),
+            "rank": xp_profile.get(f"{key}_rank_in_group"),
+            "rank_pool": xp_profile.get(f"{key}_rank_pool_in_group"),
         })
     return bars
 
@@ -104,6 +107,7 @@ def build_profile_payload(
                 "key": "consistency",
                 "label": "Consistency",
                 "tier": xp.get("xp_idx_consistency_tier"),
+                "tier_key": "xp_idx_consistency",
                 "value": xp.get("xp_game_consistency_score"),
                 "icon": "fa-wave-square",
             },
@@ -111,6 +115,7 @@ def build_profile_payload(
                 "key": "impact",
                 "label": "Impact",
                 "tier": xp.get("xp_idx_impact_tier"),
+                "tier_key": "xp_idx_impact",
                 "value": xp.get("test_impact_v2_p90"),
                 "icon": "fa-crosshairs",
             },

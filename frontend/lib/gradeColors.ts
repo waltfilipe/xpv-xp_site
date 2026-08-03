@@ -131,8 +131,10 @@ export function formatStat(value: unknown, key?: string): string {
   if (value == null) return "—";
   if (typeof value === "number") {
     if (key?.includes("pct") || key?.includes("coe")) return `${value >= 0 ? "+" : ""}${value.toFixed(1)} pp`;
-    if (Number.isInteger(value)) return value.toLocaleString();
-    return value.toFixed(2);
+    if (Number.isInteger(value) && !key?.includes("p90") && !key?.includes("score")) {
+      return value.toLocaleString();
+    }
+    return value.toFixed(1);
   }
   return String(value);
 }

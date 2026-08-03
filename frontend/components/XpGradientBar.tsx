@@ -8,12 +8,12 @@ type Props = {
   value: number | null | undefined;
   icon?: string;
   tooltip?: string;
+  showValue?: boolean;
 };
 
-export function XpGradientBar({ label, value, icon, tooltip }: Props) {
+export function XpGradientBar({ label, value, icon, tooltip, showValue = false }: Props) {
   const pos = barPosition(value);
   const tier = value != null ? gradientBarTier(value) : "cool";
-  const display = value != null ? value.toFixed(1) : "—";
   const glowColor = gradeColor(value ?? 0, 10);
 
   const bar = (
@@ -25,7 +25,11 @@ export function XpGradientBar({ label, value, icon, tooltip }: Props) {
           </span>
         )}
         <span className="xp-gradient-bar-label">{label}</span>
-        <span className="xp-gradient-bar-value tabular">{display}</span>
+        {showValue && (
+          <span className="xp-gradient-bar-value tabular">
+            {value != null ? value.toFixed(1) : "—"}
+          </span>
+        )}
       </div>
       <div className={`xp-gradient-bar-track${value == null ? " xp-gradient-bar-empty" : ""}`}>
         <div className="xp-gradient-bar-clip">

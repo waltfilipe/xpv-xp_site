@@ -8,15 +8,10 @@ export type XpIndexItem = {
   key: string;
   label: string;
   tier?: string | null;
+  tier_key?: string | null;
   value?: number | null;
   icon?: string;
 };
-
-function formatValue(key: string, value: number | null | undefined): string {
-  if (value == null) return "—";
-  if (key === "consistency") return value.toFixed(1);
-  return value.toFixed(2);
-}
 
 export function XpIndicesPanel({ indices }: { indices: XpIndexItem[] }) {
   const rows = indices.filter((i) => i.tier);
@@ -25,27 +20,21 @@ export function XpIndicesPanel({ indices }: { indices: XpIndexItem[] }) {
   return (
     <div className="xp-indices-panel">
       <h4 className="section-label-sm">xP Indices</h4>
-      <div className="xp-indices-grid">
+      <div className="xp-indices-list">
         {rows.map((item) => {
           const tier = item.tier ?? "mid";
           const tierLabel = XP_INDEX_TIER_LABELS[tier] ?? tier;
-          const tip = INDEX_TOOLTIPS[item.label as keyof typeof INDEX_TOOLTIPS] ?? "";
+          const tipKey = item.tier_key ?? item.label;
+          const tip = INDEX_TOOLTIPS[tipKey] ?? INDEX_TOOLTIPS[item.label] ?? "";
           return (
             <Tooltip key={item.key} content={tip} block>
-              <div className={`xp-index-card ${xpIndexTierClass(tier)}`}>
-                <div className="xp-index-card-head">
-                  <span className="xp-index-icon">
-                    <i className={`fa-solid ${item.icon ?? "fa-circle"}`} />
-                  </span>
-                  <span className="xp-index-name">{item.label}</span>
-                </div>
-                <div className="xp-index-card-body">
-                  <span className="xp-index-tier">{tierLabel}</span>
-                  <span className="xp-index-value tabular">{formatValue(item.key, item.value)}</span>
-                </div>
-                <div className="xp-index-tier-bar">
-                  <span className={`xp-index-tier-dot tier-${tier}`} />
-                </div>
+              <div className={`xp-index-row ${xpIndexTierClass(tier)}`}>
+                <span className="xp-index-row-icon">
+                  <i className={`fa-solid ${item.icon ?? "fa-circle"}`} />
+                </span>
+                <span className="xp-index-row-name">{item.label}</span>
+                <span className="xp-index-row-sep" aria-hidden="true" />
+                <span className="xp-index-row-val">{tierLabel}</span>
               </div>
             </Tooltip>
           );
