@@ -42,8 +42,14 @@ export const DEFAULT_FILTER_OPTIONS: FilterOptionsMeta = {
     { key: "buildup_grade", label: "Build-up" },
     { key: "chance_grade", label: "Chance creation" },
   ],
+  position_blocks: [
+    { key: "all", label: "Todos os meios-campistas" },
+    { key: "cm", label: "Meio-campistas centrais" },
+    { key: "am", label: "Meio-campistas ofensivos" },
+  ],
   defaults: {
     league: "all",
+    position_block: "all",
     age_band: "all",
     age_slider: [16, 42],
     foot: "all",
@@ -77,6 +83,7 @@ export function mergeFilterOptions(
     height_range_m: fo?.height_range_m ?? base.height_range_m,
     letter_grades: fo?.letter_grades?.length ? fo.letter_grades : base.letter_grades,
     pass_score_filters: fo?.pass_score_filters?.length ? fo.pass_score_filters : base.pass_score_filters,
+    position_blocks: fo?.position_blocks?.length ? fo.position_blocks : base.position_blocks,
     defaults: { ...base.defaults, ...(fo?.defaults ?? {}) },
   };
 }

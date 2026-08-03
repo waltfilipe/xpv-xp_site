@@ -181,6 +181,7 @@ def players_options(
     efficiency_grade: str = Query("all"),
     buildup_grade: str = Query("all"),
     chance_grade: str = Query("all"),
+    position_block: str = Query("all"),
 ) -> dict[str, Any]:
     import nationality_groups as ng
 
@@ -228,7 +229,13 @@ def players_options(
         chance_grade=chance_grade,
     )
 
-    options = player_options(pool, progression_by_id, xp_by_id=xp_by_id, exclude_player_id=exclude)
+    options = player_options(
+        pool,
+        progression_by_id,
+        xp_by_id=xp_by_id,
+        exclude_player_id=exclude,
+        position_block=position_block,
+    )
     return sanitize_for_json({"options": options})
 
 

@@ -22,6 +22,12 @@ POSITION_BLOCKS: tuple[tuple[str, str, frozenset[str] | None, str | None], ...] 
     ("am", "Attacking Midfielders", None, "attacking_midfielders"),
 )
 
+POSITION_BLOCK_OPTIONS = [
+    ("all", "Todos os meios-campistas"),
+    ("cm", "Meio-campistas centrais"),
+    ("am", "Meio-campistas ofensivos"),
+]
+
 PASS_SCORE_LETTER_FIELDS: dict[str, str] = {
     "volume_grade": "pass_volume_letter",
     "efficiency_grade": "pass_efficiency_letter",
@@ -107,8 +113,10 @@ def filter_options_meta() -> dict[str, Any]:
             {"key": "buildup_grade", "label": "Build-up"},
             {"key": "chance_grade", "label": "Chance creation"},
         ],
+        "position_blocks": [{"key": k, "label": l} for k, l in POSITION_BLOCK_OPTIONS],
         "defaults": {
             "league": "all",
+            "position_block": "all",
             "age_band": "all",
             "age_slider": [pp.MIN_PLAYER_AGE, pp.MAX_PLAYER_AGE],
             "foot": "all",
@@ -144,6 +152,23 @@ def all_position_filters() -> tuple[frozenset[str], frozenset[str]]:
         if rating_group:
             groups.add(rating_group)
     return frozenset(codes), frozenset(groups)
+
+
+def position_filter_from_block(position_block: str = "all") -> tuple[frozenset[str], frozenset[str]]:
+    block_id = (position_block or "all").strip().lower()
+    if block_id in {"", "all"}:
+        return all_position_filters()
+    for bid, _label, block_codes, rating_group in POSITION_BLOCKS:
+        if bid != block_id:
+            continue
+        codes: set[str] = set()
+        groups: set[str] = set()
+        if block_codes:
+            codes.update(block_codes)
+        if rating_group:
+            groups.add(rating_group)
+        return frozenset(codes), frozenset(groups)
+    return all_position_filters()
 
 
 def player_matches_position_filter(
@@ -257,6 +282,30 @@ def filter_player_pool(
     return out
 
 
+def _normalize_letter_grade(letter: str | None) -> str:
+    return str(letter or "").strip().upper().replace("−", "-")
+
+
+def _letter_grade_score(letter: str | None) -> float | None:
+    from xp_stats_engine import LETTER_GRADE_COLOR_SCORES
+
+    normalized = _normalize_letter_grade(letter)
+    if not normalized or normalized == "—":
+        return None
+    return LETTER_GRADE_COLOR_SCORES.get(normalized)
+
+
+def letter_grade_meets_minimum(player_letter: str | None, minimum_letter: str) -> bool:
+    """True when the player letter is at least the selected minimum grade."""
+    min_score = _letter_grade_score(minimum_letter)
+    if min_score is None:
+        return True
+    player_score = _letter_grade_score(player_letter)
+    if player_score is None:
+        return False
+    return player_score >= min_score
+
+
 def matches_pass_letter_filters(
     xp_profile: dict,
     *,
@@ -275,8 +324,8 @@ def matches_pass_letter_filters(
         if not selected or selected == "all":
             continue
         letter_key = PASS_SCORE_LETTER_FIELDS[param_key]
-        player_letter = str(xp_profile.get(letter_key) or "").strip().upper()
-        if player_letter != selected.strip().upper():
+        player_letter = xp_profile.get(letter_key)
+        if not letter_grade_meets_minimum(player_letter, selected):
             return False
     return True
 
@@ -323,8 +372,9 @@ def player_options(
     xp_by_id: dict[str, dict] | None = None,
     exclude_player_id: str | None = None,
     sort_by: str = "xp_pass_rating",
+    position_block: str = "all",
 ) -> list[dict[str, str]]:
-    position_codes, position_groups = all_position_filters()
+    position_codes, position_groups = position_filter_from_block(position_block)
     ranked_rows: list[tuple[str, str, str, float]] = []
     for player in players:
         pid = str(player["player_id"])

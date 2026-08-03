@@ -61,6 +61,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
     efficiency_grade: current.efficiency_grade ?? "all",
     buildup_grade: current.buildup_grade ?? "all",
     chance_grade: current.chance_grade ?? "all",
+    position_block: current.position_block ?? defaults.position_block,
     regions: (current.regions?.split(",") ?? defaults.nationality_regions).filter(Boolean),
     countries: (current.countries?.split(",") ?? defaults.nationality_countries).filter(Boolean),
   }));
@@ -96,6 +97,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
       efficiency_grade: state.efficiency_grade !== "all" ? state.efficiency_grade : undefined,
       buildup_grade: state.buildup_grade !== "all" ? state.buildup_grade : undefined,
       chance_grade: state.chance_grade !== "all" ? state.chance_grade : undefined,
+      position_block: state.position_block !== "all" ? state.position_block : undefined,
       regions:
         state.regions.length && !(state.regions.length === 1 && state.regions[0] === "World")
           ? state.regions.join(",")
@@ -128,6 +130,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
       efficiency_grade: "all",
       buildup_grade: "all",
       chance_grade: "all",
+      position_block: defaults.position_block,
       regions: [...defaults.nationality_regions],
       countries: [...defaults.nationality_countries],
     });
@@ -169,7 +172,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
               <i className="fa-solid fa-sliders" /> Filtros do grupo
             </span>
             <span className="filter-sub">
-              Refine liga, idade, valor, contrato, minutos, altura, pass scores e nacionalidade.
+              Refine posição, liga, idade, valor, contrato, minutos, altura, pass scores e nacionalidade.
             </span>
           </div>
           <i className={`fa-solid fa-chevron-${filtersOpen ? "up" : "down"} filter-panel-chevron`} />
@@ -184,6 +187,18 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
         <div className="filter-section">
           <h4 className="filter-section-title">Perfil</h4>
         <div className="filter-grid filter-grid-2">
+          <label className="filter-field">
+            <span className="filter-label">Posição</span>
+            <select
+              value={state.position_block}
+              onChange={(e) => setState((s) => ({ ...s, position_block: e.target.value }))}
+            >
+              {options.position_blocks.map((block) => (
+                <option key={block.key} value={block.key}>{block.label}</option>
+              ))}
+            </select>
+          </label>
+
           <label className="filter-field">
             <span className="filter-label">Liga</span>
             <select value={state.league} onChange={(e) => setState((s) => ({ ...s, league: e.target.value }))}>
@@ -290,7 +305,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
         </div>
 
         <div className="filter-section">
-          <h4 className="filter-section-title">Pass scores (nota mínima)</h4>
+          <h4 className="filter-section-title">Pass scores (nota mínima ≥)</h4>
         <div className="filter-grid filter-grid-pass-grades">
           {options.pass_score_filters.map((filter) => {
             const key = filter.key as "volume_grade" | "efficiency_grade" | "buildup_grade" | "chance_grade";
