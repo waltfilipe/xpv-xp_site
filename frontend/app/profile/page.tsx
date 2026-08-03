@@ -1,7 +1,6 @@
 import { Suspense } from "react";
-import { PageHero } from "@/components/PageHero";
 import { ProfileFilters } from "@/components/ProfileFilters";
-import { PlayerSelector } from "@/components/PlayerSelector";
+import { PlayerSearchRow } from "@/components/PlayerSearchRow";
 import { ProfileView } from "@/components/ProfileView";
 import { getMeta, getPlayerOptions } from "@/lib/api";
 import { mergeFilterOptions } from "@/lib/filterDefaults";
@@ -32,30 +31,36 @@ export default async function ProfilePage({ searchParams }: Props) {
   const playerId = filters.player ?? options[0]?.player_id;
 
   return (
-    <div className="container">
-      <PageHero
-        title="Player Profile"
-        subtitle="Perfil completo com xP, pass scores e heatmap de origem dos passes."
-        icon="fa-user"
-      />
+    <div className="profile-page">
+      <header className="profile-page-hero">
+        <div className="container profile-page-hero-inner">
+          <div className="profile-page-hero-copy">
+            <span className="profile-page-eyebrow">Pass Scout</span>
+            <h1>Player Profile</h1>
+            <p>Análise completa de meio-campistas — xP, pass scores, índices e mapas de origem.</p>
+          </div>
+        </div>
+      </header>
 
-      <Suspense fallback={null}>
-        <ProfileFilters
-          options={filterOptions}
-          nationalities={nationalities}
-          current={filters}
-        />
-      </Suspense>
+      <div className="container profile-page-body">
+        <Suspense fallback={null}>
+          <ProfileFilters
+            options={filterOptions}
+            nationalities={nationalities}
+            current={filters}
+          />
+        </Suspense>
 
-      {options.length > 0 ? (
-        <PlayerSelector options={options} currentId={playerId} filters={filters} />
-      ) : (
-        <p className="muted" style={{ marginBottom: "1rem" }}>
-          Nenhum jogador encontrado com estes filtros.
-        </p>
-      )}
+        {options.length > 0 ? (
+          <PlayerSearchRow options={options} currentId={playerId} filters={filters} />
+        ) : (
+          <p className="muted profile-empty-note">
+            Nenhum jogador encontrado com estes filtros.
+          </p>
+        )}
 
-      {playerId ? <ProfileView playerId={playerId} /> : null}
+        {playerId ? <ProfileView playerId={playerId} /> : null}
+      </div>
     </div>
   );
 }

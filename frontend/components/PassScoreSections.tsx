@@ -17,7 +17,6 @@ export function PassScoreSections({ sections }: { sections: PassScoreSection[] }
                 <Tooltip content={PASS_SCORE_TOOLTIPS[s.title] ?? ""}>
                   <span className="grade-card-title">{s.title}</span>
                 </Tooltip>
-                <TopRankBadge rank={s.rank} />
                 <GradeBadge letter={s.letter} displayScore={s.display_score} size="sm" />
               </div>
             </div>

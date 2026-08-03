@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState, useTransition } from "react";
+import { RangeDual } from "@/components/ui/RangeDual";
 import { getMeta } from "@/lib/api";
 import { mergeFilterOptions } from "@/lib/filterDefaults";
 import {
@@ -55,7 +56,6 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
   const defaults = options.defaults;
 
   const [state, setState] = useState(() => ({
-    search: current.search ?? "",
     league: current.league ?? defaults.league,
     age_band: current.age_band ?? defaults.age_band,
     age_min: Number(current.age_min ?? defaults.age_slider[0]),
@@ -71,10 +71,10 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
 
   const selectedCountries = useMemo(() => new Set(state.countries), [state.countries]);
 
-  function toFilters(keepPlayer = false): ProfileFilterState {
+  function toFilters(): ProfileFilterState {
     return {
-      player: keepPlayer ? current.player : undefined,
-      search: state.search.trim() || undefined,
+      player: current.player,
+      search: current.search,
       league: state.league !== "all" ? state.league : undefined,
       age_band: state.age_band !== "all" ? state.age_band : undefined,
       age_min: state.age_min !== defaults.age_slider[0] ? String(state.age_min) : undefined,
@@ -94,12 +94,11 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    startTransition(() => router.push(buildProfileUrl(toFilters())));
+    startTransition(() => router.push(buildProfileUrl({ ...toFilters(), player: undefined })));
   }
 
   function clearFilters() {
     setState({
-      search: "",
       league: defaults.league,
       age_band: defaults.age_band,
       age_min: defaults.age_slider[0],
@@ -143,7 +142,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
             <i className="fa-solid fa-sliders" /> Filtros do grupo
           </span>
           <span className="filter-sub">
-            Combine faixa etária, valor, contrato e nacionalidade para refinar o grupo.
+            Refine liga, idade, valor, contrato e nacionalidade do pool de meio-campistas.
           </span>
         </div>
         <button type="button" className="btn btn-ghost btn-sm" onClick={clearFilters}>
@@ -152,21 +151,12 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
       </div>
 
       <form className="profile-filters-form" onSubmit={onSubmit}>
-        <div className="filter-grid filter-grid-3">
+        <div className="filter-grid filter-grid-2">
           <label className="filter-field">
             <span className="filter-label">Liga</span>
             <select value={state.league} onChange={(e) => setState((s) => ({ ...s, league: e.target.value }))}>
               {options.leagues.map((l) => (
                 <option key={l.key} value={l.key}>{l.label}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="filter-field">
-            <span className="filter-label">Faixa etária</span>
-            <select value={state.age_band} onChange={(e) => setState((s) => ({ ...s, age_band: e.target.value }))}>
-              {options.age_bands.map((b) => (
-                <option key={b.key} value={b.key}>{b.label}</option>
               ))}
             </select>
           </label>
@@ -181,95 +171,58 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
           </label>
         </div>
 
-        <div className="filter-grid filter-grid-2">
-          <label className="filter-field filter-range">
-            <span className="filter-label">
-              Idade (ajuste fino) <strong className="tabular">{state.age_min}–{state.age_max}</strong>
-            </span>
-            <div className="dual-range">
-              <input
-                type="range"
-                min={options.age_range.min}
-                max={options.age_range.max}
-                value={state.age_min}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setState((s) => ({ ...s, age_min: Math.min(v, s.age_max) }));
-                }}
-              />
-              <input
-                type="range"
-                min={options.age_range.min}
-                max={options.age_range.max}
-                value={state.age_max}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setState((s) => ({ ...s, age_max: Math.max(v, s.age_min) }));
-                }}
-              />
-            </div>
+        <div className="filter-grid filter-grid-age">
+          <label className="filter-field">
+            <span className="filter-label">Faixa etária</span>
+            <select value={state.age_band} onChange={(e) => setState((s) => ({ ...s, age_band: e.target.value }))}>
+              {options.age_bands.map((b) => (
+                <option key={b.key} value={b.key}>{b.label}</option>
+              ))}
+            </select>
           </label>
 
-          <label className="filter-field filter-range">
+          <div className="filter-field filter-range">
+            <span className="filter-label">
+              Ajuste fino de idade <strong className="tabular">{state.age_min}–{state.age_max}</strong>
+            </span>
+            <RangeDual
+              min={options.age_range.min}
+              max={options.age_range.max}
+              values={[state.age_min, state.age_max]}
+              onChange={([age_min, age_max]) => setState((s) => ({ ...s, age_min, age_max }))}
+            />
+          </div>
+        </div>
+
+        <div className="filter-grid filter-grid-2">
+          <div className="filter-field filter-range">
             <span className="filter-label">
               Valor de mercado (€M) <strong className="tabular">{state.value_min}–{state.value_max}</strong>
             </span>
-            <div className="dual-range">
-              <input
-                type="range"
-                min={options.value_range_m.min}
-                max={options.value_range_m.max}
-                value={state.value_min}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setState((s) => ({ ...s, value_min: Math.min(v, s.value_max) }));
-                }}
-              />
-              <input
-                type="range"
-                min={options.value_range_m.min}
-                max={options.value_range_m.max}
-                value={state.value_max}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setState((s) => ({ ...s, value_max: Math.max(v, s.value_min) }));
-                }}
-              />
-            </div>
-          </label>
-        </div>
+            <RangeDual
+              min={options.value_range_m.min}
+              max={options.value_range_m.max}
+              values={[state.value_min, state.value_max]}
+              onChange={([value_min, value_max]) => setState((s) => ({ ...s, value_min, value_max }))}
+            />
+          </div>
 
-        <div className="filter-grid filter-grid-3">
-          <label className="filter-field filter-range">
+          <div className="filter-field filter-range">
             <span className="filter-label">
               Fim de contrato <strong className="tabular">{state.contract_min}–{state.contract_max}</strong>
             </span>
-            <div className="dual-range">
-              <input
-                type="range"
-                min={options.contract_year_range.min}
-                max={options.contract_year_range.max}
-                value={state.contract_min}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setState((s) => ({ ...s, contract_min: Math.min(v, s.contract_max) }));
-                }}
-              />
-              <input
-                type="range"
-                min={options.contract_year_range.min}
-                max={options.contract_year_range.max}
-                value={state.contract_max}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setState((s) => ({ ...s, contract_max: Math.max(v, s.contract_min) }));
-                }}
-              />
-            </div>
-          </label>
+            <RangeDual
+              min={options.contract_year_range.min}
+              max={options.contract_year_range.max}
+              values={[state.contract_min, state.contract_max]}
+              onChange={([contract_min, contract_max]) => setState((s) => ({ ...s, contract_min, contract_max }))}
+            />
+          </div>
+        </div>
 
-          <div className="filter-field">
-            <span className="filter-label">Regiões</span>
+        <div className="filter-field filter-nationality">
+          <span className="filter-label">Nacionalidade</span>
+          <div className="nationality-panel">
             <div className="chip-group">
               {options.nationality_regions.map((region) => (
                 <button
@@ -282,34 +235,20 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
                 </button>
               ))}
             </div>
+            <div className="chip-group chip-group-scroll">
+              {nationalities.map((country) => (
+                <button
+                  key={country}
+                  type="button"
+                  className={`chip chip-sm${selectedCountries.has(country) ? " chip-active" : ""}`}
+                  onClick={() => toggleCountry(country)}
+                >
+                  {country}
+                </button>
+              ))}
+            </div>
           </div>
-
-          <label className="filter-field">
-            <span className="filter-label">Buscar jogador</span>
-            <input
-              type="search"
-              placeholder="Nome do jogador…"
-              value={state.search}
-              onChange={(e) => setState((s) => ({ ...s, search: e.target.value }))}
-            />
-          </label>
         </div>
-
-        <details className="filter-countries">
-          <summary>Países ({selectedCountries.size} selecionados)</summary>
-          <div className="chip-group chip-group-scroll">
-            {nationalities.map((country) => (
-              <button
-                key={country}
-                type="button"
-                className={`chip chip-sm${selectedCountries.has(country) ? " chip-active" : ""}`}
-                onClick={() => toggleCountry(country)}
-              >
-                {country}
-              </button>
-            ))}
-          </div>
-        </details>
 
         <div className="filter-actions">
           <button type="submit" className="btn btn-primary" disabled={pending}>

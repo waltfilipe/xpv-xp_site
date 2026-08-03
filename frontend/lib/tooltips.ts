@@ -35,8 +35,8 @@ export const COMPONENT_TOOLTIPS: Record<string, string> = {
 export const COMPONENT_LABELS: Record<string, string> = {
   passes_total: "Passes / game",
   long_balls: "Long passes / game",
-  xpass_coe_pct: "COE",
-  xpass_long_coe_pct: "COE long passes",
+  xpass_coe_pct: "COE passe curto",
+  xpass_long_coe_pct: "COE passe longo",
   progressive_passes: "Progressive passes / game",
   final_third_passes: "Passes into final third / game",
   key_passes: "Key passes / game",

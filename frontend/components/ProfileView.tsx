@@ -50,8 +50,8 @@ export function ProfileView({ playerId }: { playerId: string }) {
                   <Image
                     src={String(p.photo_url)}
                     alt=""
-                    width={96}
-                    height={96}
+                    width={120}
+                    height={120}
                     className="identity-photo"
                     unoptimized
                   />
@@ -66,9 +66,6 @@ export function ProfileView({ playerId }: { playerId: string }) {
                 <p className="identity-subline">
                   {String(p.team ?? "—")} · {String(p.position ?? "—")}
                 </p>
-                <span className="identity-chip">
-                  {String(p.league_source ?? p.league ?? "—").replace(/_/g, " ")}
-                </span>
               </div>
             </div>
 
