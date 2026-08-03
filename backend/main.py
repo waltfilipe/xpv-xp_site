@@ -25,13 +25,12 @@ from position_families import (  # noqa: E402
 from services.compare_service import build_compare_payload  # noqa: E402
 from services.filters import (  # noqa: E402
     LEAGUE_OPTIONS,
-    available_nationalities,
-    filter_options_meta,
     filter_player_pool,
     filter_players_by_pass_letters,
     parse_age_band,
     player_options,
 )
+from services.meta_service import build_meta_payload  # noqa: E402
 from services.maps_service import (  # noqa: E402
     build_pass_map_images,
     build_scatter_data,
@@ -130,27 +129,7 @@ def health() -> dict[str, str]:
 @app.get("/api/meta")
 def meta(position_family: str = Query(DEFAULT_POSITION_FAMILY)) -> dict[str, Any]:
     family = _resolve_position_family(position_family)
-    parts = _bundle_parts(family)
-    analysis_players = parts["analysis_players"]
-    leagues = sorted({str(p.get("league_source") or "") for p in analysis_players if p.get("league_source")})
-    position_groups = sorted({str(p.get("position_group") or "") for p in analysis_players if p.get("position_group")})
-    family_label = position_family_label(family)
-    return sanitize_for_json({
-        "position_family": family,
-        "position_family_label": family_label,
-        "player_count": len(analysis_players),
-        "leagues": leagues,
-        "league_options": [{"key": k, "label": l} for k, l in LEAGUE_OPTIONS],
-        "position_groups": position_groups,
-        "position_families": [{"key": k, "label": l} for k, l in EUROPEAN_POSITION_FAMILIES],
-        "nationalities": available_nationalities(analysis_players),
-        "filter_options": filter_options_meta(family),
-        "description": (
-            f"Premier League, Serie A, La Liga, Bundesliga and Ligue 1 {family_label.lower()} — "
-            "pass ratings (xT v4), progression ratings, and xP analytics. "
-            "All scores and ranks are computed within the selected position pool."
-        ),
-    })
+    return sanitize_for_json(build_meta_payload(family))
 
 
 @app.get("/api/players")
