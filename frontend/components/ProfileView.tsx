@@ -58,11 +58,11 @@ export function ProfileView({ playerId }: { playerId: string }) {
                   <Image
                     src={String(p.photo_url)}
                     alt=""
-                    width={156}
-                    height={156}
+                    fill
                     className="identity-photo"
                     unoptimized
                     priority
+                    sizes="160px"
                   />
                 ) : (
                   <div className="identity-photo-placeholder identity-photo-placeholder-side">
