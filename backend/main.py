@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -40,10 +42,22 @@ from services.player_bundle import load_player_analysis_bundle  # noqa: E402
 from services.profile_service import build_profile_payload  # noqa: E402
 from services.serialization import sanitize_for_json  # noqa: E402
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Kick off default bundle pre-warm in the background (first load can take a few minutes)."""
+    import asyncio
+
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(None, load_player_analysis_bundle, DEFAULT_POSITION_FAMILY)
+    yield
+
+
 app = FastAPI(
     title="Pass Scout API",
     description="European outfield pass analysis — xT, xP, progression ratings",
     version="0.3.0",
+    lifespan=lifespan,
 )
 
 _cors_origins = os.getenv(
