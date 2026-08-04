@@ -20,7 +20,7 @@ import {
 function MapsContent() {
   const searchParams = useSearchParams();
   const [positionFamily, setPositionFamily] = useState("midfielders");
-  const [positionFamilies, setPositionFamilies] = useState(POSITION_FAMILIES);
+  const [positionFamilies, setPositionFamilies] = useState<{ key: string; label: string }[]>([...POSITION_FAMILIES]);
   const [options, setOptions] = useState<PlayerOption[]>([]);
   const [mapOpts, setMapOpts] = useState<{ scatter_metrics: { key: string; label: string }[]; pass_filters: { key: string; label: string }[] } | null>(null);
   const [playerId, setPlayerId] = useState(searchParams.get("player") ?? "");
