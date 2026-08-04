@@ -2627,3 +2627,369 @@ tr:last-child td { border-bottom: none; }
 .hero h1 { font-size: 1.65rem; font-weight: 800; letter-spacing: -0.03em; }
 .hero p { color: var(--text-secondary); }
 .stats-row { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1rem 0; }
+
+/* ── Player Reports ── */
+.reports-promo-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  margin-bottom: 1.25rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(167, 139, 250, 0.28);
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.08) 0%, rgba(56, 189, 248, 0.04) 100%);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+
+.reports-promo-card:hover {
+  border-color: rgba(167, 139, 250, 0.5);
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.12) 0%, rgba(56, 189, 248, 0.06) 100%);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.reports-promo-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 10px;
+  background: rgba(167, 139, 250, 0.15);
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  color: var(--accent-purple);
+  flex-shrink: 0;
+}
+
+.reports-promo-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.reports-promo-cta {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent-purple);
+}
+
+.reports-container {
+  max-width: 1560px;
+}
+
+.reports-intro-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.reports-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(19, 26, 43, 0.65);
+}
+
+.reports-toolbar-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.reports-filter-btn {
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.5);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.reports-filter-btn:hover {
+  color: var(--text);
+  border-color: #475569;
+}
+
+.reports-filter-btn.active {
+  background: rgba(167, 139, 250, 0.12);
+  border-color: rgba(167, 139, 250, 0.45);
+  color: var(--accent-purple);
+}
+
+.reports-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.reports-hint {
+  margin-bottom: 1.25rem;
+  font-size: 0.88rem;
+}
+
+.reports-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.player-report-sheet {
+  border-radius: calc(var(--radius) + 2px);
+  border: 1px solid var(--border);
+  background: var(--surface-flat);
+  padding: 1.15rem 1.25rem 1rem;
+  box-shadow: var(--shadow);
+}
+
+.report-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.65rem;
+}
+
+.report-sheet-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.report-brand-icon {
+  width: 2.35rem;
+  height: 2.35rem;
+}
+
+.report-sheet-eyebrow {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.report-sheet-category {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.report-sheet-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.report-sheet-group {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.report-sheet-index {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: rgba(148, 163, 184, 0.35);
+  line-height: 1;
+}
+
+.report-sheet-description {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.85rem;
+  max-width: 72ch;
+}
+
+.report-sheet-body {
+  margin-bottom: 0.75rem;
+}
+
+.report-identity-card,
+.report-xp-card,
+.report-pillars-card,
+.report-radar-card {
+  height: 100%;
+}
+
+.report-player-name {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.report-player-note {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.report-league-line {
+  font-size: 0.82rem;
+  margin-top: -0.15rem;
+  margin-bottom: 0.35rem;
+}
+
+.report-heatmap {
+  margin-top: 0.15rem;
+}
+
+.report-radar-card {
+  padding: 0.85rem 1rem;
+}
+
+.report-radar {
+  display: flex;
+  justify-content: center;
+  padding: 0.25rem 0;
+}
+
+.report-radar-svg {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+}
+
+.report-radar-label {
+  fill: #94a3b8;
+  font-size: 9.5px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+}
+
+.report-radar-score {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.report-sheet-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.report-sheet-footer strong {
+  color: var(--text-secondary);
+}
+
+.report-sheet-footer-right a {
+  font-weight: 600;
+}
+
+.report-print-only {
+  display: none;
+}
+
+.report-error-sheet {
+  padding: 2rem;
+}
+
+@media (max-width: 1100px) {
+  .report-sheet-body.pa-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Print / PDF export ── */
+@page {
+  size: A4 landscape;
+  margin: 10mm;
+}
+
+@media print {
+  .site-header,
+  .reports-toolbar,
+  .reports-intro-screen,
+  .reports-hint,
+  .report-screen-only,
+  .tip-wrap,
+  .tip-box {
+    display: none !important;
+  }
+
+  .report-print-only {
+    display: inline !important;
+  }
+
+  html, body {
+    background: #070b12 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .container.reports-container {
+    max-width: none;
+    padding: 0;
+  }
+
+  .reports-stack {
+    gap: 0;
+  }
+
+  .player-report-sheet {
+    page-break-after: always;
+    break-after: page;
+    break-inside: avoid;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+    min-height: auto;
+  }
+
+  .player-report-sheet.report-print-hidden {
+    display: none !important;
+  }
+
+  .player-report-sheet:last-child {
+    page-break-after: auto;
+  }
+
+  .report-sheet-body.pa-layout {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.35fr) minmax(0, 0.78fr);
+    gap: 0.5rem;
+  }
+
+  .player-card {
+    break-inside: avoid;
+  }
+
+  .identity-photo-side {
+    width: 120px;
+    min-height: 140px;
+  }
+
+  .report-radar-svg {
+    max-width: 220px;
+  }
+}

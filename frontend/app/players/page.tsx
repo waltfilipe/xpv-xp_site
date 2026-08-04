@@ -26,7 +26,7 @@ export default async function PlayersPage({ searchParams }: PageProps) {
   let filters = { leagues: [] as string[], position_groups: [] as string[] };
   let error: string | null = null;
 
-  let positionFamilies = [...POSITION_FAMILIES];
+  let positionFamilies: { key: string; label: string }[] = [...POSITION_FAMILIES];
 
   const family = params.position_family ?? "midfielders";
 
@@ -75,6 +75,21 @@ export default async function PlayersPage({ searchParams }: PageProps) {
       <p className="muted" style={{ marginBottom: "0.75rem" }}>
         {data.total} jogador{data.total !== 1 ? "es" : ""} encontrado{data.total !== 1 ? "s" : ""}
       </p>
+
+      <Link href="/players/reports" className="reports-promo-card report-screen-only">
+        <span className="reports-promo-icon">
+          <i className="fa-solid fa-file-lines" />
+        </span>
+        <span className="reports-promo-text">
+          <strong>Player Reports</strong>
+          <span className="muted">
+            Relatórios PDF-ready — U23 Breakout, Blue Collar 24–30 e Experience 30+
+          </span>
+        </span>
+        <span className="reports-promo-cta">
+          Ver relatórios <i className="fa-solid fa-arrow-right" />
+        </span>
+      </Link>
 
       <div className="table-wrap">
         <table>
