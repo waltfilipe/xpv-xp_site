@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { PassGradePanel } from "@/components/PassGradePanel";
-import { ReportPassScoreTabs } from "@/components/ReportPassScoreTabs";
+import { ReportPassScoreAccordion } from "@/components/ReportPassScoreAccordion";
 import { ReportXpPanel } from "@/components/ReportXpPanel";
 import type { PlayerProfile } from "@/lib/api";
 import type { EnrichedReportPlayer } from "@/lib/playerReports";
@@ -121,6 +121,30 @@ export function PlayerReportSheet({ entry, profile, maps, index }: Props) {
           className="heatmap-img report-heatmap"
         />
       )}
+
+      <div className="report-card-actions report-screen-only">
+        {activePage === 1 ? (
+          <button
+            type="button"
+            className="report-card-maps-btn"
+            style={{ borderColor: `${accent}44`, color: accent }}
+            onClick={() => setActivePage(2)}
+          >
+            <i className="fa-solid fa-map-location-dot" />
+            <span>Ver mapas</span>
+            <i className="fa-solid fa-arrow-right report-card-maps-arrow" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="report-card-maps-btn report-card-maps-btn-back"
+            onClick={() => setActivePage(1)}
+          >
+            <i className="fa-solid fa-arrow-left" />
+            <span>Voltar ao overview</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 
@@ -131,25 +155,6 @@ export function PlayerReportSheet({ entry, profile, maps, index }: Props) {
       data-player-id={playerId}
       id={`report-${playerId}`}
     >
-      <div className="report-page-tabs report-screen-only">
-        <button
-          type="button"
-          className={`report-page-tab${activePage === 1 ? " active" : ""}`}
-          style={activePage === 1 ? { borderColor: `${accent}55`, color: accent } : undefined}
-          onClick={() => setActivePage(1)}
-        >
-          <i className="fa-solid fa-id-card" /> Overview
-        </button>
-        <button
-          type="button"
-          className={`report-page-tab${activePage === 2 ? " active" : ""}`}
-          style={activePage === 2 ? { borderColor: `${accent}55`, color: accent } : undefined}
-          onClick={() => setActivePage(2)}
-        >
-          <i className="fa-solid fa-map-location-dot" /> Maps
-        </button>
-      </div>
-
       <section
         className={`player-report-sheet report-page-1${activePage === 2 ? " report-page-screen-hidden" : ""}`}
       >
@@ -191,7 +196,7 @@ export function PlayerReportSheet({ entry, profile, maps, index }: Props) {
           <div className="pa-col pa-col-pillars">
             <div className="player-card pillars-card report-pillars-card">
               <h3 className="section-label">Pass Scores</h3>
-              <ReportPassScoreTabs sections={profile.pass_scores} accent={accent} />
+              <ReportPassScoreAccordion sections={profile.pass_scores} accent={accent} />
             </div>
           </div>
         </div>
@@ -201,13 +206,6 @@ export function PlayerReportSheet({ entry, profile, maps, index }: Props) {
             <strong>Pass Scout</strong> · European pass analytics
           </span>
           <span className="report-sheet-footer-right">
-            <button
-              type="button"
-              className="report-screen-only report-link-btn"
-              onClick={() => setActivePage(2)}
-            >
-              Ver mapas <i className="fa-solid fa-arrow-right" />
-            </button>
             <Link
               href={`/profile?player=${playerId}&position_family=midfielders`}
               className="report-screen-only"
@@ -242,48 +240,45 @@ export function PlayerReportSheet({ entry, profile, maps, index }: Props) {
           </div>
         </header>
 
-        <div className="report-maps-body">
-          {maps?.pass_map_b64 || maps?.dest_map_b64 ? (
-            <div className="report-maps-grid">
-              {maps.pass_map_b64 && (
-                <div className="report-map-card">
-                  <h4 className="section-label-sm">Pass map</h4>
-                  <img
-                    src={`data:image/png;base64,${maps.pass_map_b64}`}
-                    alt="Pass map"
-                    className="report-map-img"
-                  />
-                </div>
-              )}
-              {maps.dest_map_b64 && (
-                <div className="report-map-card">
-                  <h4 className="section-label-sm">Destination heatmap</h4>
-                  <img
-                    src={`data:image/png;base64,${maps.dest_map_b64}`}
-                    alt="Destination heatmap"
-                    className="report-map-img"
-                  />
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="placeholder-note">Mapas indisponíveis para este jogador.</p>
-          )}
-          {maps?.caption && <p className="muted report-maps-caption">{maps.caption}</p>}
+        <div className="report-maps-layout">
+          <div className="report-maps-identity">{identityBlock}</div>
+
+          <div className="report-maps-body">
+            {maps?.pass_map_b64 || maps?.dest_map_b64 ? (
+              <div className="report-maps-grid">
+                {maps.pass_map_b64 && (
+                  <div className="report-map-card">
+                    <h4 className="section-label-sm">Pass map</h4>
+                    <img
+                      src={`data:image/png;base64,${maps.pass_map_b64}`}
+                      alt="Pass map"
+                      className="report-map-img"
+                    />
+                  </div>
+                )}
+                {maps.dest_map_b64 && (
+                  <div className="report-map-card">
+                    <h4 className="section-label-sm">Destination heatmap</h4>
+                    <img
+                      src={`data:image/png;base64,${maps.dest_map_b64}`}
+                      alt="Destination heatmap"
+                      className="report-map-img"
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="placeholder-note">Mapas indisponíveis para este jogador.</p>
+            )}
+            {maps?.caption && <p className="muted report-maps-caption">{maps.caption}</p>}
+          </div>
         </div>
 
         <footer className="report-sheet-footer">
           <span>
-            <strong>Pass Scout</strong> · Pass maps
+            <strong>Pass Scout</strong> · Pass maps · {displayName}
           </span>
           <span className="report-sheet-footer-right">
-            <button
-              type="button"
-              className="report-screen-only report-link-btn"
-              onClick={() => setActivePage(1)}
-            >
-              <i className="fa-solid fa-arrow-left" /> Voltar ao overview
-            </button>
             <Link
               href={`/maps?player=${playerId}`}
               className="report-screen-only"

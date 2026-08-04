@@ -2756,36 +2756,59 @@ tr:last-child td { border-bottom: none; }
 }
 
 .report-page-tabs {
-  display: flex;
-  gap: 0.45rem;
+  display: none;
 }
 
-.report-page-tab {
-  display: inline-flex;
+.report-page-screen-hidden {
+  display: none;
+}
+
+.report-card-actions {
+  margin-top: 0.35rem;
+}
+
+.report-card-maps-btn {
+  display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.85rem;
-  border-radius: 999px;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: rgba(15, 23, 42, 0.55);
   color: var(--text-secondary);
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 
-.report-page-tab:hover {
+.report-card-maps-btn:hover {
+  background: rgba(15, 23, 42, 0.85);
   color: var(--text);
-  border-color: #475569;
 }
 
-.report-page-tab.active {
-  background: rgba(167, 139, 250, 0.1);
+.report-card-maps-arrow {
+  font-size: 0.72rem;
+  opacity: 0.75;
 }
 
-.report-page-screen-hidden {
-  display: none;
+.report-card-maps-btn-back {
+  color: var(--text-secondary);
+}
+
+.report-maps-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.15fr);
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+@media (max-width: 900px) {
+  .report-maps-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .player-report-sheet {
@@ -2876,52 +2899,102 @@ tr:last-child td { border-bottom: none; }
   grid-template-columns: minmax(280px, 1fr) minmax(300px, 1.15fr) minmax(260px, 0.95fr);
 }
 
-.report-pass-tabs {
+.report-pass-accordion {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-}
-
-.report-pass-tablist {
-  display: flex;
-  flex-wrap: wrap;
   gap: 0.35rem;
 }
 
-.report-pass-tab {
+.report-pass-accordion-item {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: rgba(15, 23, 42, 0.35);
+  overflow: hidden;
+}
+
+.report-pass-accordion-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.report-pass-accordion-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.report-pass-accordion-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.report-pass-accordion-chevron {
+  font-size: 0.62rem;
+  color: var(--muted);
+  transition: transform 0.18s ease;
+  flex-shrink: 0;
+}
+
+.report-pass-accordion-item[open] .report-pass-accordion-chevron {
+  transform: rotate(90deg);
+}
+
+.report-pass-accordion-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.report-pass-accordion-right {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.35rem 0.55rem;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: rgba(15, 23, 42, 0.45);
-  color: var(--text-secondary);
-  font-size: 0.74rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  flex-shrink: 0;
 }
 
-.report-pass-tab:hover {
-  color: var(--text);
-}
-
-.report-pass-tab-label {
-  white-space: nowrap;
-}
-
-.report-pass-tabpanel {
-  padding-top: 0.15rem;
-}
-
-.report-pass-tab-score {
-  font-size: 0.95rem;
+.report-pass-accordion-score {
+  font-size: 0.78rem;
   font-weight: 800;
+}
+
+.report-pass-accordion-panel {
+  padding: 0 0.6rem 0.55rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.08);
 }
 
 .report-xp-indices .xp-index-row {
   cursor: default;
+}
+
+.round-grade-chart-wrap {
+  position: relative;
+}
+
+.round-grade-tooltip {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.95);
+  color: var(--text);
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.round-grade-hit {
+  cursor: crosshair;
 }
 
 .round-grade-chart {
@@ -2959,7 +3032,7 @@ tr:last-child td { border-bottom: none; }
 }
 
 .report-maps-body {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
 }
 
 .report-maps-grid {
@@ -3131,6 +3204,18 @@ tr:last-child td { border-bottom: none; }
 
   .report-maps-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .report-pass-accordion-item {
+    break-inside: avoid;
+  }
+
+  .report-pass-accordion-item .report-pass-accordion-panel {
+    display: block !important;
+  }
+
+  .report-pass-accordion-chevron {
+    transform: rotate(90deg) !important;
   }
 
   .player-card {
