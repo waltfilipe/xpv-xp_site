@@ -30,7 +30,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
   const [options, setOptions] = useState(initialOptions);
   const [nationalities, setNationalities] = useState(initialNats);
   const [countriesOpen, setCountriesOpen] = useState(false);
-  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     if (options.leagues.length > 1 && nationalities.length > 0) return;
@@ -117,6 +117,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
+    setFiltersOpen(false);
     startTransition(() => router.push(buildProfileUrl({ ...toFilters(), player: undefined })));
   }
 

@@ -425,7 +425,13 @@ def player_options(
         xp_profile = (xp_by_id or {}).get(pid, {})
         if sort_by == "xp_pass_rating":
             rating_val = xp_profile.get("xp_pass_rating")
-            suffix = f"· Pass {fmt_rating_score(rating_val)}" if rating_val is not None else "· Pass —"
+            if rating_val is not None:
+                try:
+                    suffix = f"· {float(rating_val) * 10:.1f}"
+                except (TypeError, ValueError):
+                    suffix = "· —"
+            else:
+                suffix = "· —"
         else:
             suffix = f"· xP {sort_key:.1f}"
         options.append({

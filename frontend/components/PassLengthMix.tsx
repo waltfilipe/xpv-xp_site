@@ -18,12 +18,6 @@ export function PassLengthMix({ data }: { data: PassLengthData }) {
   const shortShare = 100 - share;
   const playerPos = Math.max(4, Math.min(96, share));
   const refPos = Math.max(4, Math.min(96, REF_CENTER_PCT));
-  const refAvg = data.long_pass_share_ref_avg_pct;
-  const pctile = data.long_pass_share_pctile;
-
-  const delta =
-    refAvg != null ? share - refAvg : null;
-  const deltaClass = delta != null && delta > 0 ? "delta-up" : "delta-down";
 
   const card = (
     <div className="pass-mix-card">
@@ -32,14 +26,6 @@ export function PassLengthMix({ data }: { data: PassLengthData }) {
           <i className="fa-solid fa-ruler-horizontal" />
         </span>
         <span className="pass-mix-title">Pass Length Mix</span>
-        {delta != null && (
-          <span className={`pass-mix-delta ${deltaClass}`} title={`vs reference avg ${refAvg?.toFixed(1)}%`}>
-            {delta > 0 ? "+" : ""}{delta.toFixed(1)} pp
-          </span>
-        )}
-        {pctile != null && (
-          <span className="pass-mix-pctile">P{pctile.toFixed(0)}</span>
-        )}
       </div>
 
       <div className="pass-mix-track">
