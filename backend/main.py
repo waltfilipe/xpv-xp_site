@@ -33,6 +33,7 @@ from services.maps_service import (  # noqa: E402
     get_round_options,
     load_aggregated_maps,
 )
+from services.player_passes_service import passes_by_player_for_ids  # noqa: E402
 from services.profile_service import build_profile_payload  # noqa: E402
 from services.runtime_mode import heavy_maps_enabled, pass_scout_mode  # noqa: E402
 from services.serialization import sanitize_for_json  # noqa: E402
@@ -255,12 +256,13 @@ def get_player(
 ) -> dict[str, Any]:
     family = _resolve_position_family(position_family)
     parts = _pool_parts(family)
+    passes_by_player = passes_by_player_for_ids(family, [player_id])
     payload = build_profile_payload(
         player_id,
         players_by_id=parts["players_by_id"],
         progression_by_id=parts["progression_by_id"],
         xp_by_id=parts["xp_by_id"],
-        passes_by_player=parts["passes_by_player"],
+        passes_by_player=passes_by_player,
     )
     if payload is None:
         raise HTTPException(status_code=404, detail="Player not found in this position pool")
@@ -275,12 +277,13 @@ def compare_players(
 ) -> dict[str, Any]:
     family = _resolve_position_family(position_family)
     parts = _pool_parts(family)
+    passes_by_player = passes_by_player_for_ids(family, [player_a, player_b])
     payload = build_compare_payload(
         player_a, player_b,
         players_by_id=parts["players_by_id"],
         progression_by_id=parts["progression_by_id"],
         xp_by_id=parts["xp_by_id"],
-        passes_by_player=parts["passes_by_player"],
+        passes_by_player=passes_by_player,
     )
     if payload is None:
         raise HTTPException(status_code=404, detail="One or both players not found or missing xP data")

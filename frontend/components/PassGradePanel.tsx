@@ -55,10 +55,6 @@ export function PassGradePanel({ rating }: Props) {
             </span>
             <span className="pass-grade-marker" style={{ left: `${markerPct}%` }} />
           </div>
-          <div className="pass-grade-axis">
-            <span>4.5</span>
-            <span>9.0</span>
-          </div>
         </div>
       </div>
     </div>
