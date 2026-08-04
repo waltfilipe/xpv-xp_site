@@ -32,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/compare">Compare</Link>
               <Link href="/maps">Maps</Link>
               <Link href="/players">Players</Link>
+              <Link href="/reports">Reports</Link>
             </nav>
           </div>
         </header>

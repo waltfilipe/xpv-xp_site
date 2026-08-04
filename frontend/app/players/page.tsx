@@ -76,12 +76,12 @@ export default async function PlayersPage({ searchParams }: PageProps) {
         {data.total} jogador{data.total !== 1 ? "es" : ""} encontrado{data.total !== 1 ? "s" : ""}
       </p>
 
-      <Link href="/players/reports" className="reports-promo-card report-screen-only">
+      <Link href="/reports" className="reports-promo-card report-screen-only">
         <span className="reports-promo-icon">
           <i className="fa-solid fa-file-lines" />
         </span>
         <span className="reports-promo-text">
-          <strong>Player Reports</strong>
+          <strong>Reports</strong>
           <span className="muted">
             Relatórios PDF-ready — U23 Breakout, Blue Collar 24–30 e Experience 30+
           </span>

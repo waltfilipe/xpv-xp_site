@@ -29,20 +29,20 @@ export const COMPONENT_TOOLTIPS: Record<string, string> = {
   passes_to_box: "Passes completed into the box per 90 minutes.",
   special_line_break_p90: "Line-breaking passes per game — lateral exit bands, forward angle ≤ 50°.",
   test_impact_v2_start_final_third_p90:
-    "Test Impact v2 passes per game originating in the final third (x_start ≥ 72 m).",
+    "Impact passes per game originating in the final third (x_start ≥ 72 m).",
 };
 
 export const COMPONENT_LABELS: Record<string, string> = {
   passes_total: "Passes / game",
   long_balls: "Long passes / game",
-  xpass_coe_pct: "COE passe curto",
-  xpass_long_coe_pct: "COE passe longo",
+  xpass_coe_pct: "%Efficiency - Short Pass",
+  xpass_long_coe_pct: "%Efficiency - Long Pass",
   progressive_passes: "Progressive passes / game",
   final_third_passes: "Passes into final third / game",
   key_passes: "Key passes / game",
   passes_to_box: "Passes into box / game",
   special_line_break_p90: "Line breaking passes / game",
-  test_impact_v2_start_final_third_p90: "Impact v2 — final third / game",
+  test_impact_v2_start_final_third_p90: "Impact",
 };
 
 export const INDEX_TOOLTIPS: Record<string, string> = {

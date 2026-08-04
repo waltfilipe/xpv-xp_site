@@ -3,11 +3,12 @@
 import { useCallback, useState } from "react";
 import type { PlayerProfile } from "@/lib/api";
 import { PLAYER_REPORT_CATEGORIES, type EnrichedReportPlayer } from "@/lib/playerReports";
-import { PlayerReportSheet } from "@/components/PlayerReportSheet";
+import { PlayerReportSheet, type PlayerReportMaps } from "@/components/PlayerReportSheet";
 
 export type ReportEntry = {
   entry: EnrichedReportPlayer;
   profile: PlayerProfile | null;
+  maps: PlayerReportMaps | null;
   error: string | null;
 };
 
@@ -24,30 +25,27 @@ export function ReportsClient({ reports }: Props) {
       ? reports
       : reports.filter((r) => r.entry.category.id === activeCategory);
 
-  const handlePrint = useCallback(
-    (scope: string) => {
-      setPrinting(true);
-      document.body.dataset.printScope = scope;
+  const handlePrint = useCallback((scope: string) => {
+    setPrinting(true);
+    document.body.dataset.printScope = scope;
 
-      const sheets = document.querySelectorAll<HTMLElement>(".player-report-sheet");
-      sheets.forEach((sheet) => {
-        const cat = sheet.dataset.category ?? "";
-        const hide = scope !== "all" && cat !== scope;
-        sheet.classList.toggle("report-print-hidden", hide);
-      });
+    const bundles = document.querySelectorAll<HTMLElement>(".player-report-bundle");
+    bundles.forEach((bundle) => {
+      const cat = bundle.dataset.category ?? "";
+      const hide = scope !== "all" && cat !== scope;
+      bundle.classList.toggle("report-print-hidden", hide);
+    });
 
-      const restore = () => {
-        sheets.forEach((sheet) => sheet.classList.remove("report-print-hidden"));
-        delete document.body.dataset.printScope;
-        setPrinting(false);
-        window.removeEventListener("afterprint", restore);
-      };
+    const restore = () => {
+      bundles.forEach((bundle) => bundle.classList.remove("report-print-hidden"));
+      delete document.body.dataset.printScope;
+      setPrinting(false);
+      window.removeEventListener("afterprint", restore);
+    };
 
-      window.addEventListener("afterprint", restore);
-      window.print();
-    },
-    [],
-  );
+    window.addEventListener("afterprint", restore);
+    window.print();
+  }, []);
 
   const okCount = reports.filter((r) => r.profile).length;
 
@@ -102,19 +100,21 @@ export function ReportsClient({ reports }: Props) {
       </div>
 
       <p className="reports-hint muted report-screen-only">
-        {okCount} relatórios carregados. Use <strong>Exportar PDF</strong> e escolha
-        &quot;Salvar como PDF&quot; no diálogo de impressão — ideal para publicar no LinkedIn.
+        {okCount} relatórios carregados. Cada atleta tem <strong>Overview</strong> e{" "}
+        <strong>Maps</strong> — no PDF, as duas páginas são exportadas em sequência.
       </p>
 
       <div className="reports-stack">
-        {visibleReports.map((item, idx) => {
+        {visibleReports.map((item) => {
           if (!item.profile) {
             return (
-              <div key={item.entry.playerId} className="player-report-sheet report-error-sheet">
-                <p className="error-box">
-                  Falha ao carregar jogador {item.entry.playerId}
-                  {item.error ? `: ${item.error}` : ""}
-                </p>
+              <div key={item.entry.playerId} className="player-report-bundle report-error-bundle">
+                <div className="player-report-sheet report-error-sheet">
+                  <p className="error-box">
+                    Falha ao carregar jogador {item.entry.playerId}
+                    {item.error ? `: ${item.error}` : ""}
+                  </p>
+                </div>
               </div>
             );
           }
@@ -128,6 +128,7 @@ export function ReportsClient({ reports }: Props) {
               key={item.entry.playerId}
               entry={item.entry}
               profile={item.profile}
+              maps={item.maps}
               index={globalIndex}
             />
           );

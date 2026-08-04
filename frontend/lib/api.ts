@@ -66,6 +66,12 @@ export type XpIndexItem = {
   icon?: string;
 };
 
+export type XpRoundGrade = {
+  round: number;
+  grade?: number | null;
+  opponent?: string | null;
+};
+
 export type PlayerProfile = {
   player: Record<string, unknown>;
   xp: Record<string, unknown>;
@@ -79,6 +85,7 @@ export type PlayerProfile = {
   xp_game_consistency_score?: number | null;
   test_impact_v2_p90?: number | null;
   xp_indices?: XpIndexItem[];
+  xp_round_grades?: XpRoundGrade[];
 };
 
 export type CompareMetric = {
