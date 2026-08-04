@@ -14,9 +14,8 @@ from position_families import (
     position_family_label,
     rating_groups_for_family,
 )
+from services.data_parts import family_data_available
 from services.filters import LEAGUE_OPTIONS, filter_options_meta
-from services.player_pool_service import pool_cache_available
-from services.runtime_mode import family_parquet_available, is_local_mode
 from xp_engine import european_passes_meta_path
 
 LEAGUE_SOURCE_KEYS = sorted(key for key, _label in LEAGUE_OPTIONS if key != "all")
@@ -56,8 +55,7 @@ def cached_nationalities() -> tuple[str, ...]:
 def _position_family_options() -> list[dict[str, str]]:
     options: list[dict[str, str]] = []
     for key, label in EUROPEAN_POSITION_FAMILIES:
-        available = family_parquet_available(key) if is_local_mode() else pool_cache_available(key)
-        if available:
+        if family_data_available(key):
             options.append({"key": key, "label": label})
     return options
 

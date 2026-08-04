@@ -8,16 +8,25 @@ import { PageHero } from "@/components/PageHero";
 import { PassLengthMix } from "@/components/PassLengthMix";
 import { XpProfileBars } from "@/components/XpProfileBars";
 import { POSITION_FAMILIES } from "@/lib/positionFamilies";
-import { getCompare, getPlayerOptionsLegacy, type ComparePayload, type PlayerOption } from "@/lib/api";
+import { getCompare, getMeta, getPlayerOptionsLegacy, type ComparePayload, type PlayerOption } from "@/lib/api";
 
 export default function ComparePage() {
   const [positionFamily, setPositionFamily] = useState("midfielders");
+  const [positionFamilies, setPositionFamilies] = useState(POSITION_FAMILIES);
   const [options, setOptions] = useState<PlayerOption[]>([]);
   const [playerA, setPlayerA] = useState("");
   const [playerB, setPlayerB] = useState("");
   const [data, setData] = useState<ComparePayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    getMeta()
+      .then((meta) => {
+        if (meta.position_families?.length) setPositionFamilies(meta.position_families);
+      })
+      .catch(() => { /* keep defaults */ });
+  }, []);
 
   useEffect(() => {
     getPlayerOptionsLegacy({ position_family: positionFamily }).then((r) => {
@@ -86,7 +95,7 @@ export default function ComparePage() {
           <label className="filter-field">
             <span className="filter-label">Posição</span>
             <select value={positionFamily} onChange={(e) => setPositionFamily(e.target.value)}>
-              {POSITION_FAMILIES.map((family) => (
+              {positionFamilies.map((family) => (
                 <option key={family.key} value={family.key}>{family.label}</option>
               ))}
             </select>

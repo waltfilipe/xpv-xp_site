@@ -26,6 +26,8 @@ export default async function PlayersPage({ searchParams }: PageProps) {
   let filters = { leagues: [] as string[], position_groups: [] as string[] };
   let error: string | null = null;
 
+  let positionFamilies = [...POSITION_FAMILIES];
+
   const family = params.position_family ?? "midfielders";
 
   try {
@@ -41,6 +43,9 @@ export default async function PlayersPage({ searchParams }: PageProps) {
     ]);
     data = playersRes;
     filters = { leagues: meta.leagues, position_groups: meta.position_groups ?? [] };
+    if (meta.position_families?.length) {
+      positionFamilies = meta.position_families;
+    }
   } catch (e) {
     error = e instanceof Error ? e.message : "Falha ao carregar jogadores";
   }
@@ -57,7 +62,7 @@ export default async function PlayersPage({ searchParams }: PageProps) {
         <PlayersFilters
           leagues={filters.leagues}
           positionGroups={filters.position_groups}
-          positionFamilies={POSITION_FAMILIES}
+          positionFamilies={positionFamilies}
           currentLeague={params.league}
           currentPositionGroup={params.position_group}
           currentPositionFamily={family}

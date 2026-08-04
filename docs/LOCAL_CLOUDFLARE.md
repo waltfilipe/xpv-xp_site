@@ -60,6 +60,26 @@ Para parar:
 ./scripts/start-pass-scout.sh stop
 ```
 
+### Todas as posições (laterais, extremos, zagueiros)
+
+Só **meio-campistas** vêm prontos no git (`api_pool_midfielders.json` + parquet). Para as outras posições, rode **uma vez** na sua máquina:
+
+```bash
+chmod +x scripts/setup-position-data.sh
+./scripts/setup-position-data.sh
+```
+
+Isso gera os parquets e os arquivos `api_pool_{family}.json`. Sem isso, laterais/extremos retornam erro ao carregar.
+
+Confirme que o backend está em modo local:
+
+```bash
+curl http://127.0.0.1:8000/health
+# deve mostrar "mode":"local"
+```
+
+Use sempre `./scripts/start-pass-scout.sh` (não `uvicorn` direto sem `PASS_SCOUT_MODE=local`).
+
 ### Modo 24/7 (opcional)
 
 ```bash

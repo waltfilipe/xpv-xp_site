@@ -9,6 +9,7 @@ import { POSITION_FAMILIES } from "@/lib/positionFamilies";
 import {
   getAggregatedMaps,
   getMapsOptions,
+  getMeta,
   getPassMap,
   getPlayerOptions,
   getScatter,
@@ -19,6 +20,7 @@ import {
 function MapsContent() {
   const searchParams = useSearchParams();
   const [positionFamily, setPositionFamily] = useState("midfielders");
+  const [positionFamilies, setPositionFamilies] = useState(POSITION_FAMILIES);
   const [options, setOptions] = useState<PlayerOption[]>([]);
   const [mapOpts, setMapOpts] = useState<{ scatter_metrics: { key: string; label: string }[]; pass_filters: { key: string; label: string }[] } | null>(null);
   const [playerId, setPlayerId] = useState(searchParams.get("player") ?? "");
@@ -31,6 +33,14 @@ function MapsContent() {
   const [aggregated, setAggregated] = useState<{ common_map_b64?: string | null; rare_map_b64?: string | null; quadrant_stats: { quadrant: string; passes: number; share_pct: number }[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    getMeta()
+      .then((meta) => {
+        if (meta.position_families?.length) setPositionFamilies(meta.position_families);
+      })
+      .catch(() => { /* keep defaults */ });
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -80,7 +90,7 @@ function MapsContent() {
           <label className="filter-field">
             <span className="filter-label">Posição</span>
             <select value={positionFamily} onChange={(e) => setPositionFamily(e.target.value)}>
-              {POSITION_FAMILIES.map((family) => (
+              {positionFamilies.map((family) => (
                 <option key={family.key} value={family.key}>{family.label}</option>
               ))}
             </select>

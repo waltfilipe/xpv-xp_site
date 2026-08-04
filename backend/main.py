@@ -81,8 +81,12 @@ def _resolve_position_family(position_family: str | None) -> str:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-def _pool_parts(position_family: str = DEFAULT_POSITION_FAMILY) -> dict[str, Any]:
-    return get_data_parts(position_family)
+def _pool_parts(
+    position_family: str = DEFAULT_POSITION_FAMILY,
+    *,
+    require_passes: bool = False,
+) -> dict[str, Any]:
+    return get_data_parts(position_family, require_passes=require_passes)
 
 
 def _require_heavy_maps(feature: str) -> None:
@@ -250,7 +254,7 @@ def get_player(
     position_family: str = Query(DEFAULT_POSITION_FAMILY),
 ) -> dict[str, Any]:
     family = _resolve_position_family(position_family)
-    parts = _pool_parts(family)
+    parts = _pool_parts(family, require_passes=True)
     payload = build_profile_payload(
         player_id,
         players_by_id=parts["players_by_id"],
@@ -270,7 +274,7 @@ def compare_players(
     position_family: str = Query(DEFAULT_POSITION_FAMILY),
 ) -> dict[str, Any]:
     family = _resolve_position_family(position_family)
-    parts = _pool_parts(family)
+    parts = _pool_parts(family, require_passes=True)
     payload = build_compare_payload(
         player_a, player_b,
         players_by_id=parts["players_by_id"],
