@@ -1,0 +1,11 @@
+# Copy to cloudflare/config.yml and fill in your tunnel UUID + credentials path.
+# Docs: docs/LOCAL_CLOUDFLARE.md
+
+tunnel: YOUR_TUNNEL_UUID
+credentials-file: /home/YOU/.cloudflared/YOUR_TUNNEL_UUID.json
+
+ingress:
+  # Replace with your hostname (must be in a zone on Cloudflare)
+  - hostname: pass-scout.seudominio.com
+    service: http://127.0.0.1:3000
+  - service: http_status:404

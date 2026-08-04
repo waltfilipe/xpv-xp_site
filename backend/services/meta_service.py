@@ -16,6 +16,7 @@ from position_families import (
 )
 from services.filters import LEAGUE_OPTIONS, filter_options_meta
 from services.player_pool_service import pool_cache_available
+from services.runtime_mode import family_parquet_available, is_local_mode
 from xp_engine import european_passes_meta_path
 
 LEAGUE_SOURCE_KEYS = sorted(key for key, _label in LEAGUE_OPTIONS if key != "all")
@@ -52,6 +53,15 @@ def cached_nationalities() -> tuple[str, ...]:
     return tuple(sorted(nationalities))
 
 
+def _position_family_options() -> list[dict[str, str]]:
+    options: list[dict[str, str]] = []
+    for key, label in EUROPEAN_POSITION_FAMILIES:
+        available = family_parquet_available(key) if is_local_mode() else pool_cache_available(key)
+        if available:
+            options.append({"key": key, "label": label})
+    return options
+
+
 def build_meta_payload(position_family: str) -> dict[str, Any]:
     family = normalize_position_family(position_family)
     meta_file = load_european_family_meta(family)
@@ -63,11 +73,7 @@ def build_meta_payload(position_family: str) -> dict[str, Any]:
         "leagues": LEAGUE_SOURCE_KEYS,
         "league_options": [{"key": key, "label": label} for key, label in LEAGUE_OPTIONS],
         "position_groups": sorted(rating_groups_for_family(family)),
-        "position_families": [
-            {"key": key, "label": label}
-            for key, label in EUROPEAN_POSITION_FAMILIES
-            if pool_cache_available(key)
-        ],
+        "position_families": _position_family_options(),
         "nationalities": list(cached_nationalities()),
         "filter_options": filter_options_meta(family),
         "description": (

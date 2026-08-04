@@ -25,6 +25,7 @@ from services.filters import (  # noqa: E402
     parse_age_band,
     player_options,
 )
+from services.data_parts import get_data_parts  # noqa: E402
 from services.meta_service import build_meta_payload  # noqa: E402
 from services.maps_service import (  # noqa: E402
     build_pass_map_images,
@@ -32,28 +33,27 @@ from services.maps_service import (  # noqa: E402
     get_round_options,
     load_aggregated_maps,
 )
-from services.player_pool_service import get_pool_parts, pool_cache_available  # noqa: E402
 from services.profile_service import build_profile_payload  # noqa: E402
+from services.runtime_mode import heavy_maps_enabled, pass_scout_mode  # noqa: E402
 from services.serialization import sanitize_for_json  # noqa: E402
 
-# Heavy parquet/map endpoints need more RAM than Render free tier (512 MB).
-HEAVY_MAPS_ENABLED = os.getenv("HEAVY_MAPS_ENABLED", "").strip().lower() in {"1", "true", "yes"}
+HEAVY_MAPS_ENABLED = heavy_maps_enabled()
 
 app = FastAPI(
     title="Pass Scout API",
     description="European outfield pass analysis — xT, xP, progression ratings",
-    version="0.4.0",
+    version="0.5.0",
 )
 
 _cors_origins = os.getenv(
     "CORS_ORIGINS",
-    "http://localhost:3000,https://pass-scout.vercel.app,https://*.vercel.app",
+    "http://localhost:3000,http://127.0.0.1:3000,https://pass-scout.vercel.app,https://*.vercel.app",
 ).split(",")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in _cors_origins if o.strip() and "*" not in o.strip()],
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origin_regex=r"https://(.*\.)?(vercel\.app|trycloudflare\.com)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -82,19 +82,7 @@ def _resolve_position_family(position_family: str | None) -> str:
 
 
 def _pool_parts(position_family: str = DEFAULT_POSITION_FAMILY) -> dict[str, Any]:
-    family = _resolve_position_family(position_family)
-    if not pool_cache_available(family):
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                f"Player pool for {family!r} is not available on this deployment. "
-                "Run scripts/build_api_pool_cache.py and redeploy the JSON cache."
-            ),
-        )
-    try:
-        return get_pool_parts(family)
-    except (FileNotFoundError, ValueError, OSError) as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return get_data_parts(position_family)
 
 
 def _require_heavy_maps(feature: str) -> None:
@@ -104,14 +92,18 @@ def _require_heavy_maps(feature: str) -> None:
         status_code=503,
         detail=(
             f"{feature} is disabled on this deployment to stay within memory limits. "
-            "Set HEAVY_MAPS_ENABLED=1 on a larger instance to enable it."
+            "Set HEAVY_MAPS_ENABLED=1 or PASS_SCOUT_MODE=local to enable it."
         ),
     )
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "mode": pass_scout_mode(),
+        "heavy_maps": str(HEAVY_MAPS_ENABLED).lower(),
+    }
 
 
 @app.get("/api/meta")

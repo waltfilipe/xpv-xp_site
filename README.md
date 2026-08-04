@@ -30,10 +30,22 @@ uvicorn main:app --reload --port 8000
 
 # Frontend
 cd frontend && npm install
-NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev
+BACKEND_URL=http://127.0.0.1:8000 npm run dev
 ```
 
-## Deploy
+## Site local + Cloudflare Tunnel (privado, todas as funções)
+
+Para rodar no seu PC com heatmaps/mapas completos e compartilhar só com convidados:
+
+```bash
+chmod +x scripts/start-pass-scout.sh scripts/start-cloudflared.sh
+./scripts/start-pass-scout.sh          # http://localhost:3000
+./scripts/start-cloudflared.sh         # imprime URL https://….trycloudflare.com
+```
+
+Guia completo (túnel fixo, domínio, Cloudflare Access): **[docs/LOCAL_CLOUDFLARE.md](docs/LOCAL_CLOUDFLARE.md)**
+
+## Deploy na nuvem (Render + Vercel)
 
 ### 1. Backend no Render (gratuito)
 
