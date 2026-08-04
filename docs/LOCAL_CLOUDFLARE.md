@@ -41,11 +41,20 @@ O backend **não** fica aberto na internet — só o Next.js é exposto pelo tú
 
 ## Passo 1 — Subir o Pass Scout localmente
 
+**Primeira vez** — instale as dependências do backend:
+
+```bash
+cd xpv-xp_site/backend
+python3 -m pip install -r requirements.txt
+cd ../frontend
+npm install
+```
+
+Depois, na raiz do projeto:
+
 ```bash
 cd xpv-xp_site
 chmod +x scripts/start-pass-scout.sh scripts/start-cloudflared.sh
-
-# Backend + frontend (modo local, analytics completos)
 ./scripts/start-pass-scout.sh
 ```
 

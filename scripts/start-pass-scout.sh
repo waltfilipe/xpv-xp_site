@@ -16,6 +16,7 @@ BACKEND_PID_FILE="$RUN_DIR/backend.pid"
 FRONTEND_PID_FILE="$RUN_DIR/frontend.pid"
 BACKEND_LOG="$RUN_DIR/backend.log"
 FRONTEND_LOG="$RUN_DIR/frontend.log"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 stop_if_running() {
   for pid_file in "$BACKEND_PID_FILE" "$FRONTEND_PID_FILE"; do
@@ -32,6 +33,23 @@ stop_if_running() {
   done
 }
 
+backend_python_ok() {
+  "$PYTHON_BIN" -c "import uvicorn" >/dev/null 2>&1
+}
+
+ensure_backend_deps() {
+  if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+    echo "Python not found ($PYTHON_BIN). Install Python 3.12+ or set PYTHON_BIN."
+    exit 1
+  fi
+  if ! backend_python_ok; then
+    echo "uvicorn not installed for $PYTHON_BIN."
+    echo "Run once:"
+    echo "  cd \"$ROOT/backend\" && $PYTHON_BIN -m pip install -r requirements.txt"
+    exit 1
+  fi
+}
+
 cleanup() {
   stop_if_running
 }
@@ -45,11 +63,12 @@ if [[ "${1:-}" == "stop" ]]; then
 fi
 
 stop_if_running
+ensure_backend_deps
 
 echo "==> Starting backend (PASS_SCOUT_MODE=local)…"
 (
   cd "$ROOT/backend"
-  nohup uvicorn main:app --host 127.0.0.1 --port 8000 >"$BACKEND_LOG" 2>&1 &
+  nohup "$PYTHON_BIN" -m uvicorn main:app --host 127.0.0.1 --port 8000 >"$BACKEND_LOG" 2>&1 &
   echo $! >"$BACKEND_PID_FILE"
 )
 
