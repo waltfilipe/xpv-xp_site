@@ -1,0 +1,81 @@
+"use client";
+
+import type { CompareMetric } from "@/lib/api";
+import { XpHeatBar } from "@/components/ui/XpHeatBar";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { XP_PROFILE_BAR_TOOLTIPS } from "@/lib/tooltips";
+
+const PILLAR_ICONS: Record<string, string> = {
+  xp_activity_display: "fa-chart-simple",
+  xp_efficiency_display: "fa-gauge-high",
+  xp_edge_display: "fa-bolt",
+};
+
+type Props = {
+  metrics: CompareMetric[];
+  nameA: string;
+  nameB: string;
+};
+
+function PlayerBarRow({
+  side,
+  name,
+  value,
+  winner,
+}: {
+  side: "a" | "b";
+  name: string;
+  value: number | null | undefined;
+  winner: boolean;
+}) {
+  return (
+    <div className={`compare-pillar-row compare-pillar-row-${side}${winner ? " compare-pillar-winner" : ""}`}>
+      <span className="compare-pillar-player" title={name}>
+        <span className={`compare-pillar-dot compare-pillar-dot-${side}`} />
+        <span className="compare-pillar-player-name">{name}</span>
+      </span>
+      <XpHeatBar value={value} />
+      <span className="compare-pillar-value tabular">
+        {value != null ? value.toFixed(1) : "—"}
+      </span>
+    </div>
+  );
+}
+
+export function ComparePillarBars({ metrics, nameA, nameB }: Props) {
+  return (
+    <div className="compare-pillar-bars">
+      {metrics.map((metric) => {
+        const icon = PILLAR_ICONS[metric.key] ?? "fa-circle";
+        const tip = XP_PROFILE_BAR_TOOLTIPS[metric.key] ?? "";
+        const block = (
+          <div className="compare-pillar-block">
+            <div className="compare-pillar-head">
+              <span className="compare-pillar-label">
+                <i className={`fa-solid ${icon} compare-pillar-icon`} aria-hidden="true" />
+                {metric.label}
+              </span>
+            </div>
+            <PlayerBarRow
+              side="a"
+              name={nameA}
+              value={metric.value_a}
+              winner={metric.winner === "a"}
+            />
+            <PlayerBarRow
+              side="b"
+              name={nameB}
+              value={metric.value_b}
+              winner={metric.winner === "b"}
+            />
+          </div>
+        );
+        return tip ? (
+          <Tooltip key={metric.key} content={tip} block>{block}</Tooltip>
+        ) : (
+          <div key={metric.key}>{block}</div>
+        );
+      })}
+    </div>
+  );
+}

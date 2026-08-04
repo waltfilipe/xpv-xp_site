@@ -1,5 +1,5 @@
 import type { CompareMetric } from "@/lib/api";
-import { ComparePassBars } from "@/components/ComparePassBars";
+import { ComparePillarBars } from "@/components/ComparePillarBars";
 import { CompareRadarChart } from "@/components/CompareRadarChart";
 
 type Props = {
@@ -14,12 +14,12 @@ export function CompareCenter({ pillars, passGrid, nameA, nameB }: Props) {
     <div className="compare-center">
       <section className="compare-chart-section">
         <h3 className="section-label">xP Pillars</h3>
-        <CompareRadarChart metrics={pillars} nameA={nameA} nameB={nameB} />
+        <ComparePillarBars metrics={pillars} nameA={nameA} nameB={nameB} />
       </section>
 
       <section className="compare-chart-section">
         <h3 className="section-label">Pass Profile</h3>
-        <ComparePassBars metrics={passGrid} nameA={nameA} nameB={nameB} />
+        <CompareRadarChart metrics={passGrid} nameA={nameA} nameB={nameB} />
       </section>
     </div>
   );

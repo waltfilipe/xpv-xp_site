@@ -2283,16 +2283,27 @@ tr:last-child td { border-bottom: none; }
   padding: 0.35rem 0 0.15rem;
 }
 
+.compare-radar-pro {
+  padding: 0.5rem 0 0.25rem;
+}
+
 .compare-radar-svg {
   width: 100%;
-  max-width: 300px;
+  max-width: 340px;
   height: auto;
 }
 
 .compare-radar-label {
-  fill: var(--text-secondary);
-  font-size: 10px;
-  font-weight: 600;
+  fill: #e2e8f0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.compare-radar-scores {
+  font-size: 9.5px;
+  font-weight: 700;
+  font-family: var(--font-mono);
   letter-spacing: 0.02em;
 }
 
@@ -2303,127 +2314,144 @@ tr:last-child td { border-bottom: none; }
   gap: 0.85rem 1.25rem;
 }
 
+.compare-radar-legend-pro {
+  width: 100%;
+  padding-top: 0.15rem;
+  border-top: 1px solid rgba(51, 65, 85, 0.45);
+}
+
 .compare-legend-item {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 600;
   color: var(--text-secondary);
-  max-width: 12rem;
+  max-width: 11rem;
+}
+
+.compare-legend-name {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .compare-legend-dot {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
 .compare-legend-a .compare-legend-dot {
   background: #a78bfa;
-  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.25);
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.22);
 }
 
 .compare-legend-b .compare-legend-dot {
   background: #86efac;
-  box-shadow: 0 0 0 2px rgba(134, 239, 172, 0.25);
+  box-shadow: 0 0 0 2px rgba(134, 239, 172, 0.22);
 }
 
-/* Pass profile bars */
-.compare-pass-bars {
+/* xP pillar bars (profile style) */
+.compare-pillar-bars {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
 }
 
-.compare-pass-bars-head {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.65rem;
-  padding: 0 0.15rem;
+.compare-pillar-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 11px;
+  background: linear-gradient(160deg, rgba(21, 27, 43, 0.45) 0%, rgba(15, 23, 42, 0.28) 100%);
+  border: 1px solid rgba(51, 65, 85, 0.42);
 }
 
-.compare-pass-player {
+.compare-pillar-head {
+  margin-bottom: 0.1rem;
+}
+
+.compare-pillar-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+  color: var(--accent);
+}
+
+.compare-pillar-icon {
+  font-size: 0.68rem;
+  opacity: 0.85;
+}
+
+.compare-pillar-row {
+  display: grid;
+  grid-template-columns: minmax(0, 5.5rem) minmax(0, 1fr) 2.1rem;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.compare-pillar-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.compare-pillar-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.compare-pillar-dot-a {
+  background: #a78bfa;
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.2);
+}
+
+.compare-pillar-dot-b {
+  background: #86efac;
+  box-shadow: 0 0 0 2px rgba(134, 239, 172, 0.2);
+}
+
+.compare-pillar-player-name {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.compare-pass-player-a { color: #c4b5fd; }
-.compare-pass-player-b { color: #86efac; text-align: right; }
-
-.compare-pass-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.42rem;
+.compare-pillar-row .xp-heat-bar,
+.compare-pillar-row .metric-gradient-bar {
+  min-width: 0;
 }
 
-.compare-pass-row-label {
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  letter-spacing: 0.02em;
-}
-
-.compare-pass-row-bars {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.55rem;
-}
-
-.compare-pass-track {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-height: 1.65rem;
-  padding: 0.28rem 0.45rem;
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.45);
-  border: 1px solid rgba(51, 65, 85, 0.45);
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.compare-pass-track-a {
-  flex-direction: row;
-}
-
-.compare-pass-track-b {
-  flex-direction: row-reverse;
-}
-
-.compare-pass-track.compare-pass-winner {
-  border-color: rgba(147, 197, 253, 0.28);
-  background: rgba(15, 23, 42, 0.72);
-}
-
-.compare-pass-fill {
-  height: 6px;
-  border-radius: 999px;
-  min-width: 4px;
-  flex: 1;
-  max-width: calc(100% - 2.2rem);
-  transition: width 0.35s ease;
-  opacity: 0.92;
-}
-
-.compare-pass-value {
+.compare-pillar-value {
   font-size: 0.8rem;
   font-weight: 800;
-  flex-shrink: 0;
-  min-width: 1.8rem;
-  text-align: center;
+  color: #f8fafc;
+  text-align: right;
 }
 
-.compare-pass-track-b .compare-pass-value {
-  text-align: center;
+.compare-pillar-row.compare-pillar-winner .compare-pillar-value {
+  color: #f8fafc;
+}
+
+.compare-pillar-row.compare-pillar-winner {
+  opacity: 1;
+}
+
+.compare-pillar-row:not(.compare-pillar-winner) {
+  opacity: 0.82;
 }
 
 /* Legacy compare styles (maps/other) */
