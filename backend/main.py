@@ -254,7 +254,7 @@ def get_player(
     position_family: str = Query(DEFAULT_POSITION_FAMILY),
 ) -> dict[str, Any]:
     family = _resolve_position_family(position_family)
-    parts = _pool_parts(family, require_passes=True)
+    parts = _pool_parts(family)
     payload = build_profile_payload(
         player_id,
         players_by_id=parts["players_by_id"],
@@ -274,7 +274,7 @@ def compare_players(
     position_family: str = Query(DEFAULT_POSITION_FAMILY),
 ) -> dict[str, Any]:
     family = _resolve_position_family(position_family)
-    parts = _pool_parts(family, require_passes=True)
+    parts = _pool_parts(family)
     payload = build_compare_payload(
         player_a, player_b,
         players_by_id=parts["players_by_id"],

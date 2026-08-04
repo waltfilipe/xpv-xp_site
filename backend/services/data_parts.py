@@ -97,8 +97,8 @@ def get_data_parts(
 ) -> dict[str, Any]:
     """Return player pool dicts.
 
-    Uses precomputed JSON when available (fast). Loads the full in-memory bundle
-    only when ``require_passes`` is True and local parquet data exists.
+    Uses precomputed JSON when available (fast). The full in-memory bundle — only
+    for heatmaps when ``require_passes`` is True and parquet exists locally.
     """
     family = normalize_position_family(position_family)
 
