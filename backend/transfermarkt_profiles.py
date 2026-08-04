@@ -86,13 +86,30 @@ def _transfermarkt_fields_from_player_payload(payload: dict[str, Any]) -> dict[s
     elif value_eur is not None:
         display = format_market_value_eur(int(value_eur))
     portrait = data.get("portraitUrl")
-    contract_until = (data.get("attributes") or {}).get("contractUntil")
+    attrs = data.get("attributes") or {}
+    contract_until = attrs.get("contractUntil")
+    life_dates = data.get("lifeDates") or {}
+    age = life_dates.get("age")
+    height_m = attrs.get("height")
+    height = None
+    if height_m is not None:
+        try:
+            height = f"{float(height_m):.2f}".rstrip("0").rstrip(".") + " m"
+        except (TypeError, ValueError):
+            height = None
+    preferred_foot = attrs.get("preferredFoot")
+    dominant_foot = None
+    if isinstance(preferred_foot, dict) and preferred_foot.get("name"):
+        dominant_foot = str(preferred_foot["name"]).strip().capitalize()
     return {
         MARKET_VALUE_EUR_KEY: int(value_eur) if value_eur is not None else None,
         MARKET_VALUE_DISPLAY_KEY: display,
         MARKET_VALUE_UPDATED_KEY: current.get("determined"),
         TRANSFERMARKT_PHOTO_URL_KEY: str(portrait) if portrait else None,
         CONTRACT_UNTIL_KEY: str(contract_until)[:10] if contract_until else None,
+        "age": int(age) if age is not None else None,
+        "height": height,
+        "dominant_foot": dominant_foot,
     }
 
 
@@ -255,6 +272,9 @@ async def fetch_transfermarkt_photo_by_id_async(transfermarkt_id: str) -> dict[s
     return {
         TRANSFERMARKT_PHOTO_URL_KEY: fields.get(TRANSFERMARKT_PHOTO_URL_KEY),
         CONTRACT_UNTIL_KEY: fields.get(CONTRACT_UNTIL_KEY),
+        "age": fields.get("age"),
+        "height": fields.get("height"),
+        "dominant_foot": fields.get("dominant_foot"),
     }
 
 

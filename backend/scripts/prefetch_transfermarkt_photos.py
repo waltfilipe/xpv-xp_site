@@ -5,8 +5,8 @@ Run offline; the app reads transfermarkt_photo_url as a fallback when photo_url
 from TheSportsDB is missing.
 
 Examples:
-    python scripts/prefetch_transfermarkt_photos.py --only-missing
-    python scripts/prefetch_transfermarkt_photos.py --only-missing --missing-primary-photo
+    python scripts/prefetch_transfermarkt_photos.py --family fullbacks --only-missing
+    python scripts/prefetch_transfermarkt_photos.py --family wingers --only-missing --missing-primary-photo
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ if str(ROOT) not in sys.path:
 import passes_engine as pe
 import transfermarkt_profiles as tm
 from player_profiles import read_cached_profile
+from position_families import DEFAULT_POSITION_FAMILY, EUROPEAN_POSITION_FAMILY_LABELS, normalize_position_family
 
 
 def _needs_fetch(
@@ -47,6 +48,11 @@ def _needs_fetch(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Prefetch Transfermarkt portrait URLs.")
+    parser.add_argument(
+        "--family",
+        default=DEFAULT_POSITION_FAMILY,
+        help=f"Position family (default: {DEFAULT_POSITION_FAMILY})",
+    )
     parser.add_argument(
         "--only-missing",
         action="store_true",
@@ -75,8 +81,10 @@ def main() -> None:
         help="Optional cap on number of players to fetch (0 = all targets).",
     )
     args = parser.parse_args()
+    family = normalize_position_family(args.family)
+    family_label = EUROPEAN_POSITION_FAMILY_LABELS[family]
 
-    players = pe.build_european_league_midfielders()
+    players = pe.build_european_league_players(family)
     targets = [
         player
         for player in players
@@ -92,7 +100,7 @@ def main() -> None:
 
     total = len(targets)
     print(
-        f"Prefetching Transfermarkt photos for {total}/{len(players)} midfielders "
+        f"Prefetching Transfermarkt photos for {total}/{len(players)} {family_label} "
         f"(only_missing={args.only_missing}, missing_primary_photo={args.missing_primary_photo}, "
         f"force={args.force})…",
         flush=True,

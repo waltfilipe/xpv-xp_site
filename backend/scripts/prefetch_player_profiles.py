@@ -1,10 +1,10 @@
-"""Pre-populate the player profile cache (age, height, foot) for European midfielders.
+"""Pre-populate the player profile cache (age, height, foot) for European players.
 
 Run offline so the app reads ages from cache without network calls in the hot path.
 
 Examples:
-    python scripts/prefetch_player_profiles.py --only-missing
-    python scripts/prefetch_player_profiles.py --force
+    python scripts/prefetch_player_profiles.py --family fullbacks --only-missing
+    python scripts/prefetch_player_profiles.py --family wingers --force
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ if str(ROOT) not in sys.path:
 
 import passes_engine as pe
 import player_profiles as pp
+from position_families import DEFAULT_POSITION_FAMILY, EUROPEAN_POSITION_FAMILY_LABELS, normalize_position_family
 
 LIGUE1_TEAM_TOKENS: frozenset[str] = frozenset({
     "paris saint-germain",
@@ -62,7 +63,12 @@ def _needs_fetch(player: dict, *, only_missing: bool, force: bool) -> bool:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Prefetch midfielder profile metadata.")
+    parser = argparse.ArgumentParser(description="Prefetch player profile metadata.")
+    parser.add_argument(
+        "--family",
+        default=DEFAULT_POSITION_FAMILY,
+        help=f"Position family (default: {DEFAULT_POSITION_FAMILY})",
+    )
     parser.add_argument(
         "--only-missing",
         action="store_true",
@@ -85,8 +91,10 @@ def main() -> None:
         help="Restrict prefetch to Ligue 1 midfielders (by team name).",
     )
     args = parser.parse_args()
+    family = normalize_position_family(args.family)
+    family_label = EUROPEAN_POSITION_FAMILY_LABELS[family]
 
-    players = pe.build_european_league_midfielders()
+    players = pe.build_european_league_players(family)
     if args.ligue1_only:
         players = [player for player in players if _is_ligue1_player(player)]
     targets = [
@@ -96,7 +104,7 @@ def main() -> None:
     ]
     total = len(targets)
     print(
-        f"Prefetching profiles for {total}/{len(players)} midfielders "
+        f"Prefetching profiles for {total}/{len(players)} {family_label} "
         f"(only_missing={args.only_missing}, force={args.force})…",
         flush=True,
     )
