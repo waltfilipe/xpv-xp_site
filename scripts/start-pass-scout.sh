@@ -62,6 +62,42 @@ if [[ "${1:-}" == "stop" ]]; then
   exit 0
 fi
 
+if [[ "${1:-}" == "daemon" ]]; then
+  stop_if_running
+  ensure_backend_deps
+  echo "==> Starting backend (daemon, PASS_SCOUT_MODE=local)…"
+  (
+    cd "$ROOT/backend"
+    nohup "$PYTHON_BIN" -m uvicorn main:app --host 127.0.0.1 --port 8000 >"$BACKEND_LOG" 2>&1 &
+    echo $! >"$BACKEND_PID_FILE"
+  )
+  for _ in $(seq 1 60); do
+    if curl -fsS http://127.0.0.1:8000/health >/dev/null 2>&1; then break; fi
+    sleep 1
+  done
+  curl -fsS http://127.0.0.1:8000/health >/dev/null || {
+    echo "Backend failed. Log:"; tail -20 "$BACKEND_LOG"; exit 1
+  }
+  echo "==> Starting frontend (daemon)…"
+  (
+    cd "$ROOT/frontend"
+    [[ -d node_modules ]] || npm install
+    if [[ "${PASS_SCOUT_PRODUCTION:-0}" == "1" ]]; then
+      npm run build
+      nohup env BACKEND_URL="$BACKEND_URL" npm run start -- -H 127.0.0.1 -p 3000 >"$FRONTEND_LOG" 2>&1 &
+    else
+      nohup env BACKEND_URL="$BACKEND_URL" npm run dev -- -H 127.0.0.1 -p 3000 >"$FRONTEND_LOG" 2>&1 &
+    fi
+    echo $! >"$FRONTEND_PID_FILE"
+  )
+  trap - EXIT INT TERM
+  echo "Pass Scout running in background."
+  echo "  App:  http://localhost:3000"
+  echo "  Logs: $BACKEND_LOG , $FRONTEND_LOG"
+  echo "  Stop: ./scripts/start-pass-scout.sh stop"
+  exit 0
+fi
+
 stop_if_running
 ensure_backend_deps
 
