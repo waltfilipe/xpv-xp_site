@@ -21,8 +21,8 @@ CONTRACT_UNTIL_KEY = "contract_until"
 MARKET_VALUE_EUR_KEY = "market_value_eur"
 MARKET_VALUE_DISPLAY_KEY = "market_value_display"
 MARKET_VALUE_UPDATED_KEY = "market_value_updated"
-TMKT_MAX_RETRIES = 4
-TMKT_RETRY_BACKOFF_SEC = 1.5
+TMKT_MAX_RETRIES = 5
+TMKT_RETRY_BACKOFF_SEC = 3.0
 
 
 async def _tmkt_call_with_retry(coro_factory, *, label: str):

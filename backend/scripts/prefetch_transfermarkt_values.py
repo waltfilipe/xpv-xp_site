@@ -53,8 +53,8 @@ def main() -> None:
     parser.add_argument(
         "--sleep",
         type=float,
-        default=0.35,
-        help="Delay between network requests in seconds (default: 0.35).",
+        default=0.75,
+        help="Delay between network requests in seconds (default: 0.75).",
     )
     parser.add_argument(
         "--limit",
