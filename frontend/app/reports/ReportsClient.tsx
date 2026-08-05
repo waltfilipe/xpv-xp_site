@@ -48,17 +48,6 @@ async function mapPool<T, R>(
   return results;
 }
 
-function emptyReports(): ReportEntry[] {
-  return enrichedReportPlayers().map((entry) => ({
-    entry,
-    profile: null,
-    maps: null,
-    mapSlots: null,
-    error: null,
-    loading: true,
-  }));
-}
-
 async function loadMapSlots(
   playerId: string,
   family: string,
@@ -93,6 +82,32 @@ async function loadMapSlots(
     }
   }
   return slots;
+}
+
+function emptyReports(): ReportEntry[] {
+  return enrichedReportPlayers().map((entry) => ({
+    entry,
+    profile: null,
+    maps: null,
+    mapSlots: null,
+    error: null,
+    loading: true,
+  }));
+}
+
+async function waitForMapImages(playerIds: string[], expectedPerPlayer = 4) {
+  const deadline = Date.now() + 20000;
+  while (Date.now() < deadline) {
+    const ready = playerIds.every((id) => {
+      const imgs = document.querySelectorAll<HTMLImageElement>(
+        `#report-${id} .report-map-img`,
+      );
+      if (imgs.length < expectedPerPlayer) return false;
+      return Array.from(imgs).every((img) => img.complete && img.naturalHeight > 0);
+    });
+    if (ready) return;
+    await new Promise((r) => setTimeout(r, 250));
+  }
 }
 
 export function ReportsClient() {
@@ -196,8 +211,8 @@ export function ReportsClient() {
         bundle.classList.toggle("report-print-hidden", hide);
       });
 
-      await new Promise((r) => setTimeout(r, 120));
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await waitForMapImages(targets.map((t) => t.entry.playerId));
 
       const restore = () => {
         bundles.forEach((bundle) => bundle.classList.remove("report-print-hidden"));

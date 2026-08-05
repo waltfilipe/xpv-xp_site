@@ -44,7 +44,7 @@ function minutesPillStyle(pct: number | null | undefined): React.CSSProperties |
   if (pct == null || Number.isNaN(pct)) return undefined;
   const clamped = Math.max(0, Math.min(1, pct));
   const hue = clamped * 120;
-  const color = `hsl(${hue}, 58%, 46%)`;
+  const color = `hsla(${hue}, 32%, 44%, 0.38)`;
   return {
     "--minutes-ring": color,
   } as React.CSSProperties;
@@ -308,6 +308,41 @@ export function PlayerReportSheet({
     </div>
   );
 
+  const renderMapsStrip = () => (
+    <div className="report-maps-player-strip">
+      <div className="report-maps-strip-photo">
+        {p.photo_url ? (
+          <Image
+            src={String(p.photo_url)}
+            alt=""
+            width={48}
+            height={48}
+            className="report-maps-strip-img"
+            unoptimized
+          />
+        ) : (
+          <div className="report-maps-strip-placeholder">{displayName.charAt(0)}</div>
+        )}
+      </div>
+      <div className="report-maps-strip-main">
+        <strong className="report-maps-strip-name">{displayName}</strong>
+        <span className="report-maps-strip-meta">
+          {String(p.team ?? "—")} · {String(p.position ?? "—")}
+          {p.age != null ? ` · ${p.age} anos` : ""}
+        </span>
+        <span className="report-maps-strip-league muted">
+          {String(p.league_source ?? p.league ?? "—")}
+        </span>
+      </div>
+      <div
+        className="identity-meta-pill identity-meta-pill-minutes report-maps-strip-minutes"
+        style={minutesPillStyle(minutesPct)}
+      >
+        <span><FactIcon icon="fa-clock" /> Min</span>
+        <strong className="tabular">{p.minutes != null ? String(p.minutes) : "—"}</strong>
+      </div>
+    </div>
+  );
   const loadedMaps = mapSlots.filter((s) => s.pass_map_b64);
   const anyLoading = mapSlots.some((s) => s.loading);
 
@@ -418,8 +453,8 @@ export function PlayerReportSheet({
           </div>
         </header>
 
-        <div className="report-maps-layout report-maps-layout-compact">
-          <div className="report-maps-identity report-screen-only">{renderIdentity(true)}</div>
+        <div className="report-maps-page">
+          {renderMapsStrip()}
 
           <div className="report-maps-body">
             {mapsLoading && loadedMaps.length === 0 && (

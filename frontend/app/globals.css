@@ -1206,13 +1206,11 @@ button, input, select { font: inherit; }
 
 .identity-meta-pill-minutes {
   position: relative;
-  border: 2px solid transparent;
-  background:
-    linear-gradient(rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.72)) padding-box,
-    linear-gradient(135deg, var(--minutes-ring, #64748b), color-mix(in srgb, var(--minutes-ring, #64748b) 40%, #0f172a)) border-box;
+  border: 1px solid color-mix(in srgb, var(--minutes-ring, #475569) 28%, transparent);
+  background: rgba(15, 23, 42, 0.58);
   padding: 0.5rem 0.65rem;
   margin: 0 0.04rem;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--minutes-ring, #475569) 8%, transparent);
 }
 
 @media (max-width: 520px) {
@@ -2468,12 +2466,54 @@ tr:last-child td { border-bottom: none; }
 
 .compare-radar-frame {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   padding: 0.75rem;
   border-radius: var(--radius);
   border: 1px solid rgba(148, 163, 184, 0.12);
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.65) 0%, rgba(15, 23, 42, 0.35) 100%);
 }
+
+.compare-radar-frame-labeled {
+  position: relative;
+  padding: 0.35rem 0.75rem 0.75rem;
+}
+
+.compare-radar-label-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.compare-radar-label-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  max-width: 5.8rem;
+  line-height: 1.25;
+  cursor: default;
+}
+
+.compare-radar-label-text {
+  display: block;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #e2e8f0;
+  margin-bottom: 0.12rem;
+}
+
+.compare-radar-score-line {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.compare-radar-score-a { color: #a78bfa; }
+.compare-radar-score-sep { color: rgba(148, 163, 184, 0.45); margin: 0 0.12rem; }
+.compare-radar-score-b { color: #34d399; }
 
 .compare-radar-svg {
   width: 100%;
@@ -2581,9 +2621,9 @@ tr:last-child td { border-bottom: none; }
 
 .compare-pillar-row {
   display: grid;
-  grid-template-columns: minmax(0, 5.5rem) minmax(0, 1fr) 2.1rem;
+  grid-template-columns: minmax(0, 6.5rem) minmax(0, 0.5fr) 2rem;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
 }
 
 .compare-pillar-player {
@@ -2611,12 +2651,13 @@ tr:last-child td { border-bottom: none; }
 }
 
 .compare-pillar-player-name {
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   font-weight: 600;
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 6.5rem;
 }
 
 .compare-pillar-row .xp-heat-bar,
@@ -3067,6 +3108,89 @@ tr:last-child td { border-bottom: none; }
 
 .report-card-maps-btn-back {
   color: var(--text-secondary);
+}
+
+.report-maps-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.report-maps-player-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.report-maps-strip-photo {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  background: #0f172a;
+}
+
+.report-maps-strip-img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+}
+
+.report-maps-strip-placeholder {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.report-maps-strip-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.report-maps-strip-name {
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.report-maps-strip-meta,
+.report-maps-strip-league {
+  font-size: 0.74rem;
+  line-height: 1.3;
+}
+
+.report-maps-strip-minutes {
+  flex-shrink: 0;
+  min-width: 4.5rem;
+}
+
+.report-pass-flat-item {
+  padding: 0.4rem 0.55rem 0.5rem;
+}
+
+.report-pass-accordion-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.consistency-flat .consistency-accordion-trigger {
+  cursor: default;
 }
 
 .report-maps-layout {
@@ -3645,14 +3769,17 @@ tr:last-child td { border-bottom: none; }
   .player-report-sheet {
     page-break-after: always;
     break-after: page;
-    break-inside: avoid;
+    break-inside: auto;
     border: none;
     border-radius: 0;
     box-shadow: none;
-    padding: 4mm 2mm;
+    padding: 3mm 1.5mm;
     margin: 0;
     min-height: auto;
     overflow: visible;
+    transform: scale(0.96);
+    transform-origin: top left;
+    width: 104%;
   }
 
   .player-report-bundle:last-child .report-page-2:last-child {
@@ -3664,118 +3791,149 @@ tr:last-child td { border-bottom: none; }
     color: #c4b5fd !important;
     opacity: 1 !important;
     visibility: visible !important;
+    display: block !important;
   }
 
   .report-sheet-body.pa-layout,
   .report-layout-v2.pa-layout {
-    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.2fr) minmax(0, 0.72fr);
-    gap: 0.4rem;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 0.68fr);
+    gap: 0.35rem;
     overflow: visible;
+    align-items: start;
+  }
+
+  .pa-col-identity,
+  .pa-col-score,
+  .pa-col-pillars {
+    overflow: visible;
+    min-width: 0;
   }
 
   .player-card {
     break-inside: avoid;
     overflow: visible;
     box-shadow: none;
-  }
-
-  .report-pass-accordion-item,
-  .consistency-accordion {
-    break-inside: avoid;
-  }
-
-  .report-pass-accordion-item .report-pass-accordion-panel,
-  .consistency-accordion .consistency-accordion-panel {
-    display: block !important;
-  }
-
-  .report-pass-accordion-item,
-  .consistency-accordion {
-    border: 1px solid rgba(148, 163, 184, 0.2);
+    border: 1px solid rgba(148, 163, 184, 0.15);
   }
 
   .report-pass-accordion-chevron,
   .consistency-accordion-chevron {
-    transform: rotate(90deg) !important;
+    display: none !important;
   }
 
-  .report-pass-accordion-trigger,
-  .consistency-accordion-trigger {
-    padding: 0.35rem 0.45rem;
+  .report-pass-flat-item,
+  .report-pass-accordion-item,
+  .consistency-accordion {
+    break-inside: avoid;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    margin-bottom: 0.2rem;
   }
 
   .report-pass-accordion-title,
   .consistency-accordion-title {
     color: #e2e8f0 !important;
-    font-size: 0.72rem;
+    font-size: 0.68rem !important;
+    font-weight: 700 !important;
   }
 
+  .report-pass-accordion-head,
+  .report-pass-accordion-trigger,
+  .consistency-accordion-trigger {
+    padding: 0.25rem 0.35rem;
+  }
+
+  .pass-grade-card,
   .xp-profile-card,
   .report-pillars-card,
   .report-xp-card {
-    padding: 0.45rem 0.55rem;
+    padding: 0.4rem 0.5rem;
+  }
+
+  .pass-grade-score {
+    font-size: 1.6rem !important;
   }
 
   .pass-length-mix,
   .xp-indices-panel,
-  .xp-profile-bars {
+  .xp-profile-bars,
+  .xp-metric-block,
+  .pass-metric-block {
     break-inside: avoid;
   }
 
-  .report-maps-layout,
-  .report-maps-layout-compact {
-    display: block !important;
+  .report-maps-page {
+    display: flex !important;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .report-maps-player-strip {
+    break-inside: avoid;
+    padding: 0.35rem 0.5rem;
+    margin-bottom: 0.25rem;
   }
 
   .report-maps-grid,
   .report-maps-grid-4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.35rem;
+    gap: 0.3rem;
   }
 
   .report-map-card {
     break-inside: avoid;
-    padding: 0.25rem;
+    padding: 0.2rem;
+    border: 1px solid rgba(148, 163, 184, 0.15);
   }
 
   .report-map-img {
-    width: 100%;
-    height: auto;
-    max-height: 68mm;
+    width: 100% !important;
+    height: auto !important;
+    max-height: 62mm;
     object-fit: contain;
+    display: block !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  .report-map-skeleton {
+  .report-map-skeleton,
+  .report-maps-loading-hint {
     display: none !important;
   }
 
   .identity-photo-side {
-    width: 100px;
-    min-height: 110px;
+    width: 92px;
+    min-height: 100px;
+  }
+
+  .report-heatmap {
+    max-height: 42mm;
+    object-fit: contain;
   }
 
   .report-sheet-header {
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.35rem;
   }
 
   .report-sheet-description {
-    font-size: 0.75rem;
-    margin-bottom: 0.45rem;
+    font-size: 0.7rem;
+    margin-bottom: 0.35rem;
   }
 
   .report-sheet-footer {
-    font-size: 0.68rem;
-    margin-top: 0.35rem;
+    font-size: 0.62rem;
+    margin-top: 0.25rem;
+    padding-top: 0.35rem;
   }
 
-  .grade-badge {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
+  .grade-badge,
   .metric-gradient-bar,
-  .xp-heat-bar-shell {
+  .xp-heat-bar-shell,
+  .pass-grade-track {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+
+  .report-card-actions {
+    display: none !important;
   }
 }

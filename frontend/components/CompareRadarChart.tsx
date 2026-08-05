@@ -1,14 +1,14 @@
 "use client";
 
 import type { CompareMetric } from "@/lib/api";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 const COLOR_A = "#a78bfa";
 const COLOR_B = "#34d399";
 const MAX_SCORE = 10;
-const SIZE = 400;
+const SIZE = 420;
 const CENTER = SIZE / 2;
-const RADIUS = 118;
-const LABEL_RADIUS = 158;
+const RADIUS = 108;
 
 type Props = {
   metrics: CompareMetric[];
@@ -43,6 +43,20 @@ function formatValue(value: number | null | undefined) {
   return value != null ? value.toFixed(1) : "—";
 }
 
+function labelPosition(index: number, count: number) {
+  const angle = angleFor(index, count);
+  const pct = 54;
+  return {
+    left: 50 + pct * Math.cos(angle),
+    top: 50 + pct * Math.sin(angle),
+    textAlign: (Math.abs(Math.cos(angle)) < 0.15
+      ? "center"
+      : Math.cos(angle) < 0
+        ? "right"
+        : "left") as "center" | "right" | "left",
+  };
+}
+
 export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
   if (!metrics.length) return null;
 
@@ -55,7 +69,7 @@ export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
 
   return (
     <div className="compare-radar compare-radar-pro">
-      <div className="compare-radar-frame">
+      <div className="compare-radar-frame compare-radar-frame-labeled">
         <svg
           viewBox={`0 0 ${SIZE} ${SIZE}`}
           className="compare-radar-svg"
@@ -85,11 +99,11 @@ export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
             </filter>
           </defs>
 
-          <circle cx={CENTER} cy={CENTER} r={RADIUS + 28} fill="url(#compare-radar-bg)" />
+          <circle cx={CENTER} cy={CENTER} r={RADIUS + 22} fill="url(#compare-radar-bg)" />
           <circle
             cx={CENTER}
             cy={CENTER}
-            r={RADIUS + 28}
+            r={RADIUS + 22}
             fill="none"
             stroke="rgba(148, 163, 184, 0.1)"
             strokeWidth="1"
@@ -116,22 +130,15 @@ export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
             const outer = pointAt(angle, maxValue, maxValue);
             const inner = pointAt(angle, maxValue * 0.08, maxValue);
             return (
-              <g key={`axis-${metric.key}`}>
-                <line
-                  x1={inner.x}
-                  y1={inner.y}
-                  x2={outer.x}
-                  y2={outer.y}
-                  stroke="rgba(148, 163, 184, 0.14)"
-                  strokeWidth="1"
-                />
-                <circle
-                  cx={outer.x}
-                  cy={outer.y}
-                  r="2.5"
-                  fill="rgba(148, 163, 184, 0.25)"
-                />
-              </g>
+              <line
+                key={`axis-${metric.key}`}
+                x1={inner.x}
+                y1={inner.y}
+                x2={outer.x}
+                y2={outer.y}
+                stroke="rgba(148, 163, 184, 0.14)"
+                strokeWidth="1"
+              />
             );
           })}
 
@@ -164,39 +171,33 @@ export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
               <circle key={`${metric.key}-a`} cx={ptA.x} cy={ptA.y} r="3.5" fill={COLOR_A} stroke="#0f172a" strokeWidth="1.3" />,
             ];
           })}
+        </svg>
 
+        <div className="compare-radar-label-layer" aria-hidden="false">
           {metrics.map((metric, index) => {
-            const angle = angleFor(index, count);
-            const x = CENTER + LABEL_RADIUS * Math.cos(angle);
-            const y = CENTER + LABEL_RADIUS * Math.sin(angle);
-            const anchor = Math.abs(Math.cos(angle)) < 0.2 ? "middle" : x < CENTER ? "end" : "start";
-            const dy = Math.sin(angle) > 0.55 ? 12 : Math.sin(angle) < -0.55 ? -4 : 5;
+            const pos = labelPosition(index, count);
+            const tip = `${nameA}: ${formatValue(metric.value_a)} · ${nameB}: ${formatValue(metric.value_b)}`;
             return (
-              <g key={`${metric.key}-label`}>
-                <text
-                  x={x}
-                  y={y - 6}
-                  textAnchor={anchor}
-                  dominantBaseline="middle"
-                  className="compare-radar-label"
+              <Tooltip key={metric.key} content={tip}>
+                <div
+                  className="compare-radar-label-node"
+                  style={{
+                    left: `${pos.left}%`,
+                    top: `${pos.top}%`,
+                    textAlign: pos.textAlign,
+                  }}
                 >
-                  {metric.label}
-                </text>
-                <text
-                  x={x}
-                  y={y + dy}
-                  textAnchor={anchor}
-                  dominantBaseline="middle"
-                  className="compare-radar-scores"
-                >
-                  <tspan fill={COLOR_A}>{formatValue(metric.value_a)}</tspan>
-                  <tspan fill="rgba(148, 163, 184, 0.55)"> · </tspan>
-                  <tspan fill={COLOR_B}>{formatValue(metric.value_b)}</tspan>
-                </text>
-              </g>
+                  <span className="compare-radar-label-text">{metric.label}</span>
+                  <span className="compare-radar-score-line">
+                    <span className="compare-radar-score-a">{formatValue(metric.value_a)}</span>
+                    <span className="compare-radar-score-sep">·</span>
+                    <span className="compare-radar-score-b">{formatValue(metric.value_b)}</span>
+                  </span>
+                </div>
+              </Tooltip>
             );
           })}
-        </svg>
+        </div>
       </div>
 
       <div className="compare-radar-legend compare-radar-legend-pro">

@@ -13,8 +13,61 @@ type Props = {
   expandAll?: boolean;
 };
 
+function SectionMetrics({ section }: { section: PassScoreSection }) {
+  return (
+    <div className="pass-score-metrics">
+      {section.components.map((c) => {
+        const barScore = rankToBarScore(c.rank, c.rank_pool);
+        return (
+          <Tooltip key={c.key} content={COMPONENT_TOOLTIPS[c.key] ?? ""} block>
+            <div className="pass-metric-block">
+              <div className="pass-metric-head">
+                <span className="pass-metric-label">
+                  {COMPONENT_LABELS[c.key] ?? c.key.replace(/_/g, " ")}
+                </span>
+                <span className="pass-metric-value tabular">
+                  {formatMetric(c.value, c.key)}
+                </span>
+              </div>
+              <MetricGradientBar
+                score={barScore}
+                letter={section.letter}
+                displayScore={section.display_score}
+              />
+            </div>
+          </Tooltip>
+        );
+      })}
+    </div>
+  );
+}
+
+function SectionHead({ section }: { section: PassScoreSection }) {
+  return (
+    <div className="report-pass-accordion-head">
+      <Tooltip content={PASS_SCORE_TOOLTIPS[section.title] ?? ""}>
+        <span className="report-pass-accordion-title">{section.title}</span>
+      </Tooltip>
+      <GradeBadge letter={section.letter} displayScore={section.display_score} size="sm" />
+    </div>
+  );
+}
+
 export function ReportPassScoreAccordion({ sections, expandAll = false }: Props) {
   if (!sections.length) return null;
+
+  if (expandAll) {
+    return (
+      <div className="report-pass-accordion report-pass-flat">
+        {sections.map((section) => (
+          <div key={section.title} className="report-pass-accordion-item report-pass-flat-item">
+            <SectionHead section={section} />
+            <SectionMetrics section={section} />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="report-pass-accordion">
@@ -22,7 +75,7 @@ export function ReportPassScoreAccordion({ sections, expandAll = false }: Props)
         <details
           key={section.title}
           className="report-pass-accordion-item"
-          open={expandAll || index === 0}
+          open={index === 0}
         >
           <summary className="report-pass-accordion-trigger">
             <span className="report-pass-accordion-left">
@@ -37,30 +90,7 @@ export function ReportPassScoreAccordion({ sections, expandAll = false }: Props)
           </summary>
 
           <div className="report-pass-accordion-panel">
-            <div className="pass-score-metrics">
-              {section.components.map((c) => {
-                const barScore = rankToBarScore(c.rank, c.rank_pool);
-                return (
-                  <Tooltip key={c.key} content={COMPONENT_TOOLTIPS[c.key] ?? ""} block>
-                    <div className="pass-metric-block">
-                      <div className="pass-metric-head">
-                        <span className="pass-metric-label">
-                          {COMPONENT_LABELS[c.key] ?? c.key.replace(/_/g, " ")}
-                        </span>
-                        <span className="pass-metric-value tabular">
-                          {formatMetric(c.value, c.key)}
-                        </span>
-                      </div>
-                      <MetricGradientBar
-                        score={barScore}
-                        letter={section.letter}
-                        displayScore={section.display_score}
-                      />
-                    </div>
-                  </Tooltip>
-                );
-              })}
-            </div>
+            <SectionMetrics section={section} />
           </div>
         </details>
       ))}
