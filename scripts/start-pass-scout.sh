@@ -31,6 +31,19 @@ stop_if_running() {
       rm -f "$pid_file"
     fi
   done
+  # npm start spawns next-server as a child; kill anything still bound to our ports.
+  for port in 3000 8000; do
+    if command -v fuser >/dev/null 2>&1; then
+      fuser -k "${port}/tcp" >/dev/null 2>&1 || true
+    elif command -v lsof >/dev/null 2>&1; then
+      local pids
+      pids="$(lsof -ti "tcp:${port}" -sTCP:LISTEN 2>/dev/null || true)"
+      if [[ -n "$pids" ]]; then
+        echo "Stopping stale listener(s) on port ${port}: ${pids}"
+        kill $pids 2>/dev/null || true
+      fi
+    fi
+  done
 }
 
 backend_python_ok() {
