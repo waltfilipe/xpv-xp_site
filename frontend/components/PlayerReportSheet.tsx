@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PassGradePanel } from "@/components/PassGradePanel";
 import { ReportPassScoreAccordion } from "@/components/ReportPassScoreAccordion";
 import { ReportXpPanel } from "@/components/ReportXpPanel";
-import type { PlayerProfile } from "@/lib/api";
+import { LoadingState } from "@/components/LoadingState";
+import { getPassMap, type PlayerProfile } from "@/lib/api";
 import type { EnrichedReportPlayer } from "@/lib/playerReports";
 import { formatContractUntil } from "@/lib/formatters";
 
@@ -29,15 +30,50 @@ type Props = {
   profile: PlayerProfile;
   maps: PlayerReportMaps | null;
   index: number;
+  onMapsLoaded?: (maps: PlayerReportMaps) => void;
 };
 
-export function PlayerReportSheet({ entry, profile, maps, index }: Props) {
+export function PlayerReportSheet({ entry, profile, maps: initialMaps, index, onMapsLoaded }: Props) {
   const [activePage, setActivePage] = useState<1 | 2>(1);
+  const [maps, setMaps] = useState<PlayerReportMaps | null>(initialMaps);
+  const [mapsLoading, setMapsLoading] = useState(false);
+  const [mapsError, setMapsError] = useState<string | null>(null);
   const p = profile.player;
   const category = entry.category;
   const displayName = String(p.player_name ?? "—");
   const playerId = entry.playerId;
   const accent = category.accent;
+
+  useEffect(() => {
+    if (activePage !== 2 || maps || mapsLoading) return;
+
+    let cancelled = false;
+    setMapsLoading(true);
+    setMapsError(null);
+
+    getPassMap(playerId, "progressive", "all", entry.positionFamily ?? "midfielders")
+      .then((res) => {
+        if (cancelled) return;
+        const loaded = {
+          pass_map_b64: res.pass_map_b64,
+          dest_map_b64: res.dest_map_b64,
+          caption: res.caption,
+        };
+        setMaps(loaded);
+        onMapsLoaded?.(loaded);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setMapsError(e instanceof Error ? e.message : "Falha ao carregar mapas");
+      })
+      .finally(() => {
+        if (!cancelled) setMapsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activePage, maps, mapsLoading, playerId, entry.positionFamily, onMapsLoaded]);
 
   const identityBlock = (
     <div className="player-card identity-card report-identity-card">
@@ -244,7 +280,9 @@ export function PlayerReportSheet({ entry, profile, maps, index }: Props) {
           <div className="report-maps-identity">{identityBlock}</div>
 
           <div className="report-maps-body">
-            {maps?.pass_map_b64 || maps?.dest_map_b64 ? (
+            {mapsLoading && <LoadingState message="Gerando mapas do jogador…" />}
+            {!mapsLoading && mapsError && <p className="error-box">{mapsError}</p>}
+            {!mapsLoading && !mapsError && (maps?.pass_map_b64 || maps?.dest_map_b64) ? (
               <div className="report-maps-grid">
                 {maps.pass_map_b64 && (
                   <div className="report-map-card">
@@ -267,7 +305,8 @@ export function PlayerReportSheet({ entry, profile, maps, index }: Props) {
                   </div>
                 )}
               </div>
-            ) : (
+            ) : null}
+            {!mapsLoading && !mapsError && !maps?.pass_map_b64 && !maps?.dest_map_b64 && activePage === 2 && (
               <p className="placeholder-note">Mapas indisponíveis para este jogador.</p>
             )}
             {maps?.caption && <p className="muted report-maps-caption">{maps.caption}</p>}

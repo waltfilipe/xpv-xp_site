@@ -1,24 +1,94 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import type { PlayerProfile } from "@/lib/api";
-import { PLAYER_REPORT_CATEGORIES, type EnrichedReportPlayer } from "@/lib/playerReports";
+import { useCallback, useEffect, useState } from "react";
+import { LoadingState } from "@/components/LoadingState";
 import { PlayerReportSheet, type PlayerReportMaps } from "@/components/PlayerReportSheet";
+import { getPlayerProfile, type PlayerProfile } from "@/lib/api";
+import {
+  enrichedReportPlayers,
+  PLAYER_REPORT_CATEGORIES,
+  type EnrichedReportPlayer,
+} from "@/lib/playerReports";
 
 export type ReportEntry = {
   entry: EnrichedReportPlayer;
   profile: PlayerProfile | null;
   maps: PlayerReportMaps | null;
   error: string | null;
+  loading?: boolean;
 };
 
-type Props = {
-  reports: ReportEntry[];
-};
+const PROFILE_CONCURRENCY = 4;
 
-export function ReportsClient({ reports }: Props) {
+async function mapPool<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+
+  async function worker() {
+    while (next < items.length) {
+      const index = next;
+      next += 1;
+      results[index] = await fn(items[index], index);
+    }
+  }
+
+  const workers = Math.min(limit, items.length);
+  await Promise.all(Array.from({ length: workers }, () => worker()));
+  return results;
+}
+
+function emptyReports(): ReportEntry[] {
+  return enrichedReportPlayers().map((entry) => ({
+    entry,
+    profile: null,
+    maps: null,
+    error: null,
+    loading: true,
+  }));
+}
+
+export function ReportsClient() {
+  const [reports, setReports] = useState<ReportEntry[]>(emptyReports);
+  const [bootLoading, setBootLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [printing, setPrinting] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const entries = enrichedReportPlayers();
+
+    mapPool(entries, PROFILE_CONCURRENCY, async (entry) => {
+      const family = entry.positionFamily ?? "midfielders";
+      try {
+        const profile = await getPlayerProfile(entry.playerId, family);
+        return { entry, profile, maps: null, error: null, loading: false } satisfies ReportEntry;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Unknown error";
+        return { entry, profile: null, maps: null, error: msg, loading: false } satisfies ReportEntry;
+      }
+    }).then((loaded) => {
+      if (!cancelled) {
+        setReports(loaded);
+        setBootLoading(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const patchReport = useCallback((playerId: string, patch: Partial<ReportEntry>) => {
+    setReports((prev) =>
+      prev.map((item) =>
+        item.entry.playerId === playerId ? { ...item, ...patch } : item,
+      ),
+    );
+  }, []);
 
   const visibleReports =
     activeCategory === "all"
@@ -48,6 +118,7 @@ export function ReportsClient({ reports }: Props) {
   }, []);
 
   const okCount = reports.filter((r) => r.profile).length;
+  const loadingCount = reports.filter((r) => r.loading).length;
 
   return (
     <div className={`reports-page${printing ? " reports-printing" : ""}`}>
@@ -85,6 +156,7 @@ export function ReportsClient({ reports }: Props) {
             type="button"
             className="btn btn-ghost"
             onClick={() => handlePrint(activeCategory)}
+            disabled={bootLoading || loadingCount > 0}
           >
             <i className="fa-solid fa-file-pdf" /> Exportar PDF
             {activeCategory !== "all" ? " (categoria)" : ""}
@@ -93,6 +165,7 @@ export function ReportsClient({ reports }: Props) {
             type="button"
             className="btn btn-primary"
             onClick={() => handlePrint("all")}
+            disabled={bootLoading || loadingCount > 0}
           >
             <i className="fa-solid fa-print" /> Exportar todos
           </button>
@@ -100,12 +173,27 @@ export function ReportsClient({ reports }: Props) {
       </div>
 
       <p className="reports-hint muted report-screen-only">
-        {okCount} relatórios carregados. Cada atleta tem <strong>Overview</strong> e{" "}
-        <strong>Maps</strong> — no PDF, as duas páginas são exportadas em sequência.
+        {bootLoading
+          ? "Carregando relatórios em lotes para não sobrecarregar o backend…"
+          : `${okCount} relatórios prontos. Mapas carregam ao clicar em Ver mapas em cada atleta.`}
       </p>
+
+      {bootLoading && loadingCount === reports.length && (
+        <LoadingState message="Carregando primeiros relatórios…" />
+      )}
 
       <div className="reports-stack">
         {visibleReports.map((item) => {
+          if (item.loading) {
+            return (
+              <div key={item.entry.playerId} className="player-report-bundle">
+                <div className="player-report-sheet report-loading-sheet">
+                  <LoadingState message={`Carregando ${item.entry.playerId}…`} />
+                </div>
+              </div>
+            );
+          }
+
           if (!item.profile) {
             return (
               <div key={item.entry.playerId} className="player-report-bundle report-error-bundle">
@@ -130,6 +218,7 @@ export function ReportsClient({ reports }: Props) {
               profile={item.profile}
               maps={item.maps}
               index={globalIndex}
+              onMapsLoaded={(maps) => patchReport(item.entry.playerId, { maps })}
             />
           );
         })}
