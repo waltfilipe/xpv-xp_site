@@ -19,6 +19,7 @@ type SortKey =
   | "pass_chance_creation_letter";
 
 type SortDir = "asc" | "desc";
+type SortEntry = { key: SortKey; dir: SortDir };
 
 type Props = {
   players: PlayerSummary[];
@@ -36,6 +37,16 @@ function letterRank(letter: string | null | undefined): number {
   const normalized = letter.trim().replace("−", "-");
   const idx = LETTER_ORDER.indexOf(normalized as (typeof LETTER_ORDER)[number]);
   return idx === -1 ? 998 : idx;
+}
+
+function valueForKey(
+  player: PlayerSummary,
+  passRating: number | null,
+  key: SortKey,
+): unknown {
+  if (key === "pass_rating") return passRating;
+  if (key === "league") return formatLeagueName(player.league, player.league_source);
+  return player[key as keyof PlayerSummary];
 }
 
 function compareValues(a: unknown, b: unknown, key: SortKey): number {
@@ -60,9 +71,14 @@ function compareValues(a: unknown, b: unknown, key: SortKey): number {
   return String(a ?? "").localeCompare(String(b ?? ""), "pt-BR", { sensitivity: "base" });
 }
 
+function defaultDirForKey(key: SortKey): SortDir {
+  return key === "player_name" || key === "league" ? "asc" : "desc";
+}
+
 export function PlayersTable({ players, positionFamily }: Props) {
-  const [sortKey, setSortKey] = useState<SortKey>("pass_rating");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [sortStack, setSortStack] = useState<SortEntry[]>([
+    { key: "pass_rating", dir: "desc" },
+  ]);
 
   const sorted = useMemo(() => {
     const rows = players.map((player) => ({
@@ -70,37 +86,39 @@ export function PlayersTable({ players, positionFamily }: Props) {
       pass_rating: passRatingDisplay(player),
     }));
     rows.sort((left, right) => {
-      let av: unknown;
-      let bv: unknown;
-      if (sortKey === "pass_rating") {
-        av = left.pass_rating;
-        bv = right.pass_rating;
-      } else if (sortKey === "league") {
-        av = formatLeagueName(left.player.league, left.player.league_source);
-        bv = formatLeagueName(right.player.league, right.player.league_source);
-      } else {
-        av = left.player[sortKey as keyof PlayerSummary];
-        bv = right.player[sortKey as keyof PlayerSummary];
+      for (const entry of sortStack) {
+        const av = valueForKey(left.player, left.pass_rating, entry.key);
+        const bv = valueForKey(right.player, right.pass_rating, entry.key);
+        const cmp = compareValues(av, bv, entry.key);
+        if (cmp !== 0) return entry.dir === "asc" ? cmp : -cmp;
       }
-      const cmp = compareValues(av, bv, sortKey);
-      return sortDir === "asc" ? cmp : -cmp;
+      return 0;
     });
     return rows;
-  }, [players, sortKey, sortDir]);
+  }, [players, sortStack]);
 
   function toggleSort(key: SortKey) {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-      return;
-    }
-    setSortKey(key);
-    setSortDir(key === "player_name" || key === "league" ? "asc" : "desc");
+    setSortStack((prev) => {
+      if (prev[0]?.key === key) {
+        const flipped = prev[0].dir === "asc" ? "desc" : "asc";
+        return [{ key, dir: flipped }, ...prev.slice(1)];
+      }
+      const without = prev.filter((entry) => entry.key !== key);
+      return [{ key, dir: defaultDirForKey(key) }, ...without].slice(0, 4);
+    });
   }
 
   function sortIndicator(key: SortKey) {
-    if (sortKey !== key) return null;
+    const index = sortStack.findIndex((entry) => entry.key === key);
+    if (index === -1) return null;
+    const entry = sortStack[index];
     return (
-      <i className={`fa-solid fa-caret-${sortDir === "asc" ? "up" : "down"} players-sort-icon`} aria-hidden="true" />
+      <span className="players-sort-indicator">
+        <i className={`fa-solid fa-caret-${entry.dir === "asc" ? "up" : "down"} players-sort-icon`} aria-hidden="true" />
+        {sortStack.length > 1 && index > 0 && (
+          <span className="players-sort-priority tabular">{index + 1}</span>
+        )}
+      </span>
     );
   }
 

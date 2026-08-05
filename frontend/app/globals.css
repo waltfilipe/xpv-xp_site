@@ -4216,8 +4216,18 @@ tr:last-child td { border-bottom: none; }
   }
 
   .report-map-skeleton,
-  .report-maps-loading-hint {
+  .report-maps-loading-hint,
+  .report-map-error {
     display: none !important;
+  }
+
+  .report-map-card:has(.report-map-error):not(:has(.report-map-img))::after {
+    content: "Map unavailable";
+    display: block;
+    font-size: 0.62rem;
+    color: #94a3b8;
+    text-align: center;
+    padding: 1.5rem 0.5rem;
   }
 
   .identity-photo-side {
@@ -4444,24 +4454,23 @@ tr:last-child td { border-bottom: none; }
 }
 
 .compare-dual-tip {
-  min-width: 16rem;
+  min-width: 18rem;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
 }
 
-.compare-dual-tip-head,
-.compare-dual-tip-row {
+.compare-dual-tip-cols {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
-  gap: 0.45rem;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.65rem;
 }
 
-.compare-dual-tip-head {
-  padding-bottom: 0.25rem;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-  margin-bottom: 0.1rem;
+.compare-dual-tip-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
 }
 
 .compare-dual-tip-player {
@@ -4469,33 +4478,46 @@ tr:last-child td { border-bottom: none; }
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  margin-bottom: 0.1rem;
 }
 
-.compare-dual-tip-player-a { color: #a78bfa; }
-.compare-dual-tip-player-b { color: #34d399; }
+.compare-dual-tip-col-a .compare-dual-tip-player { color: #a78bfa; }
+.compare-dual-tip-col-b .compare-dual-tip-player { color: #34d399; }
+
+.compare-dual-tip-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
 
 .compare-dual-tip-label {
-  font-size: 0.68rem;
-  color: #cbd5e1;
+  font-size: 0.64rem;
+  color: #94a3b8;
   line-height: 1.25;
 }
 
 .compare-dual-tip-val {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 0.25rem;
-  font-size: 0.72rem;
+  justify-content: flex-start;
+  gap: 0.28rem;
+  font-size: 0.74rem;
   font-weight: 700;
-  color: #e2e8f0;
-}
-
-.compare-dual-tip-val.is-winner {
-  color: #4ade80;
+  color: #f8fafc;
 }
 
 .compare-dual-tip-arrow {
   font-size: 0.62rem;
+  flex-shrink: 0;
+}
+
+.compare-dual-tip-arrow-stack {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0;
+  line-height: 0.55;
 }
 
 .compare-dual-tip-arrow-win {
@@ -4535,6 +4557,18 @@ tr:last-child td { border-bottom: none; }
 .players-sort-icon {
   font-size: 0.72rem;
   color: var(--accent-purple);
+}
+
+.players-sort-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.players-sort-priority {
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: var(--muted);
 }
 
 .players-table th {

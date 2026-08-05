@@ -27,11 +27,20 @@ export function formatContractUntil(value: unknown): string {
   return s;
 }
 
+const CHANCE_CREATION_METRIC_KEYS = new Set([
+  "key_passes",
+  "passes_to_box",
+  "test_impact_v2_start_final_third_p90",
+]);
+
 export function formatMetric(value: unknown, key?: string): string {
   if (value == null) return "—";
   if (typeof value === "number") {
     if (key?.includes("pct") || key?.includes("coe")) {
       return `${value >= 0 ? "+" : ""}${value.toFixed(1)} pp`;
+    }
+    if (key && CHANCE_CREATION_METRIC_KEYS.has(key)) {
+      return value.toFixed(2);
     }
     if (Number.isInteger(value) && !key?.includes("p90") && !key?.includes("score")) {
       return value.toLocaleString();

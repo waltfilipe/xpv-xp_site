@@ -10,11 +10,40 @@ DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
 
 @lru_cache(maxsize=1)
+def _load_repo_env_file() -> None:
+    """Load pass-scout.env from repo root when present (no extra dependency)."""
+    env_path = Path(__file__).resolve().parents[2] / "pass-scout.env"
+    if not env_path.is_file():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+@lru_cache(maxsize=1)
 def pass_scout_mode() -> str:
-    """Return ``cloud`` (default) or ``local``."""
-    raw = os.getenv("PASS_SCOUT_MODE", "cloud").strip().lower()
+    """Return ``cloud`` or ``local``."""
+    _load_repo_env_file()
+    raw = os.getenv("PASS_SCOUT_MODE", "").strip().lower()
     if raw in {"local", "desktop", "full"}:
         return "local"
+    if raw in {"cloud", "prod", "production"}:
+        return "cloud"
+    # Default to local when full analytics parquet ships with the repo.
+    try:
+        from position_families import DEFAULT_POSITION_FAMILY
+        from xp_engine import european_passes_parquet_path
+
+        if european_passes_parquet_path(DEFAULT_POSITION_FAMILY).is_file():
+            return "local"
+    except Exception:
+        pass
     return "cloud"
 
 
