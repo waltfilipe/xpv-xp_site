@@ -5,9 +5,9 @@ import type { XpRoundGrade } from "@/lib/api";
 import { passGradeGradientColor, passGradePct } from "@/lib/gradeColors";
 
 const WIDTH = 280;
-const HEIGHT = 64;
+const HEIGHT = 58;
 const PAD_X = 8;
-const PAD_Y = 8;
+const PAD_Y = 6;
 const DOT_R = 1.25;
 const HIT_R = 6;
 
@@ -15,6 +15,7 @@ type Props = {
   points: XpRoundGrade[];
   accent?: string;
   embedded?: boolean;
+  tier?: string | null;
 };
 
 type Coord = {
@@ -56,9 +57,11 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false }
 
   return (
     <div className={`round-grade-chart${embedded ? " round-grade-chart-embedded" : ""}`}>
-      <div className="round-grade-chart-head">
-        <span className="round-grade-chart-title">Grades por rodada</span>
-      </div>
+      {!embedded && (
+        <div className="round-grade-chart-head">
+          <span className="round-grade-chart-title">Grades por rodada</span>
+        </div>
+      )}
 
       <div className="round-grade-chart-wrap">
         {active && (
@@ -76,7 +79,7 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false }
         >
           <defs>
             <linearGradient id={`round-grade-fill-${gradId}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={accent} stopOpacity={embedded ? 0.08 : 0.22} />
+              <stop offset="0%" stopColor={accent} stopOpacity={embedded ? 0.12 : 0.22} />
               <stop offset="100%" stopColor={accent} stopOpacity="0" />
             </linearGradient>
           </defs>
@@ -90,7 +93,7 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false }
                 y1={y}
                 x2={WIDTH - PAD_X}
                 y2={y}
-                stroke="rgba(148, 163, 184, 0.06)"
+                stroke="rgba(148, 163, 184, 0.05)"
                 strokeWidth="1"
               />
             );
@@ -104,7 +107,7 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false }
             strokeWidth="1.2"
             strokeLinejoin="round"
             strokeLinecap="round"
-            opacity={embedded ? 0.85 : 1}
+            opacity={0.9}
           />
 
           {coords.map((c) => {

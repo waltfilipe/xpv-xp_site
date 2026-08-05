@@ -2,11 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { LoadingState } from "@/components/LoadingState";
-import { PlayerReportSheet, type PlayerReportMaps } from "@/components/PlayerReportSheet";
-import { getPlayerProfile, type PlayerProfile } from "@/lib/api";
+import {
+  PlayerReportSheet,
+  REPORT_MAP_FILTERS,
+  type PlayerReportMaps,
+  type ReportMapSlot,
+} from "@/components/PlayerReportSheet";
+import { getPassMap, getPlayerProfile, type PlayerProfile } from "@/lib/api";
 import {
   enrichedReportPlayers,
   PLAYER_REPORT_CATEGORIES,
+  totalReportCount,
   type EnrichedReportPlayer,
 } from "@/lib/playerReports";
 
@@ -14,6 +20,7 @@ export type ReportEntry = {
   entry: EnrichedReportPlayer;
   profile: PlayerProfile | null;
   maps: PlayerReportMaps | null;
+  mapSlots: ReportMapSlot[] | null;
   error: string | null;
   loading?: boolean;
 };
@@ -46,9 +53,46 @@ function emptyReports(): ReportEntry[] {
     entry,
     profile: null,
     maps: null,
+    mapSlots: null,
     error: null,
     loading: true,
   }));
+}
+
+async function loadMapSlots(
+  playerId: string,
+  family: string,
+  existing?: ReportMapSlot[] | null,
+): Promise<ReportMapSlot[]> {
+  const slots: ReportMapSlot[] = REPORT_MAP_FILTERS.map((f) => {
+    const prev = existing?.find((s) => s.key === f.key);
+    return prev?.pass_map_b64
+      ? { ...prev }
+      : { key: f.key, label: f.label, loading: true };
+  });
+
+  for (const filter of REPORT_MAP_FILTERS) {
+    const idx = slots.findIndex((s) => s.key === filter.key);
+    if (slots[idx]?.pass_map_b64) continue;
+    try {
+      const res = await getPassMap(playerId, filter.key, "all", family);
+      slots[idx] = {
+        key: filter.key,
+        label: filter.label,
+        pass_map_b64: res.pass_map_b64,
+        loading: false,
+        error: null,
+      };
+    } catch (e) {
+      slots[idx] = {
+        key: filter.key,
+        label: filter.label,
+        loading: false,
+        error: e instanceof Error ? e.message : "Falha",
+      };
+    }
+  }
+  return slots;
 }
 
 export function ReportsClient() {
@@ -56,6 +100,8 @@ export function ReportsClient() {
   const [bootLoading, setBootLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [printing, setPrinting] = useState(false);
+  const [printPreparing, setPrintPreparing] = useState(false);
+  const [preloadPlayerIds, setPreloadPlayerIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -65,10 +111,24 @@ export function ReportsClient() {
       const family = entry.positionFamily ?? "midfielders";
       try {
         const profile = await getPlayerProfile(entry.playerId, family);
-        return { entry, profile, maps: null, error: null, loading: false } satisfies ReportEntry;
+        return {
+          entry,
+          profile,
+          maps: null,
+          mapSlots: null,
+          error: null,
+          loading: false,
+        } satisfies ReportEntry;
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Unknown error";
-        return { entry, profile: null, maps: null, error: msg, loading: false } satisfies ReportEntry;
+        return {
+          entry,
+          profile: null,
+          maps: null,
+          mapSlots: null,
+          error: msg,
+          loading: false,
+        } satisfies ReportEntry;
       }
     }).then((loaded) => {
       if (!cancelled) {
@@ -95,33 +155,97 @@ export function ReportsClient() {
       ? reports
       : reports.filter((r) => r.entry.category.id === activeCategory);
 
-  const handlePrint = useCallback((scope: string) => {
-    setPrinting(true);
-    document.body.dataset.printScope = scope;
+  const handlePrint = useCallback(
+    async (scope: string, playerId?: string) => {
+      const targets = reports.filter((r) => {
+        if (!r.profile) return false;
+        if (playerId) return r.entry.playerId === playerId;
+        if (scope === "all") return true;
+        return r.entry.category.id === scope;
+      });
 
-    const bundles = document.querySelectorAll<HTMLElement>(".player-report-bundle");
-    bundles.forEach((bundle) => {
-      const cat = bundle.dataset.category ?? "";
-      const hide = scope !== "all" && cat !== scope;
-      bundle.classList.toggle("report-print-hidden", hide);
-    });
+      if (!targets.length) return;
 
-    const restore = () => {
-      bundles.forEach((bundle) => bundle.classList.remove("report-print-hidden"));
-      delete document.body.dataset.printScope;
-      setPrinting(false);
-      window.removeEventListener("afterprint", restore);
-    };
+      setPrintPreparing(true);
 
-    window.addEventListener("afterprint", restore);
-    window.print();
-  }, []);
+      const updatedSlots: Record<string, ReportMapSlot[]> = {};
+      for (const item of targets) {
+        const family = item.entry.positionFamily ?? "midfielders";
+        const slots = await loadMapSlots(item.entry.playerId, family, item.mapSlots);
+        updatedSlots[item.entry.playerId] = slots;
+        patchReport(item.entry.playerId, {
+          mapSlots: slots,
+          maps: slots.find((s) => s.pass_map_b64)
+            ? { pass_map_b64: slots.find((s) => s.pass_map_b64)?.pass_map_b64 }
+            : item.maps,
+        });
+      }
+
+      setPreloadPlayerIds(new Set(targets.map((t) => t.entry.playerId)));
+      setPrintPreparing(false);
+      setPrinting(true);
+      document.body.dataset.printScope = playerId ? `player:${playerId}` : scope;
+
+      const bundles = document.querySelectorAll<HTMLElement>(".player-report-bundle");
+      bundles.forEach((bundle) => {
+        const cat = bundle.dataset.category ?? "";
+        const pid = bundle.dataset.playerId ?? "";
+        let hide = false;
+        if (playerId) hide = pid !== playerId;
+        else if (scope !== "all") hide = cat !== scope;
+        bundle.classList.toggle("report-print-hidden", hide);
+      });
+
+      await new Promise((r) => setTimeout(r, 120));
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+      const restore = () => {
+        bundles.forEach((bundle) => bundle.classList.remove("report-print-hidden"));
+        delete document.body.dataset.printScope;
+        setPrinting(false);
+        setPreloadPlayerIds(new Set());
+        window.removeEventListener("afterprint", restore);
+      };
+
+      window.addEventListener("afterprint", restore);
+      requestAnimationFrame(() => window.print());
+    },
+    [reports, patchReport],
+  );
 
   const okCount = reports.filter((r) => r.profile).length;
   const loadingCount = reports.filter((r) => r.loading).length;
+  const busy = bootLoading || loadingCount > 0 || printPreparing;
 
   return (
     <div className={`reports-page${printing ? " reports-printing" : ""}`}>
+      <header className="reports-hero report-screen-only">
+        <div className="reports-hero-main">
+          <div className="reports-hero-copy">
+            <p className="reports-hero-eyebrow">Scouting intelligence</p>
+            <h1 className="reports-hero-title">Midfielder Reports</h1>
+            <p className="reports-hero-lead">
+              {totalReportCount()} perfis curados em 3 faixas etárias — overview xP, pass scores,
+              consistency e mapas de passe. Exportação PDF por atleta ou em lote.
+            </p>
+          </div>
+          <div className="reports-hero-stats">
+            <div className="reports-hero-stat">
+              <span className="reports-hero-stat-val tabular">{okCount || "—"}</span>
+              <span className="reports-hero-stat-label">relatórios</span>
+            </div>
+            <div className="reports-hero-stat">
+              <span className="reports-hero-stat-val">3</span>
+              <span className="reports-hero-stat-label">categorias</span>
+            </div>
+            <div className="reports-hero-stat">
+              <span className="reports-hero-stat-val">PDF</span>
+              <span className="reports-hero-stat-label">exportável</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
       <div className="reports-toolbar">
         <div className="reports-toolbar-filters">
           <button
@@ -152,30 +276,32 @@ export function ReportsClient() {
         </div>
 
         <div className="reports-toolbar-actions">
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={() => handlePrint(activeCategory)}
-            disabled={bootLoading || loadingCount > 0}
-          >
-            <i className="fa-solid fa-file-pdf" /> Exportar PDF
-            {activeCategory !== "all" ? " (categoria)" : ""}
-          </button>
+          {activeCategory !== "all" && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => handlePrint(activeCategory)}
+              disabled={busy}
+            >
+              <i className="fa-solid fa-file-pdf" /> Exportar categoria
+            </button>
+          )}
           <button
             type="button"
             className="btn btn-primary"
             onClick={() => handlePrint("all")}
-            disabled={bootLoading || loadingCount > 0}
+            disabled={busy}
           >
-            <i className="fa-solid fa-print" /> Exportar todos
+            <i className="fa-solid fa-print" />
+            {printPreparing ? "Preparando mapas…" : "Exportar todos"}
           </button>
         </div>
       </div>
 
       <p className="reports-hint muted report-screen-only">
         {bootLoading
-          ? "Carregando relatórios em lotes para não sobrecarregar o backend…"
-          : `${okCount} relatórios prontos. Mapas carregam ao clicar em Ver mapas em cada atleta.`}
+          ? "Carregando relatórios em lotes…"
+          : `${okCount} prontos · mapas carregam ao abrir ou ao exportar PDF`}
       </p>
 
       {bootLoading && loadingCount === reports.length && (
@@ -213,7 +339,14 @@ export function ReportsClient() {
               entry={item.entry}
               profile={item.profile}
               maps={item.maps}
-              onMapsLoaded={(maps) => patchReport(item.entry.playerId, { maps })}
+              mapSlots={item.mapSlots}
+              expandAll={printing}
+              preloadMaps={preloadPlayerIds.has(item.entry.playerId)}
+              exportDisabled={busy}
+              onExportPdf={(id) => handlePrint("all", id)}
+              onMapsLoaded={(maps, slots) =>
+                patchReport(item.entry.playerId, { maps, mapSlots: slots })
+              }
             />
           );
         })}

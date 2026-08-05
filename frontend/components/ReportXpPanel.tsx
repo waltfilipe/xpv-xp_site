@@ -1,5 +1,5 @@
 import { PassLengthMix } from "@/components/PassLengthMix";
-import { RoundGradeChart } from "@/components/RoundGradeChart";
+import { ConsistencyAccordion } from "@/components/ConsistencyAccordion";
 import { XpProfileBars } from "@/components/XpProfileBars";
 import type { PlayerProfile } from "@/lib/api";
 import { XP_INDEX_TIER_LABELS, xpIndexTierClass } from "@/lib/gradeColors";
@@ -8,6 +8,7 @@ import { INDEX_TOOLTIPS } from "@/lib/tooltips";
 type Props = {
   profile: PlayerProfile;
   accent?: string;
+  expandAll?: boolean;
 };
 
 function IndexRow({
@@ -36,7 +37,7 @@ function IndexRow({
   );
 }
 
-export function ReportXpPanel({ profile, accent = "#a78bfa" }: Props) {
+export function ReportXpPanel({ profile, accent = "#a78bfa", expandAll = false }: Props) {
   const indices = profile.xp_indices ?? [];
   const roundGrades = profile.xp_round_grades ?? [];
   const consistency = indices.find((item) => item.key === "consistency");
@@ -52,20 +53,15 @@ export function ReportXpPanel({ profile, accent = "#a78bfa" }: Props) {
           <h4 className="section-label-sm">xP Indices</h4>
           <div className="xp-indices-list">
             {consistency && (
-              <div
-                className="xp-consistency-block"
-                style={{ "--consistency-accent": accent } as React.CSSProperties}
-              >
-                <IndexRow
-                  label={consistency.label}
-                  tier={consistency.tier}
-                  tierKey={consistency.tier_key ?? consistency.label}
-                  icon={consistency.icon ?? "fa-circle"}
-                />
-                {roundGrades.length > 0 && (
-                  <RoundGradeChart points={roundGrades} accent={accent} embedded />
-                )}
-              </div>
+              <ConsistencyAccordion
+                label={consistency.label}
+                tier={consistency.tier}
+                tierKey={consistency.tier_key ?? consistency.label}
+                icon={consistency.icon ?? "fa-wave-square"}
+                points={roundGrades}
+                accent={accent}
+                expandAll={expandAll}
+              />
             )}
             {otherIndices.map((item) => (
               <IndexRow

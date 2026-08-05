@@ -10,9 +10,10 @@ import { COMPONENT_LABELS, COMPONENT_TOOLTIPS, PASS_SCORE_TOOLTIPS } from "@/lib
 
 type Props = {
   sections: PassScoreSection[];
+  expandAll?: boolean;
 };
 
-export function ReportPassScoreAccordion({ sections }: Props) {
+export function ReportPassScoreAccordion({ sections, expandAll = false }: Props) {
   if (!sections.length) return null;
 
   return (
@@ -21,7 +22,7 @@ export function ReportPassScoreAccordion({ sections }: Props) {
         <details
           key={section.title}
           className="report-pass-accordion-item"
-          open={index === 0}
+          open={expandAll || index === 0}
         >
           <summary className="report-pass-accordion-trigger">
             <span className="report-pass-accordion-left">
