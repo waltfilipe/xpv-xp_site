@@ -1,14 +1,16 @@
 "use client";
 
 import type { CompareMetric } from "@/lib/api";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { PASS_SCORE_TOOLTIPS } from "@/lib/tooltips";
 
 const COLOR_A = "#a78bfa";
 const COLOR_B = "#34d399";
 const MAX_SCORE = 10;
-const SIZE = 400;
+const SIZE = 420;
 const CENTER = SIZE / 2;
-const RADIUS = 100;
-const LABEL_RADIUS = 138;
+const RADIUS = 98;
+const LABEL_RADIUS = 142;
 
 type Props = {
   metrics: CompareMetric[];
@@ -43,6 +45,16 @@ function formatValue(value: number | null | undefined) {
   return value != null ? value.toFixed(1) : "—";
 }
 
+function labelLines(label: string): string[] {
+  if (label === "Chance creation") return ["Chance", "creation"];
+  const words = label.split(" ");
+  if (words.length >= 2 && label.length > 11) {
+    const mid = Math.ceil(words.length / 2);
+    return [words.slice(0, mid).join(" "), words.slice(mid).join(" ")];
+  }
+  return [label];
+}
+
 function labelAnchor(angle: number): "start" | "middle" | "end" {
   const cos = Math.cos(angle);
   if (Math.abs(cos) < 0.2) return "middle";
@@ -53,8 +65,21 @@ function labelOffset(angle: number): { dx: number; dy: number } {
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
   const dx = Math.abs(cos) < 0.2 ? 0 : cos > 0 ? 6 : -6;
-  const dy = sin > 0.35 ? 10 : sin < -0.35 ? -4 : 4;
+  const dy = sin > 0.35 ? 12 : sin < -0.35 ? -6 : 4;
   return { dx, dy };
+}
+
+function compareTooltip(metric: CompareMetric, nameA: string, nameB: string): string {
+  const base = PASS_SCORE_TOOLTIPS[metric.label] ?? "";
+  const lineA = `${nameA}: ${formatValue(metric.value_a)}${metric.letter_a ? ` (${metric.letter_a})` : ""}`;
+  const lineB = `${nameB}: ${formatValue(metric.value_b)}${metric.letter_b ? ` (${metric.letter_b})` : ""}`;
+  const winner =
+    metric.winner === "a"
+      ? `Vantagem: ${nameA}`
+      : metric.winner === "b"
+        ? `Vantagem: ${nameB}`
+        : "Empate";
+  return [lineA, lineB, winner, base].filter(Boolean).join("\n\n");
 }
 
 export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
@@ -99,11 +124,11 @@ export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
             </filter>
           </defs>
 
-          <circle cx={CENTER} cy={CENTER} r={RADIUS + 18} fill="url(#compare-radar-bg)" />
+          <circle cx={CENTER} cy={CENTER} r={RADIUS + 20} fill="url(#compare-radar-bg)" />
           <circle
             cx={CENTER}
             cy={CENTER}
-            r={RADIUS + 18}
+            r={RADIUS + 20}
             fill="none"
             stroke="rgba(148, 163, 184, 0.1)"
             strokeWidth="1"
@@ -177,6 +202,9 @@ export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
             const lx = CENTER + LABEL_RADIUS * Math.cos(angle);
             const ly = CENTER + LABEL_RADIUS * Math.sin(angle);
             const { dx, dy } = labelOffset(angle);
+            const lines = labelLines(metric.label);
+            const lineHeight = 11;
+            const startDy = lines.length > 1 ? -(lineHeight * (lines.length - 1)) / 2 : 0;
             return (
               <text
                 key={`label-${metric.key}`}
@@ -185,7 +213,15 @@ export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
                 textAnchor={labelAnchor(angle)}
                 className="compare-radar-svg-label"
               >
-                {metric.label}
+                {lines.map((line, lineIndex) => (
+                  <tspan
+                    key={line}
+                    x={lx + dx}
+                    dy={lineIndex === 0 ? startDy : lineHeight}
+                  >
+                    {line}
+                  </tspan>
+                ))}
               </text>
             );
           })}
@@ -201,13 +237,26 @@ export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
           </tr>
         </thead>
         <tbody>
-          {metrics.map((metric) => (
-            <tr key={metric.key}>
-              <td>{metric.label}</td>
-              <td className="compare-radar-val-a tabular">{formatValue(metric.value_a)}</td>
-              <td className="compare-radar-val-b tabular">{formatValue(metric.value_b)}</td>
-            </tr>
-          ))}
+          {metrics.map((metric) => {
+            const tip = compareTooltip(metric, nameA, nameB);
+            return (
+              <tr key={metric.key} className="compare-radar-table-row">
+                <td>
+                  <Tooltip content={tip}>
+                    <span className="compare-radar-metric-label">{metric.label}</span>
+                  </Tooltip>
+                </td>
+                <td className="compare-radar-val-a tabular">
+                  {formatValue(metric.value_a)}
+                  {metric.letter_a ? <span className="compare-radar-letter"> {metric.letter_a}</span> : null}
+                </td>
+                <td className="compare-radar-val-b tabular">
+                  {formatValue(metric.value_b)}
+                  {metric.letter_b ? <span className="compare-radar-letter"> {metric.letter_b}</span> : null}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 

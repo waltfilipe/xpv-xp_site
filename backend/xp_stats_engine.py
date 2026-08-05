@@ -1064,14 +1064,17 @@ XP_PROFILE_SUBMETRICS: tuple[str, ...] = (
     "xp_residual_median",
 )
 
-# Shared composite for Lethality pillar and the xP Impact index.
+# Lethality pillar (xP Profile bar) — destination value + Pass Impact v2 volume.
 LETHALITY_METRICS: tuple[str, ...] = ("xpv_per_pass", "test_impact_v2_p90")
+
+# xP Impact index — destination value + mean residual vs. geometric model per pass.
+IMPACT_INDEX_METRICS: tuple[str, ...] = ("xpv_per_pass", "xp_residual_mean")
 
 # (index_key, label, metrics, invert_metrics)
 XP_INDEX_ELITE_TOP_N = 10
 XP_INDEX_SPECS: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
     ("xp_idx_consistency", "Consistency", ("xp_game_consistency_score",), ()),
-    ("xp_idx_impact", "Impact", LETHALITY_METRICS, ()),
+    ("xp_idx_impact", "Impact", IMPACT_INDEX_METRICS, ()),
 )
 
 XP_INDEX_TIER_LABELS: dict[str, str] = {
@@ -1088,8 +1091,8 @@ XP_INDEX_TOOLTIPS: dict[str, str] = {
         "(median absolute deviation), which is robust to outlier games."
     ),
     "xp_idx_impact": (
-        "50% xPV per completed pass and 50% Pass Impact v2 per game — "
-        "destination value plus selective high-progression deliveries."
+        "50% xPV per completed pass and 50% mean (xP − xP expected) per pass — "
+        "destination value plus how much the player beats the geometric model on average."
     ),
 }
 

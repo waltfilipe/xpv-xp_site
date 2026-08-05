@@ -35,7 +35,7 @@ function minutesRingStyle(pct: number | null | undefined): CSSProperties | undef
   if (pct == null || Number.isNaN(pct)) return undefined;
   const clamped = Math.max(0, Math.min(1, pct));
   const hue = clamped * 120;
-  return { "--minutes-ring": `hsla(${hue}, 38%, 44%, 0.55)` } as CSSProperties;
+  return { "--minutes-ring": `hsla(${hue}, 42%, 40%, 0.72)` } as CSSProperties;
 }
 
 function PrintPassGrade({ rating }: { rating: number | null | undefined }) {
@@ -100,6 +100,15 @@ function PrintPassLength({ profile }: { profile: PlayerProfile }) {
   );
 }
 
+function formatImpactPrintValue(key: string, value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return "—";
+  if (key === "xp_residual_mean") {
+    const cents = value * 100;
+    return `${cents >= 0 ? "+" : ""}${cents.toFixed(2)}¢`;
+  }
+  return value.toFixed(3);
+}
+
 function PrintSheetOverview({ item }: { item: PrintReportEntry }) {
   const { entry, profile } = item;
   const p = profile.player;
@@ -108,7 +117,8 @@ function PrintSheetOverview({ item }: { item: PrintReportEntry }) {
   const minutesPct = p.minutes_pct != null ? Number(p.minutes_pct) : null;
   const indices = profile.xp_indices ?? [];
   const consistency = indices.find((i) => i.key === "consistency");
-  const otherIndices = indices.filter((i) => i.key !== "consistency");
+  const impact = indices.find((i) => i.key === "impact");
+  const otherIndices = indices.filter((i) => i.key !== "consistency" && i.key !== "impact");
   const roundGrades = profile.xp_round_grades ?? [];
 
   return (
@@ -212,6 +222,20 @@ function PrintSheetOverview({ item }: { item: PrintReportEntry }) {
                     embedded
                     tier={consistency.tier_key ?? consistency.tier ?? "mid"}
                   />
+                )}
+                {impact && (
+                  <div className={`print-index-block ${xpIndexTierClass(impact.tier)}`}>
+                    <div className="print-index-row">
+                      <span><i className={`fa-solid ${impact.icon ?? "fa-crosshairs"}`} /> {impact.label}</span>
+                      <span>{XP_INDEX_TIER_LABELS[impact.tier ?? "mid"] ?? impact.tier ?? "—"}</span>
+                    </div>
+                    {(impact.components ?? []).map((comp) => (
+                      <div key={comp.key} className="print-impact-metric">
+                        <span>{comp.label}</span>
+                        <span className="tabular">{formatImpactPrintValue(comp.key, comp.value)}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
                 {otherIndices.map((item) => (
                   <div key={item.key} className={`print-index-row ${xpIndexTierClass(item.tier)}`}>

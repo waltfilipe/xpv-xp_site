@@ -44,7 +44,7 @@ function minutesPillStyle(pct: number | null | undefined): React.CSSProperties |
   if (pct == null || Number.isNaN(pct)) return undefined;
   const clamped = Math.max(0, Math.min(1, pct));
   const hue = clamped * 120;
-  const color = `hsla(${hue}, 38%, 44%, 0.55)`;
+  const color = `hsla(${hue}, 42%, 40%, 0.72)`;
   return {
     "--minutes-ring": color,
   } as React.CSSProperties;

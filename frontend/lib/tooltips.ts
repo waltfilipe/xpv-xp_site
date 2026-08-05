@@ -49,11 +49,11 @@ export const INDEX_TOOLTIPS: Record<string, string> = {
   Consistency:
     "Each match gets a 3–9 grade from game xP vs. all peer matches in the position. Badge when dispersion of those grades is low (MAD).",
   Impact:
-    "50% xPV per completed pass and 50% Pass Impact v2 per game — destination value plus selective high-progression deliveries.",
+    "50% xPV per completed pass and 50% mean (xP − xP expected) per pass — destination value plus beating the geometric model.",
   xp_idx_consistency:
     "Each match gets a 3–9 grade from game xP vs. all peer matches in the position. Badge when dispersion of those grades is low (MAD).",
   xp_idx_impact:
-    "50% xPV per completed pass and 50% Pass Impact v2 per game — destination value plus selective high-progression deliveries.",
+    "50% xPV per completed pass and 50% mean (xP − xP expected) per pass — destination value plus beating the geometric model.",
 };
 
 export const PASS_GRADE_TOOLTIP =

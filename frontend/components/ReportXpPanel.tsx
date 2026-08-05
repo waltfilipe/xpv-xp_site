@@ -1,9 +1,9 @@
 import { PassLengthMix } from "@/components/PassLengthMix";
 import { ConsistencyAccordion } from "@/components/ConsistencyAccordion";
+import { ImpactAccordion } from "@/components/ImpactAccordion";
 import { XpProfileBars } from "@/components/XpProfileBars";
 import type { PlayerProfile } from "@/lib/api";
-import { XP_INDEX_TIER_LABELS, xpIndexTierClass } from "@/lib/gradeColors";
-import { INDEX_TOOLTIPS } from "@/lib/tooltips";
+import { XpIndicesPanel } from "@/components/XpIndicesPanel";
 
 type Props = {
   profile: PlayerProfile;
@@ -11,69 +11,19 @@ type Props = {
   expandAll?: boolean;
 };
 
-function IndexRow({
-  label,
-  tier,
-  tierKey,
-  icon,
-}: {
-  label: string;
-  tier?: string | null;
-  tierKey: string;
-  icon: string;
-}) {
-  const tierLabel = XP_INDEX_TIER_LABELS[tier ?? "mid"] ?? tier ?? "—";
-  const tip = INDEX_TOOLTIPS[tierKey] ?? INDEX_TOOLTIPS[label] ?? "";
-
-  return (
-    <div className={`xp-index-row ${xpIndexTierClass(tier)}`} title={tip}>
-      <span className="xp-index-row-icon">
-        <i className={`fa-solid ${icon}`} />
-      </span>
-      <span className="xp-index-row-name">{label}</span>
-      <span className="xp-index-row-sep" aria-hidden="true" />
-      <span className="xp-index-row-val">{tierLabel}</span>
-    </div>
-  );
-}
-
 export function ReportXpPanel({ profile, accent = "#a78bfa", expandAll = false }: Props) {
-  const indices = profile.xp_indices ?? [];
-  const roundGrades = profile.xp_round_grades ?? [];
-  const consistency = indices.find((item) => item.key === "consistency");
-  const otherIndices = indices.filter((item) => item.key !== "consistency");
-
   return (
     <div className="player-card xp-profile-card report-xp-card">
       <h3 className="section-label">xP Profile</h3>
       <XpProfileBars bars={profile.xp_bars} />
 
-      {indices.length > 0 && (
-        <div className="xp-indices-panel report-xp-indices">
-          <h4 className="section-label-sm">xP Indices</h4>
-          <div className="xp-indices-list">
-            {consistency && (
-              <ConsistencyAccordion
-                label={consistency.label}
-                tier={consistency.tier}
-                tierKey={consistency.tier_key ?? consistency.label}
-                icon={consistency.icon ?? "fa-wave-square"}
-                points={roundGrades}
-                accent={accent}
-                expandAll={expandAll}
-              />
-            )}
-            {otherIndices.map((item) => (
-              <IndexRow
-                key={item.key}
-                label={item.label}
-                tier={item.tier}
-                tierKey={item.tier_key ?? item.label}
-                icon={item.icon ?? "fa-circle"}
-              />
-            ))}
-          </div>
-        </div>
+      {(profile.xp_indices?.length ?? 0) > 0 && (
+        <XpIndicesPanel
+          indices={profile.xp_indices ?? []}
+          roundGrades={profile.xp_round_grades ?? []}
+          accent={accent}
+          expandAll={expandAll}
+        />
       )}
 
       <PassLengthMix data={profile} />

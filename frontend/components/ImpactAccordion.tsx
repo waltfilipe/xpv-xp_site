@@ -1,0 +1,106 @@
+"use client";
+
+import { Tooltip } from "@/components/ui/Tooltip";
+import { XP_INDEX_TIER_LABELS, xpIndexTierClass } from "@/lib/gradeColors";
+import { INDEX_TOOLTIPS } from "@/lib/tooltips";
+
+export type ImpactIndexComponent = {
+  key: string;
+  label: string;
+  value?: number | null;
+};
+
+type Props = {
+  label: string;
+  tier?: string | null;
+  tierKey?: string;
+  icon?: string;
+  components: ImpactIndexComponent[];
+  expandAll?: boolean;
+};
+
+const COMPONENT_TOOLTIPS: Record<string, string> = {
+  xpv_per_pass: "Average destination value (xPV) on completed passes.",
+  xp_residual_mean:
+    "Mean (actual xP − expected xP) per completed pass — how much the player beats the model on average.",
+};
+
+function formatImpactValue(key: string, value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return "—";
+  if (key === "xp_residual_mean") {
+    const cents = value * 100;
+    return `${cents >= 0 ? "+" : ""}${cents.toFixed(2)}¢`;
+  }
+  return value.toFixed(3);
+}
+
+export function ImpactAccordion({
+  label,
+  tier,
+  tierKey,
+  icon = "fa-crosshairs",
+  components,
+  expandAll = false,
+}: Props) {
+  const tierLabel = XP_INDEX_TIER_LABELS[tier ?? "mid"] ?? tier ?? "—";
+  const tip = INDEX_TOOLTIPS[tierKey ?? label] ?? INDEX_TOOLTIPS[label] ?? "";
+  const tierClass = xpIndexTierClass(tier);
+
+  const head = (
+    <>
+      <span className="consistency-accordion-left">
+        {!expandAll && (
+          <i className="fa-solid fa-chevron-right consistency-accordion-chevron" aria-hidden="true" />
+        )}
+        <span className="xp-index-row-icon">
+          <i className={`fa-solid ${icon}`} />
+        </span>
+        <Tooltip content={tip}>
+          <span className="consistency-accordion-title">{label}</span>
+        </Tooltip>
+      </span>
+      <span className="consistency-accordion-val">{tierLabel}</span>
+    </>
+  );
+
+  const panel = (
+    <div className="impact-accordion-metrics">
+      {components.map((item) => {
+        const row = (
+          <div className="impact-accordion-metric">
+            <span className="impact-accordion-metric-label">{item.label}</span>
+            <span className="impact-accordion-metric-value tabular">
+              {formatImpactValue(item.key, item.value)}
+            </span>
+          </div>
+        );
+        const rowTip = COMPONENT_TOOLTIPS[item.key];
+        return rowTip ? (
+          <Tooltip key={item.key} content={rowTip} block>
+            {row}
+          </Tooltip>
+        ) : (
+          <div key={item.key}>{row}</div>
+        );
+      })}
+    </div>
+  );
+
+  if (expandAll) {
+    return (
+      <div className={`consistency-accordion consistency-flat impact-accordion ${tierClass}`}>
+        <div className="consistency-accordion-trigger">{head}</div>
+        <div className="consistency-accordion-panel">{panel}</div>
+      </div>
+    );
+  }
+
+  return (
+    <details className={`consistency-accordion impact-accordion ${tierClass}`}>
+      <summary className="consistency-accordion-trigger" title={tip}>
+        {head}
+      </summary>
+      <div className="consistency-accordion-panel">{panel}</div>
+    </details>
+  );
+}

@@ -130,8 +130,19 @@ def build_profile_payload(
                 "label": "Impact",
                 "tier": xp.get("xp_idx_impact_tier"),
                 "tier_key": "xp_idx_impact",
-                "value": xp.get("test_impact_v2_p90"),
                 "icon": "fa-crosshairs",
+                "components": [
+                    {
+                        "key": "xpv_per_pass",
+                        "label": "xPV/Pass",
+                        "value": xp.get("xpv_per_pass"),
+                    },
+                    {
+                        "key": "xp_residual_mean",
+                        "label": "ΔxP/Pass",
+                        "value": xp.get("xp_residual_mean"),
+                    },
+                ],
             },
         ] if xp else [],
         "xp_round_grades": build_round_grade_series(xp) if xp else [],
