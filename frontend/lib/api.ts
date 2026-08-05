@@ -106,7 +106,15 @@ export type CompareMetric = {
   value_b?: number | null;
   letter_a?: string | null;
   letter_b?: string | null;
+  score_a?: number | null;
+  score_b?: number | null;
   winner: "a" | "b" | "tie";
+  components?: {
+    key: string;
+    value_a?: number | null;
+    value_b?: number | null;
+    winner?: "a" | "b" | "tie";
+  }[];
 };
 
 export type ComparePayload = {

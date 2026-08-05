@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { CompareCenter } from "@/components/CompareCenter";
 import { ComparePlayerCard } from "@/components/ComparePlayerCard";
 import { LoadingState } from "@/components/LoadingState";
-import { PageHero } from "@/components/PageHero";
 import { POSITION_FAMILIES } from "@/lib/positionFamilies";
 import { getCompare, getMeta, getPlayerOptionsLegacy, type ComparePayload, type PlayerOption } from "@/lib/api";
 
@@ -47,66 +46,76 @@ export default function ComparePage() {
   const nameB = data ? String(data.player_b.player_name ?? "Jogador B") : "Jogador B";
 
   return (
-    <div className="container">
-      <PageHero
-        title="Compare"
-        subtitle="Compare dois jogadores do mesmo pool de posição. Métricas e notas são relativas aos pares da posição."
-        icon="fa-scale-balanced"
-      />
-
-      <div className="filter-card">
-        <div className="filters compare-selectors" style={{ marginBottom: 0 }}>
-          <label className="filter-field">
-            <span className="filter-label">Posição</span>
-            <select value={positionFamily} onChange={(e) => setPositionFamily(e.target.value)}>
-              {positionFamilies.map((family) => (
-                <option key={family.key} value={family.key}>{family.label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="filter-field compare-player-select">
-            <span className="filter-label">Jogador A</span>
-            <select value={playerA} onChange={(e) => setPlayerA(e.target.value)}>
-              {options.map((o) => <option key={o.player_id} value={o.player_id}>{o.label}</option>)}
-            </select>
-          </label>
-          <span className="compare-vs muted">vs</span>
-          <label className="filter-field compare-player-select">
-            <span className="filter-label">Jogador B</span>
-            <select value={playerB} onChange={(e) => setPlayerB(e.target.value)}>
-              {options.filter((o) => o.player_id !== playerA).map((o) => (
-                <option key={o.player_id} value={o.player_id}>{o.label}</option>
-              ))}
-            </select>
-          </label>
+    <div className="profile-page compare-page">
+      <header className="profile-page-hero compare-page-hero">
+        <div className="container">
+          <div className="profile-page-hero-inner">
+            <div>
+              <span className="profile-page-eyebrow">Pass Scout</span>
+              <h1>Compare</h1>
+              <p>
+                Compare dois jogadores do mesmo pool de posição. Métricas e notas são relativas aos pares da posição.
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {loading && <LoadingState message="Carregando comparação…" />}
-      {error && <div className="error-box">{error}</div>}
+      <div className="container profile-page-body">
+        <div className="filter-card compare-filter-card">
+          <div className="filters compare-selectors" style={{ marginBottom: 0 }}>
+            <label className="filter-field">
+              <span className="filter-label">Posição</span>
+              <select value={positionFamily} onChange={(e) => setPositionFamily(e.target.value)}>
+                {positionFamilies.map((family) => (
+                  <option key={family.key} value={family.key}>{family.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="filter-field compare-player-select">
+              <span className="filter-label">Jogador A</span>
+              <select value={playerA} onChange={(e) => setPlayerA(e.target.value)}>
+                {options.map((o) => <option key={o.player_id} value={o.player_id}>{o.label}</option>)}
+              </select>
+            </label>
+            <span className="compare-vs muted">vs</span>
+            <label className="filter-field compare-player-select">
+              <span className="filter-label">Jogador B</span>
+              <select value={playerB} onChange={(e) => setPlayerB(e.target.value)}>
+                {options.filter((o) => o.player_id !== playerA).map((o) => (
+                  <option key={o.player_id} value={o.player_id}>{o.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
 
-      {data && !loading && (
-        <div className="compare-layout">
-          <ComparePlayerCard
-            side="a"
-            player={data.player_a}
-            heatmap={data.heatmap_a_b64}
-          />
-          <div className="player-card compare-charts-card">
-            <CompareCenter
-              pillars={data.pillars}
-              passGrid={data.pass_grid}
-              nameA={nameA}
-              nameB={nameB}
+        {loading && <LoadingState message="Carregando comparação…" />}
+        {error && <div className="error-box">{error}</div>}
+
+        {data && !loading && (
+          <div className="compare-layout">
+            <ComparePlayerCard
+              side="a"
+              player={data.player_a}
+              heatmap={data.heatmap_a_b64}
+            />
+            <div className="player-card compare-charts-card">
+              <CompareCenter
+                pillars={data.pillars}
+                passGrid={data.pass_grid}
+                nameA={nameA}
+                nameB={nameB}
+              />
+            </div>
+            <ComparePlayerCard
+              side="b"
+              player={data.player_b}
+              heatmap={data.heatmap_b_b64}
             />
           </div>
-          <ComparePlayerCard
-            side="b"
-            player={data.player_b}
-            heatmap={data.heatmap_b_b64}
-          />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

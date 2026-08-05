@@ -8,7 +8,7 @@ import progression_engine as pge
 from passes_maps import draw_action_origin_smooth_heatmap
 
 from services.figures import fig_to_b64
-from services.profile_service import build_xp_profile_bars
+from services.profile_service import XP_PA_REGULAR_SCORE_SPECS, build_xp_profile_bars
 
 COMPARE_PILLAR_SPECS: tuple[tuple[str, str], ...] = (
     ("xp_activity_display", "Productivity"),
@@ -21,6 +21,11 @@ COMPARE_PASS_GRID_SPECS: tuple[tuple[str, str], ...] = (
     ("pass_buildup_display", "Build-up"),
     ("pass_chance_creation_display", "Chance creation"),
 )
+
+COMPARE_PASS_GRID_COMPONENTS: dict[str, tuple[str, ...]] = {
+    display_key: component_keys
+    for display_key, _index_key, _letter_key, _title, component_keys in XP_PA_REGULAR_SCORE_SPECS
+}
 
 
 def _compare_source(
@@ -92,6 +97,32 @@ def build_compare_payload(
         val_b = _metric_value(source_b, key)
         letter_a = source_a.get(key.replace("_display", "_letter"))
         letter_b = source_b.get(key.replace("_display", "_letter"))
+        score_a = _metric_value(source_a, key.replace("_display", "_index"))
+        score_b = _metric_value(source_b, key.replace("_display", "_index"))
+        components: list[dict[str, Any]] = []
+        for comp_key in COMPARE_PASS_GRID_COMPONENTS.get(key, ()):
+            comp_a = source_a.get(comp_key)
+            comp_b = source_b.get(comp_key)
+            try:
+                fa = float(comp_a) if comp_a is not None else None
+            except (TypeError, ValueError):
+                fa = None
+            try:
+                fb = float(comp_b) if comp_b is not None else None
+            except (TypeError, ValueError):
+                fb = None
+            winner = "tie"
+            if fa is not None and fb is not None:
+                if fa > fb:
+                    winner = "a"
+                elif fb > fa:
+                    winner = "b"
+            components.append({
+                "key": comp_key,
+                "value_a": fa,
+                "value_b": fb,
+                "winner": winner,
+            })
         pass_grid.append({
             "key": key,
             "label": label,
@@ -99,7 +130,10 @@ def build_compare_payload(
             "value_b": val_b,
             "letter_a": letter_a,
             "letter_b": letter_b,
+            "score_a": score_a,
+            "score_b": score_b,
             "winner": "a" if (val_a or 0) > (val_b or 0) else ("b" if (val_b or 0) > (val_a or 0) else "tie"),
+            "components": components,
         })
 
     def player_card(pid: str, source: dict, xp: dict) -> dict[str, Any]:

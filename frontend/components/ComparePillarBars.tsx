@@ -1,10 +1,9 @@
 "use client";
 
 import type { CompareMetric } from "@/lib/api";
+import { CompareDualMetricTip } from "@/components/CompareDualMetricTip";
 import { XpHeatBar } from "@/components/ui/XpHeatBar";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { XP_PROFILE_BAR_TOOLTIPS } from "@/lib/tooltips";
-
 const PILLAR_ICONS: Record<string, string> = {
   xp_activity_display: "fa-chart-simple",
   xp_efficiency_display: "fa-gauge-high",
@@ -53,7 +52,19 @@ export function ComparePillarBars({ metrics, nameA, nameB }: Props) {
 
       {metrics.map((metric) => {
         const icon = PILLAR_ICONS[metric.key] ?? "fa-circle";
-        const tip = XP_PROFILE_BAR_TOOLTIPS[metric.key] ?? "";
+        const tip = (
+          <CompareDualMetricTip
+            nameA={nameA}
+            nameB={nameB}
+            components={[{
+              key: metric.key,
+              label: metric.label,
+              value_a: metric.value_a,
+              value_b: metric.value_b,
+              winner: metric.winner,
+            }]}
+          />
+        );
         const block = (
           <div className="compare-pillar-block">
             <div className="compare-pillar-head">
@@ -74,10 +85,8 @@ export function ComparePillarBars({ metrics, nameA, nameB }: Props) {
             />
           </div>
         );
-        return tip ? (
+        return (
           <Tooltip key={metric.key} content={tip} block>{block}</Tooltip>
-        ) : (
-          <div key={metric.key}>{block}</div>
         );
       })}
     </div>

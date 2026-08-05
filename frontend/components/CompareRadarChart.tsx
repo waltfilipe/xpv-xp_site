@@ -1,6 +1,8 @@
 "use client";
 
 import type { CompareMetric } from "@/lib/api";
+import { CompareDualMetricTip } from "@/components/CompareDualMetricTip";
+import { GradeBadge } from "@/components/ui/GradeBadge";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { PASS_SCORE_TOOLTIPS } from "@/lib/tooltips";
 
@@ -41,10 +43,6 @@ function polygonPoints(metrics: CompareMetric[], side: "a" | "b", maxValue: numb
     .join(" ");
 }
 
-function formatValue(value: number | null | undefined) {
-  return value != null ? value.toFixed(1) : "—";
-}
-
 function labelLines(label: string): string[] {
   if (label === "Chance creation") return ["Chance", "creation"];
   const words = label.split(" ");
@@ -67,19 +65,6 @@ function labelOffset(angle: number): { dx: number; dy: number } {
   const dx = Math.abs(cos) < 0.2 ? 0 : cos > 0 ? 6 : -6;
   const dy = sin > 0.35 ? 12 : sin < -0.35 ? -6 : 4;
   return { dx, dy };
-}
-
-function compareTooltip(metric: CompareMetric, nameA: string, nameB: string): string {
-  const base = PASS_SCORE_TOOLTIPS[metric.label] ?? "";
-  const lineA = `${nameA}: ${formatValue(metric.value_a)}${metric.letter_a ? ` (${metric.letter_a})` : ""}`;
-  const lineB = `${nameB}: ${formatValue(metric.value_b)}${metric.letter_b ? ` (${metric.letter_b})` : ""}`;
-  const winner =
-    metric.winner === "a"
-      ? `Vantagem: ${nameA}`
-      : metric.winner === "b"
-        ? `Vantagem: ${nameB}`
-        : "Empate";
-  return [lineA, lineB, winner, base].filter(Boolean).join("\n\n");
 }
 
 export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
@@ -238,21 +223,35 @@ export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
         </thead>
         <tbody>
           {metrics.map((metric) => {
-            const tip = compareTooltip(metric, nameA, nameB);
+            const tip = metric.components?.length ? (
+              <CompareDualMetricTip
+                nameA={nameA}
+                nameB={nameB}
+                components={metric.components}
+              />
+            ) : (
+              PASS_SCORE_TOOLTIPS[metric.label] ?? ""
+            );
             return (
               <tr key={metric.key} className="compare-radar-table-row">
                 <td>
-                  <Tooltip content={tip}>
+                  <Tooltip content={tip} block>
                     <span className="compare-radar-metric-label">{metric.label}</span>
                   </Tooltip>
                 </td>
-                <td className="compare-radar-val-a tabular">
-                  {formatValue(metric.value_a)}
-                  {metric.letter_a ? <span className="compare-radar-letter"> {metric.letter_a}</span> : null}
+                <td className="compare-radar-val-a">
+                  <GradeBadge
+                    letter={metric.letter_a}
+                    displayScore={metric.score_a}
+                    size="sm"
+                  />
                 </td>
-                <td className="compare-radar-val-b tabular">
-                  {formatValue(metric.value_b)}
-                  {metric.letter_b ? <span className="compare-radar-letter"> {metric.letter_b}</span> : null}
+                <td className="compare-radar-val-b">
+                  <GradeBadge
+                    letter={metric.letter_b}
+                    displayScore={metric.score_b}
+                    size="sm"
+                  />
                 </td>
               </tr>
             );

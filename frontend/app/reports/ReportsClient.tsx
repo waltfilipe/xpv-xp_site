@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { LoadingState } from "@/components/LoadingState";
 import {
   PlayerReportSheet,
@@ -119,7 +119,7 @@ async function waitForPrintMapImages(playerIds: string[], expectedPerPlayer = 4)
 export function ReportsClient() {
   const [reports, setReports] = useState<ReportEntry[]>(emptyReports);
   const [bootLoading, setBootLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [activeCategory, setActiveCategory] = useState<string>(PLAYER_REPORT_CATEGORIES[0]?.id ?? "u23-breakout");
   const [printing, setPrinting] = useState(false);
   const [printPreparing, setPrintPreparing] = useState(false);
   const [preloadPlayerIds, setPreloadPlayerIds] = useState<Set<string>>(new Set());
@@ -203,10 +203,8 @@ export function ReportsClient() {
     );
   }, []);
 
-  const visibleReports =
-    activeCategory === "all"
-      ? reports
-      : reports.filter((r) => r.entry.category.id === activeCategory);
+  const visibleReports = reports.filter((r) => r.entry.category.id === activeCategory);
+  const activeCategoryMeta = PLAYER_REPORT_CATEGORIES.find((c) => c.id === activeCategory);
 
   const handlePrint = useCallback(
     async (scope: string, playerId?: string) => {
@@ -254,14 +252,14 @@ export function ReportsClient() {
 
   return (
     <div className={`reports-page${printing ? " reports-printing" : ""}`}>
-      <header className="reports-hero report-screen-only">
+      <header className="reports-hero-card report-screen-only">
         <div className="reports-hero-main">
           <div className="reports-hero-copy">
             <p className="reports-hero-eyebrow">Scouting intelligence</p>
             <h1 className="reports-hero-title">Midfielder Reports</h1>
             <p className="reports-hero-lead">
               {totalReportCount()} perfis curados em 3 faixas etárias — overview xP, pass scores,
-              consistency e mapas de passe. Exportação PDF por atleta ou em lote.
+              consistency e mapas de passe. Exportação PDF por grupo.
             </p>
           </div>
           <div className="reports-hero-stats">
@@ -271,7 +269,7 @@ export function ReportsClient() {
             </div>
             <div className="reports-hero-stat">
               <span className="reports-hero-stat-val">3</span>
-              <span className="reports-hero-stat-label">categorias</span>
+              <span className="reports-hero-stat-label">grupos</span>
             </div>
             <div className="reports-hero-stat">
               <span className="reports-hero-stat-val">PDF</span>
@@ -281,62 +279,74 @@ export function ReportsClient() {
         </div>
       </header>
 
-      <div className="reports-toolbar">
-        <div className="reports-toolbar-filters">
-          <button
-            type="button"
-            className={`reports-filter-btn${activeCategory === "all" ? " active" : ""}`}
-            onClick={() => setActiveCategory("all")}
-          >
-            Todos ({reports.length})
-          </button>
+      <section className="reports-category-panel report-screen-only">
+        <div className="reports-category-grid">
           {PLAYER_REPORT_CATEGORIES.map((cat) => {
             const count = reports.filter((r) => r.entry.category.id === cat.id).length;
+            const isActive = activeCategory === cat.id;
             return (
               <button
                 key={cat.id}
                 type="button"
-                className={`reports-filter-btn${activeCategory === cat.id ? " active" : ""}`}
-                style={
-                  activeCategory === cat.id
-                    ? { borderColor: `${cat.accent}66`, color: cat.accent }
-                    : undefined
-                }
+                className={`reports-category-card${isActive ? " active" : ""}`}
+                style={{
+                  "--category-accent": cat.accent,
+                } as CSSProperties}
                 onClick={() => setActiveCategory(cat.id)}
               >
-                {cat.title.split(" — ")[0]} ({count})
+                <span className="reports-category-card-eyebrow">{cat.subtitle}</span>
+                <strong className="reports-category-card-title">{cat.title}</strong>
+                <p className="reports-category-card-desc">{cat.description}</p>
+                <div className="reports-category-card-foot">
+                  <span className="reports-category-card-count tabular">{count} atletas</span>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="reports-category-export"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePrint(cat.id);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handlePrint(cat.id);
+                      }
+                    }}
+                  >
+                    <i className="fa-solid fa-file-pdf" /> Exportar grupo
+                  </span>
+                </div>
               </button>
             );
           })}
         </div>
+      </section>
 
-        <div className="reports-toolbar-actions">
-          {activeCategory !== "all" && (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => handlePrint(activeCategory)}
-              disabled={busy}
-            >
-              <i className="fa-solid fa-file-pdf" /> Exportar categoria
-            </button>
-          )}
+      {activeCategoryMeta && (
+        <div className="reports-active-banner report-screen-only">
+          <div>
+            <span className="reports-active-eyebrow">Grupo selecionado</span>
+            <h2 style={{ color: activeCategoryMeta.accent }}>{activeCategoryMeta.title}</h2>
+            <p className="muted">{activeCategoryMeta.description}</p>
+          </div>
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => handlePrint("all")}
+            onClick={() => handlePrint(activeCategory)}
             disabled={busy}
           >
-            <i className="fa-solid fa-print" />
-            {printPreparing ? "Preparando mapas…" : "Exportar todos"}
+            <i className="fa-solid fa-file-pdf" />
+            {printPreparing ? "Preparando mapas…" : "Exportar grupo"}
           </button>
         </div>
-      </div>
+      )}
 
       <p className="reports-hint muted report-screen-only">
         {bootLoading
           ? "Carregando relatórios em lotes…"
-          : `${okCount} prontos · mapas carregam ao abrir ou ao exportar PDF`}
+          : `${okCount} prontos · ${visibleReports.length} no grupo · mapas carregam ao exportar PDF`}
       </p>
 
       {bootLoading && loadingCount === reports.length && (
