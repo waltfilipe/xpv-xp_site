@@ -92,6 +92,15 @@ if [[ "${1:-}" == "daemon" ]]; then
     echo "Backend failed. Log:"; tail -20 "$BACKEND_LOG"; exit 1
   }
   echo "==> Starting frontend (daemon)…"
+  for port in 3000; do
+    if command -v fuser >/dev/null 2>&1; then
+      fuser -k "${port}/tcp" >/dev/null 2>&1 || true
+    elif command -v lsof >/dev/null 2>&1; then
+      pids="$(lsof -ti "tcp:${port}" -sTCP:LISTEN 2>/dev/null || true)"
+      if [[ -n "$pids" ]]; then kill $pids 2>/dev/null || true; fi
+    fi
+  done
+  sleep 1
   (
     cd "$ROOT/frontend"
     [[ -d node_modules ]] || npm install
