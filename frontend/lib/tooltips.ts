@@ -42,7 +42,7 @@ export const COMPONENT_LABELS: Record<string, string> = {
   key_passes: "Key passes / game",
   passes_to_box: "Passes into box / game",
   special_line_break_p90: "Line breaking passes / game",
-  test_impact_v2_start_final_third_p90: "Impact",
+  test_impact_v2_start_final_third_p90: "Impact Passes / game",
 };
 
 export const INDEX_TOOLTIPS: Record<string, string> = {

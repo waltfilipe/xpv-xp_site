@@ -207,17 +207,12 @@ export function ReportsClient() {
             );
           }
 
-          const globalIndex = reports.findIndex(
-            (r) => r.entry.playerId === item.entry.playerId,
-          );
-
           return (
             <PlayerReportSheet
               key={item.entry.playerId}
               entry={item.entry}
               profile={item.profile}
               maps={item.maps}
-              index={globalIndex}
               onMapsLoaded={(maps) => patchReport(item.entry.playerId, { maps })}
             />
           );

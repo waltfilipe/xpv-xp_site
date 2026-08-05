@@ -150,17 +150,22 @@ export function totalReportCount(): number {
 export type EnrichedReportPlayer = ReportPlayerRef & {
   category: PlayerReportCategory;
   groupLabel?: string;
+  /** 1-based index within the age category (1–15). */
+  categoryIndex: number;
 };
 
 export function enrichedReportPlayers(): EnrichedReportPlayer[] {
   const out: EnrichedReportPlayer[] = [];
   for (const category of PLAYER_REPORT_CATEGORIES) {
+    let categoryIndex = 0;
     for (const group of category.groups) {
       for (const player of group.players) {
+        categoryIndex += 1;
         out.push({
           ...player,
           category,
           groupLabel: group.label,
+          categoryIndex,
         });
       }
     }

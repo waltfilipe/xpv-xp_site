@@ -10,10 +10,9 @@ import { COMPONENT_LABELS, COMPONENT_TOOLTIPS, PASS_SCORE_TOOLTIPS } from "@/lib
 
 type Props = {
   sections: PassScoreSection[];
-  accent?: string;
 };
 
-export function ReportPassScoreAccordion({ sections, accent = "#a78bfa" }: Props) {
+export function ReportPassScoreAccordion({ sections }: Props) {
   if (!sections.length) return null;
 
   return (
@@ -32,11 +31,6 @@ export function ReportPassScoreAccordion({ sections, accent = "#a78bfa" }: Props
               </Tooltip>
             </span>
             <span className="report-pass-accordion-right">
-              {section.display_score != null && (
-                <span className="report-pass-accordion-score tabular" style={{ color: accent }}>
-                  {section.display_score.toFixed(1)}
-                </span>
-              )}
               <GradeBadge letter={section.letter} displayScore={section.display_score} size="sm" />
             </span>
           </summary>

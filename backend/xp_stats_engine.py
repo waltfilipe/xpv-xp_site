@@ -559,6 +559,11 @@ def filter_passes_for_map(passes: pd.DataFrame, filter_key: str) -> pd.DataFrame
         x_end = work["x_end"].to_numpy(dtype=float)
         y_end = work["y_end"].to_numpy(dtype=float)
         return work.loc[_in_penalty_box(x_end, y_end)].copy()
+    if key == "long_passes":
+        if "distance_band" not in work.columns:
+            work = work.copy()
+            work["distance_band"] = xse._distance_band_series(work["pass_distance"])
+        return work[work["distance_band"].astype(str) == "long"].copy()
     return filter_passes_by_special_type(work, key)
 
 
@@ -1342,7 +1347,7 @@ XP_STATS_LABELS: dict[str, str] = {
     "xp_m4_per_pass": "xP/Pass",
     "xpv_per_pass": "xPV/Pass",
     "test_impact_v2_p90": "Pass Impact v2 / game",
-    "test_impact_v2_start_final_third_p90": "Impact",
+    "test_impact_v2_start_final_third_p90": "Impact Passes / game",
     "xp_m4_per_threat_pass": f"xP/{IMPACT_PASS_ABBR}",
     "xp_m4_threat_rate": f"% {IMPACT_PASS_ABBR}",
     "xp_m4_per_pass_short": "xP/Pass",
@@ -1411,7 +1416,7 @@ XP_PA_LABELS: dict[str, str] = {
     "xp_m4_per_pass": "xP / pass",
     "xpv_per_pass": "xPV / pass",
     "test_impact_v2_p90": "Pass Impact v2 / game",
-    "test_impact_v2_start_final_third_p90": "Impact",
+    "test_impact_v2_start_final_third_p90": "Impact Passes / game",
     "xp_m4_per_threat_pass": f"xP / {IMPACT_PASS_ABBR}",
     "xp_m4_threat_rate": f"% {IMPACT_PASS_ABBR}",
     "xp_residual_median": "Median residual",

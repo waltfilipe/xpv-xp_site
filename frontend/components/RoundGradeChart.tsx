@@ -5,15 +5,16 @@ import type { XpRoundGrade } from "@/lib/api";
 import { passGradeGradientColor, passGradePct } from "@/lib/gradeColors";
 
 const WIDTH = 280;
-const HEIGHT = 72;
+const HEIGHT = 64;
 const PAD_X = 8;
-const PAD_Y = 10;
-const DOT_R = 1.35;
+const PAD_Y = 8;
+const DOT_R = 1.25;
 const HIT_R = 6;
 
 type Props = {
   points: XpRoundGrade[];
   accent?: string;
+  embedded?: boolean;
 };
 
 type Coord = {
@@ -24,7 +25,7 @@ type Coord = {
   opponent?: string | null;
 };
 
-export function RoundGradeChart({ points, accent = "#a78bfa" }: Props) {
+export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false }: Props) {
   const gradId = useId().replace(/:/g, "");
   const [active, setActive] = useState<Coord | null>(null);
 
@@ -54,12 +55,9 @@ export function RoundGradeChart({ points, accent = "#a78bfa" }: Props) {
     : "";
 
   return (
-    <div className="round-grade-chart">
+    <div className={`round-grade-chart${embedded ? " round-grade-chart-embedded" : ""}`}>
       <div className="round-grade-chart-head">
         <span className="round-grade-chart-title">Grades por rodada</span>
-        <span className="round-grade-chart-range tabular muted">
-          {minG.toFixed(1)}–{maxG.toFixed(1)}
-        </span>
       </div>
 
       <div className="round-grade-chart-wrap">
@@ -78,7 +76,7 @@ export function RoundGradeChart({ points, accent = "#a78bfa" }: Props) {
         >
           <defs>
             <linearGradient id={`round-grade-fill-${gradId}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={accent} stopOpacity="0.22" />
+              <stop offset="0%" stopColor={accent} stopOpacity={embedded ? 0.08 : 0.22} />
               <stop offset="100%" stopColor={accent} stopOpacity="0" />
             </linearGradient>
           </defs>
@@ -92,7 +90,7 @@ export function RoundGradeChart({ points, accent = "#a78bfa" }: Props) {
                 y1={y}
                 x2={WIDTH - PAD_X}
                 y2={y}
-                stroke="rgba(148, 163, 184, 0.08)"
+                stroke="rgba(148, 163, 184, 0.06)"
                 strokeWidth="1"
               />
             );
@@ -103,9 +101,10 @@ export function RoundGradeChart({ points, accent = "#a78bfa" }: Props) {
             d={linePath}
             fill="none"
             stroke={accent}
-            strokeWidth="1.4"
+            strokeWidth="1.2"
             strokeLinejoin="round"
             strokeLinecap="round"
+            opacity={embedded ? 0.85 : 1}
           />
 
           {coords.map((c) => {
@@ -127,7 +126,7 @@ export function RoundGradeChart({ points, accent = "#a78bfa" }: Props) {
                   r={DOT_R}
                   fill={color}
                   stroke="#0f172a"
-                  strokeWidth="0.6"
+                  strokeWidth="0.5"
                   pointerEvents="none"
                 />
               </g>

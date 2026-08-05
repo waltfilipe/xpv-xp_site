@@ -39,6 +39,8 @@ function IndexRow({
 export function ReportXpPanel({ profile, accent = "#a78bfa" }: Props) {
   const indices = profile.xp_indices ?? [];
   const roundGrades = profile.xp_round_grades ?? [];
+  const consistency = indices.find((item) => item.key === "consistency");
+  const otherIndices = indices.filter((item) => item.key !== "consistency");
 
   return (
     <div className="player-card xp-profile-card report-xp-card">
@@ -49,18 +51,30 @@ export function ReportXpPanel({ profile, accent = "#a78bfa" }: Props) {
         <div className="xp-indices-panel report-xp-indices">
           <h4 className="section-label-sm">xP Indices</h4>
           <div className="xp-indices-list">
-            {indices.map((item) => (
-              <div key={item.key}>
+            {consistency && (
+              <div
+                className="xp-consistency-block"
+                style={{ "--consistency-accent": accent } as React.CSSProperties}
+              >
                 <IndexRow
-                  label={item.label}
-                  tier={item.tier}
-                  tierKey={item.tier_key ?? item.label}
-                  icon={item.icon ?? "fa-circle"}
+                  label={consistency.label}
+                  tier={consistency.tier}
+                  tierKey={consistency.tier_key ?? consistency.label}
+                  icon={consistency.icon ?? "fa-circle"}
                 />
-                {item.key === "consistency" && roundGrades.length > 0 && (
-                  <RoundGradeChart points={roundGrades} accent={accent} />
+                {roundGrades.length > 0 && (
+                  <RoundGradeChart points={roundGrades} accent={accent} embedded />
                 )}
               </div>
+            )}
+            {otherIndices.map((item) => (
+              <IndexRow
+                key={item.key}
+                label={item.label}
+                tier={item.tier}
+                tierKey={item.tier_key ?? item.label}
+                icon={item.icon ?? "fa-circle"}
+              />
             ))}
           </div>
         </div>

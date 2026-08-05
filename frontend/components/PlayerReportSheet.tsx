@@ -17,6 +17,21 @@ export type PlayerReportMaps = {
   caption?: string;
 };
 
+type ReportMapSlot = {
+  key: string;
+  label: string;
+  pass_map_b64?: string | null;
+  loading?: boolean;
+  error?: string | null;
+};
+
+const REPORT_MAP_FILTERS: { key: string; label: string }[] = [
+  { key: "progressive", label: "Progressive Passes" },
+  { key: "test_impact_v2", label: "Impact Passes" },
+  { key: "long_passes", label: "Long Passes" },
+  { key: "line_break", label: "Break line passes" },
+];
+
 function FactIcon({ icon }: { icon: string }) {
   return (
     <span className="identity-fact-icon" aria-hidden="true">
@@ -25,17 +40,31 @@ function FactIcon({ icon }: { icon: string }) {
   );
 }
 
+function minutesGradientStyle(pct: number | null | undefined): React.CSSProperties | undefined {
+  if (pct == null || Number.isNaN(pct)) return undefined;
+  const clamped = Math.max(0, Math.min(1, pct));
+  const hue = clamped * 120;
+  const color = `hsl(${hue}, 62%, 48%)`;
+  return {
+    "--minutes-pct": `${(clamped * 100).toFixed(0)}%`,
+    borderColor: `${color}55`,
+    background: `linear-gradient(135deg, ${color}18 0%, rgba(15, 23, 42, 0.55) 55%)`,
+    boxShadow: `inset 0 0 0 1px ${color}22`,
+  } as React.CSSProperties;
+}
+
 type Props = {
   entry: EnrichedReportPlayer;
   profile: PlayerProfile;
   maps: PlayerReportMaps | null;
-  index: number;
   onMapsLoaded?: (maps: PlayerReportMaps) => void;
 };
 
-export function PlayerReportSheet({ entry, profile, maps: initialMaps, index, onMapsLoaded }: Props) {
+export function PlayerReportSheet({ entry, profile, maps: initialMaps, onMapsLoaded }: Props) {
   const [activePage, setActivePage] = useState<1 | 2>(1);
-  const [maps, setMaps] = useState<PlayerReportMaps | null>(initialMaps);
+  const [mapSlots, setMapSlots] = useState<ReportMapSlot[]>(
+    REPORT_MAP_FILTERS.map((f) => ({ key: f.key, label: f.label })),
+  );
   const [mapsLoading, setMapsLoading] = useState(false);
   const [mapsError, setMapsError] = useState<string | null>(null);
   const p = profile.player;
@@ -43,37 +72,69 @@ export function PlayerReportSheet({ entry, profile, maps: initialMaps, index, on
   const displayName = String(p.player_name ?? "—");
   const playerId = entry.playerId;
   const accent = category.accent;
+  const minutesPct = p.minutes_pct != null ? Number(p.minutes_pct) : null;
+  const categoryIndex = entry.categoryIndex;
 
   useEffect(() => {
-    if (activePage !== 2 || maps || mapsLoading) return;
+    if (activePage !== 2) return;
 
     let cancelled = false;
     setMapsLoading(true);
     setMapsError(null);
+    setMapSlots(REPORT_MAP_FILTERS.map((f) => ({ key: f.key, label: f.label, loading: true })));
 
-    getPassMap(playerId, "progressive", "all", entry.positionFamily ?? "midfielders")
-      .then((res) => {
+    (async () => {
+      const family = entry.positionFamily ?? "midfielders";
+      let firstLoaded: PlayerReportMaps | null = initialMaps;
+
+      for (const filter of REPORT_MAP_FILTERS) {
         if (cancelled) return;
-        const loaded = {
-          pass_map_b64: res.pass_map_b64,
-          dest_map_b64: res.dest_map_b64,
-          caption: res.caption,
-        };
-        setMaps(loaded);
-        onMapsLoaded?.(loaded);
-      })
-      .catch((e) => {
-        if (cancelled) return;
+
+        try {
+          const res = await getPassMap(playerId, filter.key, "all", family);
+          if (cancelled) return;
+
+          const loaded = {
+            pass_map_b64: res.pass_map_b64,
+            dest_map_b64: res.dest_map_b64,
+            caption: res.caption,
+          };
+
+          if (!firstLoaded?.pass_map_b64 && loaded.pass_map_b64) {
+            firstLoaded = loaded;
+            onMapsLoaded?.(loaded);
+          }
+
+          setMapSlots((prev) =>
+            prev.map((slot) =>
+              slot.key === filter.key
+                ? { ...slot, pass_map_b64: res.pass_map_b64, loading: false, error: null }
+                : slot,
+            ),
+          );
+        } catch (e) {
+          if (cancelled) return;
+          const msg = e instanceof Error ? e.message : "Falha ao carregar";
+          setMapSlots((prev) =>
+            prev.map((slot) =>
+              slot.key === filter.key ? { ...slot, loading: false, error: msg } : slot,
+            ),
+          );
+        }
+      }
+
+      if (!cancelled) setMapsLoading(false);
+    })().catch((e) => {
+      if (!cancelled) {
         setMapsError(e instanceof Error ? e.message : "Falha ao carregar mapas");
-      })
-      .finally(() => {
-        if (!cancelled) setMapsLoading(false);
-      });
+        setMapsLoading(false);
+      }
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [activePage, maps, mapsLoading, playerId, entry.positionFamily, onMapsLoaded]);
+  }, [activePage, playerId, entry.positionFamily, onMapsLoaded, initialMaps]);
 
   const identityBlock = (
     <div className="player-card identity-card report-identity-card">
@@ -86,7 +147,7 @@ export function PlayerReportSheet({ entry, profile, maps: initialMaps, index, on
               fill
               className="identity-photo"
               unoptimized
-              priority={index < 3}
+              priority={categoryIndex <= 3}
               sizes="160px"
             />
           ) : (
@@ -144,9 +205,22 @@ export function PlayerReportSheet({ entry, profile, maps: initialMaps, index, on
           <span><FactIcon icon="fa-calendar-days" /> Contrato</span>
           <strong>{formatContractUntil(p.contract_until)}</strong>
         </div>
-        <div className="identity-meta-pill">
+        <div
+          className="identity-meta-pill identity-meta-pill-minutes"
+          style={minutesGradientStyle(minutesPct)}
+          title={
+            minutesPct != null
+              ? `${(minutesPct * 100).toFixed(0)}% dos minutos possíveis na temporada`
+              : undefined
+          }
+        >
           <span><FactIcon icon="fa-clock" /> Minutos</span>
           <strong className="tabular">{p.minutes != null ? String(p.minutes) : "—"}</strong>
+          {minutesPct != null && (
+            <span className="identity-minutes-pct tabular">
+              {(minutesPct * 100).toFixed(0)}%
+            </span>
+          )}
         </div>
       </div>
 
@@ -184,6 +258,9 @@ export function PlayerReportSheet({ entry, profile, maps: initialMaps, index, on
     </div>
   );
 
+  const loadedMaps = mapSlots.filter((s) => s.pass_map_b64);
+  const anyLoading = mapSlots.some((s) => s.loading);
+
   return (
     <div
       className="player-report-bundle"
@@ -212,7 +289,7 @@ export function PlayerReportSheet({ entry, profile, maps: initialMaps, index, on
             )}
             <span className="report-sheet-page-label report-print-only">Página 1 · Overview</span>
             <span className="report-sheet-index tabular">
-              {String(index + 1).padStart(2, "0")}
+              {String(categoryIndex).padStart(2, "0")}
             </span>
           </div>
         </header>
@@ -232,7 +309,7 @@ export function PlayerReportSheet({ entry, profile, maps: initialMaps, index, on
           <div className="pa-col pa-col-pillars">
             <div className="player-card pillars-card report-pillars-card">
               <h3 className="section-label">Pass Scores</h3>
-              <ReportPassScoreAccordion sections={profile.pass_scores} accent={accent} />
+              <ReportPassScoreAccordion sections={profile.pass_scores} />
             </div>
           </div>
         </div>
@@ -271,8 +348,11 @@ export function PlayerReportSheet({ entry, profile, maps: initialMaps, index, on
             </div>
           </div>
           <div className="report-sheet-meta">
-            <span className="report-sheet-group">Progressive passes</span>
+            <span className="report-sheet-group">4 map types</span>
             <span className="report-sheet-page-label report-print-only">Página 2 · Maps</span>
+            <span className="report-sheet-index tabular">
+              {String(categoryIndex).padStart(2, "0")}
+            </span>
           </div>
         </header>
 
@@ -280,36 +360,42 @@ export function PlayerReportSheet({ entry, profile, maps: initialMaps, index, on
           <div className="report-maps-identity">{identityBlock}</div>
 
           <div className="report-maps-body">
-            {mapsLoading && <LoadingState message="Gerando mapas do jogador…" />}
-            {!mapsLoading && mapsError && <p className="error-box">{mapsError}</p>}
-            {!mapsLoading && !mapsError && (maps?.pass_map_b64 || maps?.dest_map_b64) ? (
-              <div className="report-maps-grid">
-                {maps.pass_map_b64 && (
-                  <div className="report-map-card">
-                    <h4 className="section-label-sm">Pass map</h4>
-                    <img
-                      src={`data:image/png;base64,${maps.pass_map_b64}`}
-                      alt="Pass map"
-                      className="report-map-img"
-                    />
-                  </div>
-                )}
-                {maps.dest_map_b64 && (
-                  <div className="report-map-card">
-                    <h4 className="section-label-sm">Destination heatmap</h4>
-                    <img
-                      src={`data:image/png;base64,${maps.dest_map_b64}`}
-                      alt="Destination heatmap"
-                      className="report-map-img"
-                    />
-                  </div>
-                )}
-              </div>
-            ) : null}
-            {!mapsLoading && !mapsError && !maps?.pass_map_b64 && !maps?.dest_map_b64 && activePage === 2 && (
-              <p className="placeholder-note">Mapas indisponíveis para este jogador.</p>
+            {mapsLoading && loadedMaps.length === 0 && (
+              <LoadingState message="Gerando mapas do jogador…" />
             )}
-            {maps?.caption && <p className="muted report-maps-caption">{maps.caption}</p>}
+            {mapsError && <p className="error-box">{mapsError}</p>}
+
+            <div className="report-maps-grid report-maps-grid-4">
+              {mapSlots.map((slot) => (
+                <div key={slot.key} className="report-map-card">
+                  <h4 className="section-label-sm">{slot.label}</h4>
+                  {slot.loading && !slot.pass_map_b64 && (
+                    <div className="report-map-skeleton" aria-busy="true">
+                      <span className="report-map-skeleton-pulse" />
+                    </div>
+                  )}
+                  {slot.error && !slot.pass_map_b64 && (
+                    <p className="placeholder-note report-map-error">{slot.error}</p>
+                  )}
+                  {slot.pass_map_b64 && (
+                    <img
+                      src={`data:image/png;base64,${slot.pass_map_b64}`}
+                      alt={slot.label}
+                      className="report-map-img"
+                    />
+                  )}
+                  {!slot.loading && !slot.error && !slot.pass_map_b64 && activePage === 2 && (
+                    <p className="placeholder-note">Indisponível</p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {anyLoading && loadedMaps.length > 0 && (
+              <p className="muted report-maps-loading-hint">
+                Carregando mapas restantes… ({loadedMaps.length}/{REPORT_MAP_FILTERS.length})
+              </p>
+            )}
           </div>
         </div>
 
