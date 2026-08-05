@@ -44,7 +44,7 @@ function minutesPillStyle(pct: number | null | undefined): React.CSSProperties |
   if (pct == null || Number.isNaN(pct)) return undefined;
   const clamped = Math.max(0, Math.min(1, pct));
   const hue = clamped * 120;
-  const color = `hsla(${hue}, 32%, 44%, 0.38)`;
+  const color = `hsla(${hue}, 38%, 44%, 0.55)`;
   return {
     "--minutes-ring": color,
   } as React.CSSProperties;
@@ -301,7 +301,7 @@ export function PlayerReportSheet({
             onClick={() => setActivePage(1)}
           >
             <i className="fa-solid fa-arrow-left" />
-            <span>Voltar ao overview</span>
+            <span>Voltar ao perfil</span>
           </button>
         )}
       </div>
@@ -445,7 +445,15 @@ export function PlayerReportSheet({
               </h2>
             </div>
           </div>
-          <div className="report-sheet-meta">
+          <div className="report-sheet-meta report-maps-header-meta">
+            <button
+              type="button"
+              className="report-maps-back-btn report-screen-only"
+              onClick={() => setActivePage(1)}
+            >
+              <i className="fa-solid fa-arrow-left" />
+              Voltar ao perfil
+            </button>
             <span className="report-sheet-page-label report-print-only">Maps</span>
             <span className="report-sheet-index tabular">
               {String(categoryIndex).padStart(2, "0")}

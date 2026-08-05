@@ -8,6 +8,7 @@ import {
   type PlayerReportMaps,
   type ReportMapSlot,
 } from "@/components/PlayerReportSheet";
+import { ReportPrintDocument, type PrintReportEntry } from "@/components/ReportPrintDocument";
 import { getPassMap, getPlayerProfile, type PlayerProfile } from "@/lib/api";
 import {
   enrichedReportPlayers,
@@ -95,12 +96,12 @@ function emptyReports(): ReportEntry[] {
   }));
 }
 
-async function waitForMapImages(playerIds: string[], expectedPerPlayer = 4) {
-  const deadline = Date.now() + 20000;
+async function waitForPrintMapImages(playerIds: string[], expectedPerPlayer = 4) {
+  const deadline = Date.now() + 25000;
   while (Date.now() < deadline) {
     const ready = playerIds.every((id) => {
       const imgs = document.querySelectorAll<HTMLImageElement>(
-        `#report-${id} .report-map-img`,
+        `#report-print-root [data-player-id="${id}"] .print-map-img`,
       );
       if (imgs.length < expectedPerPlayer) return false;
       return Array.from(imgs).every((img) => img.complete && img.naturalHeight > 0);
@@ -117,6 +118,8 @@ export function ReportsClient() {
   const [printing, setPrinting] = useState(false);
   const [printPreparing, setPrintPreparing] = useState(false);
   const [preloadPlayerIds, setPreloadPlayerIds] = useState<Set<string>>(new Set());
+  const [printEntries, setPrintEntries] = useState<PrintReportEntry[]>([]);
+  const [printQueue, setPrintQueue] = useState<string[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,6 +160,36 @@ export function ReportsClient() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!printQueue?.length || !printEntries.length) return;
+
+    let cancelled = false;
+    document.body.dataset.printMode = "dedicated";
+    setPrinting(true);
+
+    (async () => {
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      if (cancelled) return;
+      await waitForPrintMapImages(printQueue);
+
+      const restore = () => {
+        delete document.body.dataset.printMode;
+        setPrinting(false);
+        setPrintEntries([]);
+        setPrintQueue(null);
+        setPreloadPlayerIds(new Set());
+        window.removeEventListener("afterprint", restore);
+      };
+
+      window.addEventListener("afterprint", restore);
+      if (!cancelled) window.print();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [printQueue, printEntries]);
+
   const patchReport = useCallback((playerId: string, patch: Partial<ReportEntry>) => {
     setReports((prev) =>
       prev.map((item) =>
@@ -196,34 +229,16 @@ export function ReportsClient() {
         });
       }
 
+      const entries: PrintReportEntry[] = targets.map((item) => ({
+        entry: item.entry,
+        profile: item.profile!,
+        mapSlots: updatedSlots[item.entry.playerId] ?? item.mapSlots ?? [],
+      }));
+
+      setPrintEntries(entries);
       setPreloadPlayerIds(new Set(targets.map((t) => t.entry.playerId)));
       setPrintPreparing(false);
-      setPrinting(true);
-      document.body.dataset.printScope = playerId ? `player:${playerId}` : scope;
-
-      const bundles = document.querySelectorAll<HTMLElement>(".player-report-bundle");
-      bundles.forEach((bundle) => {
-        const cat = bundle.dataset.category ?? "";
-        const pid = bundle.dataset.playerId ?? "";
-        let hide = false;
-        if (playerId) hide = pid !== playerId;
-        else if (scope !== "all") hide = cat !== scope;
-        bundle.classList.toggle("report-print-hidden", hide);
-      });
-
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-      await waitForMapImages(targets.map((t) => t.entry.playerId));
-
-      const restore = () => {
-        bundles.forEach((bundle) => bundle.classList.remove("report-print-hidden"));
-        delete document.body.dataset.printScope;
-        setPrinting(false);
-        setPreloadPlayerIds(new Set());
-        window.removeEventListener("afterprint", restore);
-      };
-
-      window.addEventListener("afterprint", restore);
-      requestAnimationFrame(() => window.print());
+      setPrintQueue(targets.map((t) => t.entry.playerId));
     },
     [reports, patchReport],
   );
@@ -323,7 +338,9 @@ export function ReportsClient() {
         <LoadingState message="Carregando primeiros relatórios…" />
       )}
 
-      <div className="reports-stack">
+      <ReportPrintDocument entries={printEntries} />
+
+      <div className="reports-stack reports-screen-stack">
         {visibleReports.map((item) => {
           if (item.loading) {
             return (

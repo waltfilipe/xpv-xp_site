@@ -1,3 +1,22 @@
+const LEAGUE_LABELS: Record<string, string> = {
+  premier_league: "Premier League",
+  italia_seriea: "Serie A",
+  laliga: "La Liga",
+  bundesliga: "Bundesliga",
+  ligue1: "Ligue 1",
+};
+
+export function formatLeagueName(
+  league?: string | null,
+  leagueSource?: string | null,
+): string {
+  const named = league?.trim();
+  if (named) return named;
+  const source = leagueSource?.trim();
+  if (!source) return "—";
+  return LEAGUE_LABELS[source] ?? source.replace(/_/g, " ");
+}
+
 export function formatContractUntil(value: unknown): string {
   if (value == null || value === "") return "—";
   const s = String(value).trim();

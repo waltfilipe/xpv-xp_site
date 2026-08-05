@@ -68,6 +68,8 @@ PLAYER_LIST_FIELDS = (
     "progression_rating", "progression_rating_rank", "progression_rating_total",
     "total_passes", "total_xt", "xt_per_pass", "midfield_origin_profile", "eligible_for_rating",
     "xp_pass_rating", "team",
+  "pass_volume_letter", "pass_efficiency_letter",
+  "pass_buildup_letter", "pass_chance_creation_letter",
 )
 
 

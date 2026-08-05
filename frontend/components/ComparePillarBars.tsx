@@ -17,23 +17,18 @@ type Props = {
   nameB: string;
 };
 
-function PlayerBarRow({
+function BarRow({
   side,
-  name,
   value,
   winner,
 }: {
   side: "a" | "b";
-  name: string;
   value: number | null | undefined;
   winner: boolean;
 }) {
   return (
     <div className={`compare-pillar-row compare-pillar-row-${side}${winner ? " compare-pillar-winner" : ""}`}>
-      <span className="compare-pillar-player" title={name}>
-        <span className={`compare-pillar-dot compare-pillar-dot-${side}`} />
-        <span className="compare-pillar-player-name">{name}</span>
-      </span>
+      <span className={`compare-pillar-dot compare-pillar-dot-${side}`} aria-hidden="true" />
       <XpHeatBar value={value} />
       <span className="compare-pillar-value tabular">
         {value != null ? value.toFixed(1) : "—"}
@@ -45,6 +40,17 @@ function PlayerBarRow({
 export function ComparePillarBars({ metrics, nameA, nameB }: Props) {
   return (
     <div className="compare-pillar-bars">
+      <div className="compare-pillar-legend">
+        <span className="compare-legend-item compare-legend-a">
+          <span className="compare-legend-dot" />
+          <span className="compare-legend-name">{nameA}</span>
+        </span>
+        <span className="compare-legend-item compare-legend-b">
+          <span className="compare-legend-dot" />
+          <span className="compare-legend-name">{nameB}</span>
+        </span>
+      </div>
+
       {metrics.map((metric) => {
         const icon = PILLAR_ICONS[metric.key] ?? "fa-circle";
         const tip = XP_PROFILE_BAR_TOOLTIPS[metric.key] ?? "";
@@ -56,15 +62,13 @@ export function ComparePillarBars({ metrics, nameA, nameB }: Props) {
                 {metric.label}
               </span>
             </div>
-            <PlayerBarRow
+            <BarRow
               side="a"
-              name={nameA}
               value={metric.value_a}
               winner={metric.winner === "a"}
             />
-            <PlayerBarRow
+            <BarRow
               side="b"
-              name={nameB}
               value={metric.value_b}
               winner={metric.winner === "b"}
             />

@@ -37,6 +37,10 @@ export type PlayerSummary = {
   xp_pass_rating?: number | null;
   total_passes?: number | null;
   xt_per_pass?: number | null;
+  pass_volume_letter?: string | null;
+  pass_efficiency_letter?: string | null;
+  pass_buildup_letter?: string | null;
+  pass_chance_creation_letter?: string | null;
 };
 
 export type PlayerOption = {
