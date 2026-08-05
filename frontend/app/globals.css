@@ -3931,9 +3931,16 @@ tr:last-child td { border-bottom: none; }
   .reports-footnote,
   .reports-hint,
   .report-screen-only,
-  .tip-wrap,
   .tip-box {
     display: none !important;
+  }
+
+  .tip-wrap {
+    display: contents !important;
+  }
+
+  .tip-wrap-block {
+    display: block !important;
   }
 
   .report-print-only {
@@ -4105,9 +4112,35 @@ tr:last-child td { border-bottom: none; }
     font-size: 0.72rem !important;
   }
 
-  .tip-wrap,
-  .tip-box {
-    display: none !important;
+  .report-print-root .identity-card,
+  .report-print-root .report-identity-card,
+  .report-print-root .report-xp-card,
+  .report-print-root .report-pillars-card,
+  .report-print-root .score-stack,
+  .report-print-root .player-card {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .report-print-root .report-layout-v2.pa-layout,
+  .report-print-root .report-sheet-body.pa-layout {
+    align-items: start;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 0.82fr);
+    gap: 2mm;
+  }
+
+  .report-print-root .report-heatmap {
+    max-height: 30mm;
+  }
+
+  .report-print-root .round-grade-chart-embedded {
+    max-height: 22mm;
+    overflow: hidden;
+  }
+
+  .report-print-root .pass-grade-card {
+    break-inside: avoid;
   }
 
   .pass-length-mix,
@@ -4201,6 +4234,8 @@ tr:last-child td { border-bottom: none; }
     height: auto !important;
     overflow: visible !important;
     left: auto !important;
+    visibility: visible !important;
+    z-index: auto !important;
     pointer-events: none;
   }
 
@@ -4231,12 +4266,13 @@ tr:last-child td { border-bottom: none; }
 /* ── Dedicated print document (screen: hidden) ── */
 .report-print-root {
   position: fixed;
-  left: -10000px;
+  left: 0;
   top: 0;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
+  width: 297mm;
+  visibility: hidden;
+  z-index: -1;
   pointer-events: none;
+  overflow: visible;
 }
 
 .grade-letter {
