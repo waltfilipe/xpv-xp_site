@@ -8,7 +8,6 @@ import {
   type PlayerReportMaps,
   type ReportMapSlot,
 } from "@/components/PlayerReportSheet";
-import { ReportPrintDocument, type PrintReportEntry } from "@/components/ReportPrintDocument";
 import { getPassMap, getPlayerProfile, type PlayerProfile } from "@/lib/api";
 import {
   enrichedReportPlayers,
@@ -24,6 +23,12 @@ export type ReportEntry = {
   mapSlots: ReportMapSlot[] | null;
   error: string | null;
   loading?: boolean;
+};
+
+type PrintReportEntry = {
+  entry: EnrichedReportPlayer;
+  profile: PlayerProfile;
+  mapSlots: ReportMapSlot[];
 };
 
 const PROFILE_CONCURRENCY = 4;
@@ -101,7 +106,7 @@ async function waitForPrintMapImages(playerIds: string[], expectedPerPlayer = 4)
   while (Date.now() < deadline) {
     const ready = playerIds.every((id) => {
       const imgs = document.querySelectorAll<HTMLImageElement>(
-        `#report-print-root [data-player-id="${id}"] .print-map-img`,
+        `#report-print-root [data-player-id="${id}"] .report-map-img`,
       );
       if (imgs.length < expectedPerPlayer) return false;
       return Array.from(imgs).every((img) => img.complete && img.naturalHeight > 0);
@@ -338,7 +343,23 @@ export function ReportsClient() {
         <LoadingState message="Carregando primeiros relatórios…" />
       )}
 
-      <ReportPrintDocument entries={printEntries} />
+      <div id="report-print-root" className="report-print-root" aria-hidden={!printing}>
+        {printEntries.map((item) => (
+          <PlayerReportSheet
+            key={`print-${item.entry.playerId}`}
+            entry={item.entry}
+            profile={item.profile}
+            maps={
+              item.mapSlots.find((s) => s.pass_map_b64)
+                ? { pass_map_b64: item.mapSlots.find((s) => s.pass_map_b64)?.pass_map_b64 }
+                : null
+            }
+            mapSlots={item.mapSlots}
+            expandAll
+            preloadMaps
+          />
+        ))}
+      </div>
 
       <div className="reports-stack reports-screen-stack">
         {visibleReports.map((item) => {
