@@ -68,7 +68,13 @@ export type XpIndexItem = {
   tier_key?: string | null;
   value?: number | null;
   icon?: string;
-  components?: { key: string; label: string; value?: number | null }[];
+  components?: {
+    key: string;
+    label: string;
+    value?: number | null;
+    rank?: number | null;
+    rank_pool?: number | null;
+  }[];
 };
 
 export type XpRoundGrade = {

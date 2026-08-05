@@ -1,6 +1,7 @@
 "use client";
 
 import { Tooltip } from "@/components/ui/Tooltip";
+import { ImpactMetricBar } from "@/components/ui/ImpactMetricBar";
 import { XP_INDEX_TIER_LABELS, xpIndexTierClass } from "@/lib/gradeColors";
 import { INDEX_TOOLTIPS } from "@/lib/tooltips";
 
@@ -8,6 +9,8 @@ export type ImpactIndexComponent = {
   key: string;
   label: string;
   value?: number | null;
+  rank?: number | null;
+  rank_pool?: number | null;
 };
 
 type Props = {
@@ -68,10 +71,13 @@ export function ImpactAccordion({
       {components.map((item) => {
         const row = (
           <div className="impact-accordion-metric">
-            <span className="impact-accordion-metric-label">{item.label}</span>
-            <span className="impact-accordion-metric-value tabular">
-              {formatImpactValue(item.key, item.value)}
-            </span>
+            <div className="impact-accordion-metric-head">
+              <span className="impact-accordion-metric-label">{item.label}</span>
+              <span className="impact-accordion-metric-value tabular">
+                {formatImpactValue(item.key, item.value)}
+              </span>
+            </div>
+            <ImpactMetricBar rank={item.rank} rankPool={item.rank_pool} />
           </div>
         );
         const rowTip = COMPONENT_TOOLTIPS[item.key];

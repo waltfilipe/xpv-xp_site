@@ -119,6 +119,22 @@ export function rankToBarScore(rank?: number | null, rankPool?: number | null): 
   return 4.5 + pct * 4.5;
 }
 
+export const IMPACT_ELITE_TOP_N = 10;
+export const IMPACT_ELITE_COLOR = "#38bdf8";
+
+/** True when the player ranks in the elite top-N within their peer pool. */
+export function isImpactEliteRank(rank?: number | null): boolean {
+  return rank != null && rank > 0 && rank <= IMPACT_ELITE_TOP_N;
+}
+
+/** Bar color for Impact index sub-metrics — elite blue for top 10, else red→green gradient. */
+export function impactMetricBarColor(rank?: number | null, rankPool?: number | null): string {
+  if (isImpactEliteRank(rank)) return IMPACT_ELITE_COLOR;
+  const score = rankToBarScore(rank, rankPool);
+  if (score == null) return "#64748b";
+  return passGradeGradientColor(passGradePct(score));
+}
+
 function lerpChannel(a: number, b: number, t: number): number {
   return Math.round(a + (b - a) * t);
 }

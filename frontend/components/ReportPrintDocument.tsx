@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import type { PlayerProfile } from "@/lib/api";
 import { GradeBadge } from "@/components/ui/GradeBadge";
 import { MetricGradientBar } from "@/components/ui/MetricGradientBar";
+import { ImpactMetricBar } from "@/components/ui/ImpactMetricBar";
 import { XpHeatBar } from "@/components/ui/XpHeatBar";
 import { RoundGradeChart } from "@/components/RoundGradeChart";
 import type { ReportMapSlot } from "@/components/PlayerReportSheet";
@@ -231,8 +232,11 @@ function PrintSheetOverview({ item }: { item: PrintReportEntry }) {
                     </div>
                     {(impact.components ?? []).map((comp) => (
                       <div key={comp.key} className="print-impact-metric">
-                        <span>{comp.label}</span>
-                        <span className="tabular">{formatImpactPrintValue(comp.key, comp.value)}</span>
+                        <div className="print-impact-metric-head">
+                          <span>{comp.label}</span>
+                          <span className="tabular">{formatImpactPrintValue(comp.key, comp.value)}</span>
+                        </div>
+                        <ImpactMetricBar rank={comp.rank} rankPool={comp.rank_pool} />
                       </div>
                     ))}
                   </div>

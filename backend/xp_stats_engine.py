@@ -1627,6 +1627,7 @@ XP_PLAYER_ANALYSIS_RANK_METRICS: tuple[str, ...] = tuple(
 )
 
 XP_REGULAR_STAT_RANK_KEYS: tuple[str, ...] = (
+    "xp_residual_mean",
     "passes_total",
     "pass_completion_pct",
     "long_balls",
