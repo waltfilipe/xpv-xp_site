@@ -3443,7 +3443,7 @@ tr:last-child td { border-bottom: none; }
   border-radius: var(--radius-sm);
   border: 1px solid rgba(148, 163, 184, 0.1);
   background: var(--consistency-bg, rgba(15, 23, 42, 0.35));
-  overflow: hidden;
+  overflow: visible;
 }
 
 .consistency-accordion-trigger {
@@ -3495,6 +3495,7 @@ tr:last-child td { border-bottom: none; }
   padding: 0 0.45rem 0.4rem;
   border-top: 1px solid color-mix(in srgb, var(--consistency-accent, #a78bfa) 12%, transparent);
   background: color-mix(in srgb, var(--consistency-bg, transparent) 80%, transparent);
+  overflow: visible;
 }
 
 .consistency-accordion.xp-index-above .consistency-accordion-val { color: #4ade80; }
@@ -3700,14 +3701,16 @@ tr:last-child td { border-bottom: none; }
 
 .round-grade-chart-wrap {
   position: relative;
+  overflow: visible;
 }
 
 .round-grade-tooltip-wrap {
   position: absolute;
-  top: 0;
+  bottom: calc(100% + 6px);
+  top: auto;
   transform: translateX(-50%);
   pointer-events: none;
-  z-index: 2;
+  z-index: 6;
 }
 
 .round-grade-tooltip {
