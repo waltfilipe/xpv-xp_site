@@ -4259,8 +4259,8 @@ tr:last-child td { border-bottom: none; }
   }
 
   .report-print-root .report-heatmap {
-    max-height: 48mm !important;
-    min-height: 36mm;
+    max-height: 56mm !important;
+    min-height: 44mm;
     width: 100%;
     object-fit: contain;
     margin-top: 0.15rem;
