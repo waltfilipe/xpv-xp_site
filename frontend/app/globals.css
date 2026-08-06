@@ -4006,8 +4006,8 @@ tr:last-child td { border-bottom: none; }
 
   .report-sheet-body.pa-layout,
   .report-layout-v2.pa-layout {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 0.95fr);
-    gap: 2.5mm;
+    grid-template-columns: minmax(0, 0.74fr) minmax(0, 1.08fr) minmax(0, 1.18fr);
+    gap: 2mm;
     overflow: visible;
     align-items: start;
   }
@@ -4126,8 +4126,79 @@ tr:last-child td { border-bottom: none; }
   .report-print-root .report-layout-v2.pa-layout,
   .report-print-root .report-sheet-body.pa-layout {
     align-items: start;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 0.82fr);
-    gap: 2mm;
+    grid-template-columns: minmax(0, 0.68fr) minmax(0, 1.06fr) minmax(0, 1.26fr);
+    gap: 1.6mm;
+  }
+
+  .report-print-root .pa-col-identity {
+    max-width: 100%;
+  }
+
+  .report-print-root .report-identity-card {
+    padding: 0.3rem 0.35rem !important;
+    gap: 0.35rem !important;
+  }
+
+  .report-print-root .identity-hero-side {
+    gap: 0.35rem;
+    align-items: flex-start;
+  }
+
+  .report-print-root .identity-photo-side {
+    width: 54px !important;
+    min-height: 62px !important;
+    border-radius: 8px;
+    box-shadow: none;
+  }
+
+  .report-print-root .identity-title,
+  .report-print-root .report-player-name {
+    font-size: 0.82rem !important;
+    line-height: 1.15;
+  }
+
+  .report-print-root .identity-subline,
+  .report-print-root .report-league-line {
+    font-size: 0.64rem !important;
+    margin-bottom: 0.15rem !important;
+  }
+
+  .report-print-root .identity-facts-side {
+    margin-top: 0.2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.08rem 0.35rem;
+  }
+
+  .report-print-root .identity-facts-side .identity-fact {
+    grid-template-columns: 0.9rem 1fr auto;
+    gap: 0.2rem;
+    padding: 0.1rem 0;
+  }
+
+  .report-print-root .identity-facts-side .identity-fact-label {
+    font-size: 0.58rem !important;
+  }
+
+  .report-print-root .identity-facts-side .identity-fact-value {
+    font-size: 0.64rem !important;
+  }
+
+  .report-print-root .identity-meta-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.2rem;
+    margin-top: 0.15rem;
+  }
+
+  .report-print-root .identity-meta-pill {
+    padding: 0.18rem 0.28rem;
+    font-size: 0.58rem;
+    min-width: 0;
+  }
+
+  .report-print-root .identity-meta-pill strong {
+    font-size: 0.64rem;
   }
 
   .report-print-root .round-grade-chart-embedded,
@@ -4136,16 +4207,35 @@ tr:last-child td { border-bottom: none; }
   }
 
   .report-print-root .report-page-1 {
-    zoom: 0.79;
-    width: 126%;
+    zoom: 0.84;
+    width: 100%;
+    max-width: 100%;
+    overflow: visible;
     page-break-after: always;
   }
 
   .report-print-root .report-heatmap {
-    max-height: 58mm !important;
-    min-height: 44mm;
+    max-height: 46mm !important;
+    min-height: 34mm;
     width: 100%;
     object-fit: contain;
+  }
+
+  .report-print-root .report-pillars-card {
+    padding: 0.35rem 0.4rem !important;
+  }
+
+  .report-print-root .report-pass-flat-item {
+    padding: 0.16rem 0.24rem !important;
+  }
+
+  .report-print-root .pass-metric-label {
+    font-size: 0.6rem !important;
+    line-height: 1.2;
+  }
+
+  .report-print-root .pass-metric-value {
+    font-size: 0.64rem !important;
   }
 
   .report-print-root .report-sheet-header {
@@ -4231,8 +4321,8 @@ tr:last-child td { border-bottom: none; }
   }
 
   .identity-photo-side {
-    width: 92px;
-    min-height: 100px;
+    width: 54px;
+    min-height: 62px;
   }
 
   .report-heatmap {
