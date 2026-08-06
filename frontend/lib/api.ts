@@ -98,7 +98,6 @@ export type PlayerProfile = {
   player: Record<string, unknown>;
   xp: Record<string, unknown>;
   pass_scores: PassScoreSection[];
-  defensive_score?: PassScoreSection | null;
   xp_bars: XpBar[];
   origin_heatmap_b64?: string | null;
   long_pass_share_pct?: number | null;

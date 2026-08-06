@@ -36,6 +36,9 @@ const CHANCE_CREATION_METRIC_KEYS = new Set([
 export function formatMetric(value: unknown, key?: string): string {
   if (value == null) return "—";
   if (typeof value === "number") {
+    if (key?.startsWith("def_") && key.endsWith("_pct")) {
+      return `${value.toFixed(1)}%`;
+    }
     if (key?.includes("pct") || key?.includes("coe")) {
       return `${value >= 0 ? "+" : ""}${value.toFixed(1)} pp`;
     }

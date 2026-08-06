@@ -8,7 +8,7 @@ import progression_engine as pge
 from passes_maps import draw_action_origin_smooth_heatmap
 
 from services.figures import fig_to_b64
-from services.profile_service import DEFENSIVE_SCORE_SPEC, XP_PA_REGULAR_SCORE_SPECS, build_xp_profile_bars
+from services.profile_service import XP_PA_REGULAR_SCORE_SPECS, build_xp_indices, build_xp_profile_bars
 
 COMPARE_PILLAR_SPECS: tuple[tuple[str, str], ...] = (
     ("xp_activity_display", "Productivity"),
@@ -20,14 +20,12 @@ COMPARE_PASS_GRID_SPECS: tuple[tuple[str, str], ...] = (
     ("pass_efficiency_display", "Efficiency"),
     ("pass_buildup_display", "Build-up"),
     ("pass_chance_creation_display", "Chance creation"),
-    ("defense_display", "Defensive Contribution"),
 )
 
 COMPARE_PASS_GRID_COMPONENTS: dict[str, tuple[str, ...]] = {
     display_key: component_keys
     for display_key, _index_key, _letter_key, _title, component_keys in XP_PA_REGULAR_SCORE_SPECS
 }
-COMPARE_PASS_GRID_COMPONENTS["defense_display"] = DEFENSIVE_SCORE_SPEC[4]
 
 
 def _compare_source(
@@ -158,20 +156,7 @@ def build_compare_payload(
             "long_pass_share_ref_avg_pct": xp.get("long_pass_share_ref_avg_pct"),
             "long_pass_share_pctile": xp.get("long_pass_share_pctile"),
             "xp_bars": build_xp_profile_bars(xp),
-            "xp_indices": [
-                {
-                    "key": "consistency",
-                    "label": "Consistency",
-                    "tier": xp.get("xp_idx_consistency_tier"),
-                    "icon": "fa-wave-square",
-                },
-                {
-                    "key": "impact",
-                    "label": "Impact",
-                    "tier": xp.get("xp_idx_impact_tier"),
-                    "icon": "fa-crosshairs",
-                },
-            ],
+            "xp_indices": build_xp_indices(xp),
             "xp_game_consistency_score": xp.get("xp_game_consistency_score"),
             "test_impact_v2_p90": xp.get("test_impact_v2_p90"),
         }

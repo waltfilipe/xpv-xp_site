@@ -63,7 +63,10 @@ export function XpIndicesPanel({
 
   const consistency = rows.find((i) => i.key === "consistency");
   const impact = rows.find((i) => i.key === "impact");
-  const other = rows.filter((i) => i.key !== "consistency" && i.key !== "impact");
+  const defense = rows.find((i) => i.key === "defense");
+  const other = rows.filter(
+    (i) => i.key !== "consistency" && i.key !== "impact" && i.key !== "defense",
+  );
 
   return (
     <div className="xp-indices-panel">
@@ -96,6 +99,24 @@ export function XpIndicesPanel({
             tier={impact.tier}
             tierKey={impact.tier_key ?? impact.label}
             icon={impact.icon ?? "fa-crosshairs"}
+          />
+        )}
+        {defense && defense.components && defense.components.length > 0 && (
+          <ImpactAccordion
+            label={defense.label}
+            tier={defense.tier}
+            tierKey={defense.tier_key ?? defense.label}
+            icon={defense.icon ?? "fa-shield-halved"}
+            components={defense.components}
+            expandAll={expandAll}
+          />
+        )}
+        {defense && (!defense.components || defense.components.length === 0) && (
+          <IndexRow
+            label={defense.label}
+            tier={defense.tier}
+            tierKey={defense.tier_key ?? defense.label}
+            icon={defense.icon ?? "fa-shield-halved"}
           />
         )}
         {other.map((item) => (

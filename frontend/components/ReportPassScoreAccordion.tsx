@@ -11,7 +11,6 @@ import { COMPONENT_LABELS, COMPONENT_TOOLTIPS, PASS_SCORE_TOOLTIPS } from "@/lib
 
 type Props = {
   sections: PassScoreSection[];
-  defensiveScore?: PassScoreSection | null;
   expandAll?: boolean;
 };
 
@@ -56,19 +55,8 @@ function SectionHead({ section }: { section: PassScoreSection }) {
   );
 }
 
-export function ReportPassScoreAccordion({ sections, defensiveScore, expandAll = false }: Props) {
-  if (!sections.length && !defensiveScore) return null;
-
-  const defensiveBlock = defensiveScore ? (
-    <section className="pass-score-section pass-score-section-defense">
-      <SectionHead section={defensiveScore} />
-      <SectionMetrics section={defensiveScore} />
-    </section>
-  ) : null;
-
-  if (!sections.length) {
-    return <div className="report-pass-accordion">{defensiveBlock}</div>;
-  }
+export function ReportPassScoreAccordion({ sections, expandAll = false }: Props) {
+  if (!sections.length) return null;
 
   if (expandAll) {
     return (
@@ -79,7 +67,6 @@ export function ReportPassScoreAccordion({ sections, defensiveScore, expandAll =
             <SectionMetrics section={section} />
           </div>
         ))}
-        {defensiveBlock}
       </div>
     );
   }
@@ -108,7 +95,6 @@ export function ReportPassScoreAccordion({ sections, defensiveScore, expandAll =
           </div>
         </details>
       ))}
-      {defensiveBlock}
     </div>
   );
 }

@@ -407,11 +407,7 @@ export function PlayerReportSheet({
           <div className="pa-col pa-col-pillars">
             <div className="player-card pillars-card report-pillars-card">
               <h3 className="section-label">Pass Scores</h3>
-              <ReportPassScoreAccordion
-                sections={profile.pass_scores}
-                defensiveScore={profile.defensive_score}
-                expandAll={expandAll}
-              />
+              <ReportPassScoreAccordion sections={profile.pass_scores} expandAll={expandAll} />
             </div>
           </div>
         </div>

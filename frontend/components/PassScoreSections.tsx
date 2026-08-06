@@ -37,13 +37,7 @@ function SectionMetrics({ section }: { section: PassScoreSection }) {
   );
 }
 
-export function PassScoreSections({
-  sections,
-  defensiveScore,
-}: {
-  sections: PassScoreSection[];
-  defensiveScore?: PassScoreSection | null;
-}) {
+export function PassScoreSections({ sections }: { sections: PassScoreSection[] }) {
   return (
     <div className="pass-scores-panel">
       <div className="report-pass-accordion">
@@ -66,22 +60,6 @@ export function PassScoreSections({
           </details>
         ))}
       </div>
-
-      {defensiveScore && (
-        <section className="pass-score-section pass-score-section-defense">
-          <div className="pass-score-section-head">
-            <Tooltip content={PASS_SCORE_TOOLTIPS[defensiveScore.title] ?? ""}>
-              <h4 className="pass-score-section-title">{defensiveScore.title}</h4>
-            </Tooltip>
-            <GradeBadge
-              letter={defensiveScore.letter}
-              displayScore={defensiveScore.display_score}
-              size="sm"
-            />
-          </div>
-          <SectionMetrics section={defensiveScore} />
-        </section>
-      )}
     </div>
   );
 }

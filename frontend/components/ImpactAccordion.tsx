@@ -3,7 +3,8 @@
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ImpactMetricBar } from "@/components/ui/ImpactMetricBar";
 import { XP_INDEX_TIER_LABELS, xpIndexTierClass } from "@/lib/gradeColors";
-import { INDEX_TOOLTIPS } from "@/lib/tooltips";
+import { formatMetric } from "@/lib/formatters";
+import { COMPONENT_TOOLTIPS, INDEX_TOOLTIPS } from "@/lib/tooltips";
 
 export type ImpactIndexComponent = {
   key: string;
@@ -36,14 +37,16 @@ const TIER_ACCENT: Record<string, string> = {
   below: "#fb923c",
 };
 
-const COMPONENT_TOOLTIPS: Record<string, string> = {
+const COMPONENT_TIPS: Record<string, string> = {
   xpv_per_pass: "Average destination value (xPV) on completed passes.",
   xp_residual_mean:
     "Mean (actual xP − expected xP) per completed pass — how much the player beats the model on average.",
+  ...COMPONENT_TOOLTIPS,
 };
 
 function formatImpactValue(key: string, value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "—";
+  if (key.startsWith("def_")) return formatMetric(value, key);
   if (key === "xp_residual_mean") {
     const cents = value * 100;
     return `${cents >= 0 ? "+" : ""}${cents.toFixed(2)}¢`;
@@ -101,7 +104,7 @@ export function ImpactAccordion({
             <ImpactMetricBar rank={item.rank} rankPool={item.rank_pool} />
           </div>
         );
-        const rowTip = COMPONENT_TOOLTIPS[item.key];
+        const rowTip = COMPONENT_TIPS[item.key];
         return rowTip ? (
           <Tooltip key={item.key} content={rowTip} block>
             {row}

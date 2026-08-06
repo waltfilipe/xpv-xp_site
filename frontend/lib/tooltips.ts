@@ -73,6 +73,8 @@ export const INDEX_TOOLTIPS: Record<string, string> = {
     "Each match gets a 3–9 grade from game xP vs. all peer matches in the position. Badge when dispersion of those grades is low (MAD).",
   xp_idx_impact:
     "50% xPV per completed pass and 50% mean (xP − xP expected) per pass — destination value plus beating the geometric model.",
+  xp_idx_defense:
+    "League-scoped defensive score: volume (tackles, interceptions, clearances, recoveries per 90) plus quality (tackle and aerial win %), minus error penalties.",
 };
 
 export const PASS_GRADE_TOOLTIP =

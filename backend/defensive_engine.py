@@ -221,6 +221,10 @@ def attach_defensive_contribution(players: list[dict]) -> None:
             minute_cap = 4.5 + (float(minutes.iloc[i]) / MINUTES_CONF_CAP) * 4.5
             row["defense_display"] = round(min(display, minute_cap), 2)
             row["defense_letter"] = rank_percentile_letter_grade(rank, pool_size)
+            row["defense_idx"] = row["defense_index"]
+            from xp_stats_engine import _index_tier_from_rank
+
+            row["defense_idx_tier"] = _index_tier_from_rank(rank, pool_size)
 
             for comp_key in DEFENSE_COMPONENT_KEYS:
                 if comp_key not in row:
