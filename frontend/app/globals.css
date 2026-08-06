@@ -3704,21 +3704,16 @@ tr:last-child td { border-bottom: none; }
   position: relative;
 }
 
-.round-grade-chart-embedded .round-grade-chart-body {
-  padding-top: 7.1rem;
-}
-
 .round-grade-chart-wrap {
   position: relative;
   overflow: visible;
 }
 
-.round-grade-tooltip-wrap {
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
+.round-grade-tooltip-portal {
+  position: fixed;
+  transform: translate(-50%, calc(-100% - 8px));
   pointer-events: none;
-  z-index: 6;
+  z-index: 1200;
 }
 
 .round-grade-tooltip {

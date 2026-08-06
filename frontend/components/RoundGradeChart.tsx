@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { XpRoundGrade } from "@/lib/api";
 import { passGradeGradientColor, passGradePct } from "@/lib/gradeColors";
 
@@ -19,13 +20,18 @@ type Props = {
   onPointClick?: (point: XpRoundGrade) => void;
 };
 
-type Coord = {
+type ChartCoord = {
   x: number;
   y: number;
   grade: number;
   round: number;
   opponent?: string | null;
   point: XpRoundGrade;
+};
+
+type ActiveCoord = ChartCoord & {
+  tipX: number;
+  tipY: number;
 };
 
 function formatPct(value?: number | null): string {
@@ -63,7 +69,12 @@ function RoundGradeTooltip({ point }: { point: XpRoundGrade }) {
 
 export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, onPointClick }: Props) {
   const gradId = useId().replace(/:/g, "");
-  const [active, setActive] = useState<Coord | null>(null);
+  const [active, setActive] = useState<ActiveCoord | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const data = points.filter((p) => p.grade != null);
   if (data.length < 2) return null;
@@ -75,7 +86,16 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, 
   const innerW = WIDTH - PAD_X * 2;
   const innerH = HEIGHT - PAD_Y * 2;
 
-  const coords: Coord[] = data.map((point, i) => {
+  const setActiveFromEvent = (coord: ChartCoord, target: SVGCircleElement) => {
+    const rect = target.getBoundingClientRect();
+    setActive({
+      ...coord,
+      tipX: rect.left + rect.width / 2,
+      tipY: rect.top,
+    });
+  };
+
+  const coords: ChartCoord[] = data.map((point, i) => {
     const x = PAD_X + (data.length === 1 ? innerW / 2 : (i / (data.length - 1)) * innerW);
     const grade = point.grade as number;
     const y = PAD_Y + innerH - ((grade - minG) / span) * innerH;
@@ -85,7 +105,18 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, 
   const linePath = coords.map((c, i) => `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join(" ");
   const areaPath = `${linePath} L ${coords[coords.length - 1].x.toFixed(1)} ${(PAD_Y + innerH).toFixed(1)} L ${coords[0].x.toFixed(1)} ${(PAD_Y + innerH).toFixed(1)} Z`;
 
-  const tipLeft = active ? `${(active.x / WIDTH) * 100}%` : "0%";
+  const tooltip =
+    active && mounted
+      ? createPortal(
+          <div
+            className="round-grade-tooltip-portal"
+            style={{ left: active.tipX, top: active.tipY }}
+          >
+            <RoundGradeTooltip point={active.point} />
+          </div>,
+          document.body,
+        )
+      : null;
 
   return (
     <div className={`round-grade-chart${embedded ? " round-grade-chart-embedded" : ""}`}>
@@ -96,12 +127,6 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, 
       )}
 
       <div className="round-grade-chart-body">
-        {active && (
-          <div className="round-grade-tooltip-wrap" style={{ left: tipLeft }}>
-            <RoundGradeTooltip point={active.point} />
-          </div>
-        )}
-
         <div className="round-grade-chart-wrap">
           <svg
             viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
@@ -153,8 +178,8 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, 
                   r={HIT_R}
                   fill="transparent"
                   className="round-grade-hit"
-                  onMouseEnter={() => setActive(c)}
-                  onFocus={() => setActive(c)}
+                  onMouseEnter={(e) => setActiveFromEvent(c, e.currentTarget)}
+                  onFocus={(e) => setActiveFromEvent(c, e.currentTarget)}
                   onClick={() => onPointClick?.(c.point)}
                 />
                 <circle
@@ -172,6 +197,7 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, 
           </svg>
         </div>
       </div>
+      {tooltip}
     </div>
   );
 }
