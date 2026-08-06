@@ -16,6 +16,7 @@ type Props = {
   accent?: string;
   embedded?: boolean;
   tier?: string | null;
+  onPointClick?: (point: XpRoundGrade) => void;
 };
 
 type Coord = {
@@ -24,9 +25,10 @@ type Coord = {
   grade: number;
   round: number;
   opponent?: string | null;
+  point: XpRoundGrade;
 };
 
-export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false }: Props) {
+export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, onPointClick }: Props) {
   const gradId = useId().replace(/:/g, "");
   const [active, setActive] = useState<Coord | null>(null);
 
@@ -44,7 +46,7 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false }
     const x = PAD_X + (data.length === 1 ? innerW / 2 : (i / (data.length - 1)) * innerW);
     const grade = point.grade as number;
     const y = PAD_Y + innerH - ((grade - minG) / span) * innerH;
-    return { x, y, grade, round: point.round, opponent: point.opponent };
+    return { x, y, grade, round: point.round, opponent: point.opponent, point };
   });
 
   const linePath = coords.map((c, i) => `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join(" ");
@@ -122,6 +124,7 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false }
                   className="round-grade-hit"
                   onMouseEnter={() => setActive(c)}
                   onFocus={() => setActive(c)}
+                  onClick={() => onPointClick?.(c.point)}
                 />
                 <circle
                   cx={c.x}

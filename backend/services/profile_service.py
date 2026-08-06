@@ -70,6 +70,11 @@ def build_round_grade_series(xp_profile: dict) -> list[dict[str, Any]]:
             "round": point.get("round", i + 1),
             "grade": grade,
             "opponent": point.get("opponent"),
+            "date": point.get("date"),
+            "xp": point.get("xp"),
+            "impact": point.get("impact"),
+            "passes": point.get("passes"),
+            "event_id": point.get("event_id"),
         })
     return out
 

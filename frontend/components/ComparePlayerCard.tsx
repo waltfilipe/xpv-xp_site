@@ -1,8 +1,21 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { ComparePlayerPicker } from "@/components/ComparePlayerPicker";
+import { CompareXpIndicesStrip } from "@/components/CompareXpIndicesStrip";
 import { PassLengthMix } from "@/components/PassLengthMix";
+import { getPassMap } from "@/lib/api";
 import { formatContractUntil } from "@/lib/formatters";
+
+export const COMPARE_MAP_FILTERS: { key: string; label: string }[] = [
+  { key: "progressive", label: "Progressive Passes" },
+  { key: "test_impact_v2", label: "Impact Passes" },
+  { key: "line_break", label: "Breakline passes" },
+  { key: "key_passes", label: "Key Passes" },
+];
+
+const POSITION_FAMILY = "midfielders";
 
 function FactIcon({ icon }: { icon: string }) {
   return (
@@ -12,15 +25,131 @@ function FactIcon({ icon }: { icon: string }) {
   );
 }
 
+type IndexItem = {
+  key: string;
+  label: string;
+  tier?: string | null;
+  icon?: string;
+};
+
 type Props = {
   side: "a" | "b";
   player: Record<string, unknown>;
   heatmap?: string | null;
+  playerId: string;
+  excludePlayerId?: string;
+  onPlayerChange: (playerId: string) => void;
+  mapsMode?: boolean;
+  onToggleMaps?: () => void;
 };
 
-export function ComparePlayerCard({ side, player, heatmap }: Props) {
+type MapSlot = {
+  key: string;
+  label: string;
+  pass_map_b64?: string | null;
+  loading?: boolean;
+  error?: string | null;
+};
+
+export function ComparePlayerCard({
+  side,
+  player,
+  heatmap,
+  playerId,
+  excludePlayerId,
+  onPlayerChange,
+  mapsMode = false,
+  onToggleMaps,
+}: Props) {
+  const [mapSlots, setMapSlots] = useState<MapSlot[]>([]);
+  const xpIndices = (player.xp_indices as IndexItem[] | undefined) ?? [];
+
+  useEffect(() => {
+    if (!mapsMode || !playerId) {
+      setMapSlots([]);
+      return;
+    }
+
+    let cancelled = false;
+    setMapSlots(COMPARE_MAP_FILTERS.map((f) => ({ ...f, loading: true })));
+
+    (async () => {
+      const next = await Promise.all(
+        COMPARE_MAP_FILTERS.map(async (filter) => {
+          try {
+            const res = await getPassMap(playerId, filter.key, "all", POSITION_FAMILY);
+            return {
+              key: filter.key,
+              label: filter.label,
+              pass_map_b64: res.pass_map_b64,
+              loading: false,
+              error: null,
+            } satisfies MapSlot;
+          } catch (e) {
+            return {
+              key: filter.key,
+              label: filter.label,
+              loading: false,
+              error: e instanceof Error ? e.message : "Falha ao carregar mapa",
+            } satisfies MapSlot;
+          }
+        }),
+      );
+      if (!cancelled) setMapSlots(next);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mapsMode, playerId]);
+
+  if (mapsMode) {
+    return (
+      <div className={`player-card compare-side compare-side-${side} compare-side-maps`}>
+        <ComparePlayerPicker
+          label={`Jogador ${side === "a" ? "A" : "B"}`}
+          value={playerId}
+          exclude={excludePlayerId}
+          onChange={onPlayerChange}
+        />
+        <h2 className="compare-maps-player-name">{String(player.player_name ?? "—")}</h2>
+        <div className="compare-maps-stack">
+          {mapSlots.map((slot) => (
+            <div key={slot.key} className="compare-map-slot">
+              <span className="compare-map-slot-label">{slot.label}</span>
+              {slot.loading && <div className="compare-map-slot-skeleton" aria-busy="true" />}
+              {slot.error && !slot.pass_map_b64 && (
+                <p className="placeholder-note compare-map-slot-error">{slot.error}</p>
+              )}
+              {slot.pass_map_b64 && (
+                <img
+                  src={`data:image/png;base64,${slot.pass_map_b64}`}
+                  alt={slot.label}
+                  className="heatmap-img compare-map-slot-img"
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        {onToggleMaps && (
+          <button type="button" className="compare-maps-toggle-btn" onClick={onToggleMaps}>
+            <i className="fa-solid fa-user" />
+            Voltar ao perfil
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className={`player-card identity-card compare-side compare-side-${side}`}>
+      <ComparePlayerPicker
+        label={`Jogador ${side === "a" ? "A" : "B"}`}
+        value={playerId}
+        exclude={excludePlayerId}
+        onChange={onPlayerChange}
+      />
+
       <div className="identity-hero identity-hero-side">
         <div className="identity-photo-side">
           {player.photo_url ? (
@@ -89,11 +218,20 @@ export function ComparePlayerCard({ side, player, heatmap }: Props) {
         <img src={`data:image/png;base64,${heatmap}`} alt="Origem dos passes" className="heatmap-img" />
       )}
 
+      <CompareXpIndicesStrip indices={xpIndices} />
+
       <PassLengthMix data={{
         long_pass_share_pct: player.long_pass_share_pct as number | null | undefined,
         long_pass_share_ref_avg_pct: player.long_pass_share_ref_avg_pct as number | null | undefined,
         long_pass_share_pctile: player.long_pass_share_pctile as number | null | undefined,
       }} />
+
+      {onToggleMaps && (
+        <button type="button" className="compare-maps-toggle-btn" onClick={onToggleMaps}>
+          <i className="fa-solid fa-map-location-dot" />
+          Comparar mapas
+        </button>
+      )}
     </div>
   );
 }

@@ -718,6 +718,7 @@ def round_production_series(scored: pd.DataFrame) -> tuple[dict[str, float | int
     return tuple(
         {
             "round": index,
+            "event_id": str(row.Index),
             "date": str(row.date),
             "opponent": str(row.opponent),
             "xp": round(float(row.xp), 3),

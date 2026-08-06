@@ -75,10 +75,9 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
     : "Selecionar países";
 
   const positionBlocks = useMemo(
-    () => positionBlocksForFamily(state.position_family),
-    [state.position_family],
+    () => positionBlocksForFamily("midfielders"),
+    [],
   );
-  const showMidfieldSubFilter = state.position_family === "midfielders";
 
   function toFilters(): ProfileFilterState {
     return {
@@ -200,37 +199,16 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
           <h4 className="filter-section-title">Perfil</h4>
         <div className="filter-grid filter-grid-2">
           <label className="filter-field">
-            <span className="filter-label">Posição</span>
+            <span className="filter-label">Subgrupo</span>
             <select
-              value={state.position_family}
-              onChange={(e) => {
-                const position_family = e.target.value;
-                setState((s) => ({
-                  ...s,
-                  position_family,
-                  position_block: "all",
-                }));
-              }}
+              value={state.position_block}
+              onChange={(e) => setState((s) => ({ ...s, position_block: e.target.value }))}
             >
-              {options.position_families.map((family) => (
-                <option key={family.key} value={family.key}>{family.label}</option>
+              {positionBlocks.map((block) => (
+                <option key={block.key} value={block.key}>{block.label}</option>
               ))}
             </select>
           </label>
-
-          {showMidfieldSubFilter && (
-            <label className="filter-field">
-              <span className="filter-label">Subgrupo</span>
-              <select
-                value={state.position_block}
-                onChange={(e) => setState((s) => ({ ...s, position_block: e.target.value }))}
-              >
-                {positionBlocks.map((block) => (
-                  <option key={block.key} value={block.key}>{block.label}</option>
-                ))}
-              </select>
-            </label>
-          )}
 
           <label className="filter-field">
             <span className="filter-label">Liga</span>

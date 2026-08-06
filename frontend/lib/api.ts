@@ -81,6 +81,11 @@ export type XpRoundGrade = {
   round: number;
   grade?: number | null;
   opponent?: string | null;
+  date?: string | null;
+  xp?: number | null;
+  impact?: number | null;
+  passes?: number | null;
+  event_id?: string | null;
 };
 
 export type PlayerProfile = {

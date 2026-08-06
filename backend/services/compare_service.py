@@ -156,6 +156,20 @@ def build_compare_payload(
             "long_pass_share_ref_avg_pct": xp.get("long_pass_share_ref_avg_pct"),
             "long_pass_share_pctile": xp.get("long_pass_share_pctile"),
             "xp_bars": build_xp_profile_bars(xp),
+            "xp_indices": [
+                {
+                    "key": "consistency",
+                    "label": "Consistency",
+                    "tier": xp.get("xp_idx_consistency_tier"),
+                    "icon": "fa-wave-square",
+                },
+                {
+                    "key": "impact",
+                    "label": "Impact",
+                    "tier": xp.get("xp_idx_impact_tier"),
+                    "icon": "fa-crosshairs",
+                },
+            ],
             "xp_game_consistency_score": xp.get("xp_game_consistency_score"),
             "test_impact_v2_p90": xp.get("test_impact_v2_p90"),
         }

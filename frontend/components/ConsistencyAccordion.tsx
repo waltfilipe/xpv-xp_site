@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import type { XpRoundGrade } from "@/lib/api";
+import { GameStatsModal } from "@/components/GameStatsModal";
 import { XP_INDEX_TIER_LABELS, xpIndexTierClass } from "@/lib/gradeColors";
 import { INDEX_TOOLTIPS } from "@/lib/tooltips";
 import { RoundGradeChart } from "@/components/RoundGradeChart";
@@ -39,6 +41,7 @@ export function ConsistencyAccordion({
   accent,
   expandAll = false,
 }: Props) {
+  const [selectedGame, setSelectedGame] = useState<XpRoundGrade | null>(null);
   const tierLabel = XP_INDEX_TIER_LABELS[tier ?? "mid"] ?? tier ?? "—";
   const tip = INDEX_TOOLTIPS[tierKey ?? label] ?? INDEX_TOOLTIPS[label] ?? "";
   const tierClass = xpIndexTierClass(tier);
@@ -46,6 +49,15 @@ export function ConsistencyAccordion({
   const chartAccent = accent ?? TIER_ACCENT[tierKeyNorm] ?? "#a78bfa";
   const bgColor = TIER_BG[tierKeyNorm] ?? TIER_BG.mid;
   const hasChart = points.filter((p) => p.grade != null).length >= 2;
+  const chart = hasChart ? (
+    <RoundGradeChart
+      points={points}
+      accent={chartAccent}
+      embedded
+      tier={tierKeyNorm}
+      onPointClick={expandAll ? undefined : setSelectedGame}
+    />
+  ) : null;
 
   const head = (
     <>
@@ -74,32 +86,27 @@ export function ConsistencyAccordion({
         } as React.CSSProperties}
       >
         <div className="consistency-accordion-trigger">{head}</div>
-        {hasChart && (
-          <div className="consistency-accordion-panel">
-            <RoundGradeChart points={points} accent={chartAccent} embedded tier={tierKeyNorm} />
-          </div>
-        )}
+        {chart && <div className="consistency-accordion-panel">{chart}</div>}
       </div>
     );
   }
 
   return (
-    <details
-      className={`consistency-accordion ${tierClass}`}
-      style={{
-        "--consistency-bg": bgColor,
-        "--consistency-accent": chartAccent,
-      } as React.CSSProperties}
-    >
-      <summary className="consistency-accordion-trigger" title={tip}>
-        {head}
-      </summary>
+    <>
+      <details
+        className={`consistency-accordion ${tierClass}`}
+        style={{
+          "--consistency-bg": bgColor,
+          "--consistency-accent": chartAccent,
+        } as React.CSSProperties}
+      >
+        <summary className="consistency-accordion-trigger" title={tip}>
+          {head}
+        </summary>
 
-      {hasChart && (
-        <div className="consistency-accordion-panel">
-          <RoundGradeChart points={points} accent={chartAccent} embedded tier={tierKeyNorm} />
-        </div>
-      )}
-    </details>
+        {chart && <div className="consistency-accordion-panel">{chart}</div>}
+      </details>
+      <GameStatsModal game={selectedGame} onClose={() => setSelectedGame(null)} />
+    </>
   );
 }
