@@ -3492,6 +3492,7 @@ tr:last-child td { border-bottom: none; }
 }
 
 .consistency-accordion-panel {
+  position: relative;
   padding: 0 0.45rem 0.4rem;
   border-top: 1px solid color-mix(in srgb, var(--consistency-accent, #a78bfa) 12%, transparent);
   background: color-mix(in srgb, var(--consistency-bg, transparent) 80%, transparent);
@@ -3699,6 +3700,14 @@ tr:last-child td { border-bottom: none; }
   align-self: start;
 }
 
+.round-grade-chart-body {
+  position: relative;
+}
+
+.round-grade-chart-embedded .round-grade-chart-body {
+  padding-top: 7.1rem;
+}
+
 .round-grade-chart-wrap {
   position: relative;
   overflow: visible;
@@ -3706,8 +3715,7 @@ tr:last-child td { border-bottom: none; }
 
 .round-grade-tooltip-wrap {
   position: absolute;
-  bottom: calc(100% + 6px);
-  top: auto;
+  top: 0;
   transform: translateX(-50%);
   pointer-events: none;
   z-index: 6;

@@ -95,20 +95,21 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, 
         </div>
       )}
 
-      <div className="round-grade-chart-wrap">
+      <div className="round-grade-chart-body">
         {active && (
           <div className="round-grade-tooltip-wrap" style={{ left: tipLeft }}>
             <RoundGradeTooltip point={active.point} />
           </div>
         )}
 
-        <svg
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          className="round-grade-chart-svg"
-          role="img"
-          aria-label="Grades por rodada"
-          onMouseLeave={() => setActive(null)}
-        >
+        <div className="round-grade-chart-wrap">
+          <svg
+            viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+            className="round-grade-chart-svg"
+            role="img"
+            aria-label="Grades por rodada"
+            onMouseLeave={() => setActive(null)}
+          >
           <defs>
             <linearGradient id={`round-grade-fill-${gradId}`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={accent} stopOpacity={embedded ? 0.12 : 0.22} />
@@ -168,7 +169,8 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, 
               </g>
             );
           })}
-        </svg>
+          </svg>
+        </div>
       </div>
     </div>
   );
