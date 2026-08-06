@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "mode": "static",
+  "families": [
+    {
+      "family": "midfielders",
+      "label": "Meio-campistas",
+      "player_count": 527,
+      "built_players": 3,
+      "has_parquet": true,
+      "heatmaps": 3,
+      "pass_maps": 9,
+      "aggregated": 1
+    }
+  ]
+}

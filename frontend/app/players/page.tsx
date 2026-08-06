@@ -26,7 +26,7 @@ export default async function PlayersPage({ searchParams }: PageProps) {
   let filters = { leagues: [] as string[], position_groups: [] as string[] };
   let error: string | null = null;
 
-  let positionFamilies = [...POSITION_FAMILIES];
+  let positionFamilies: { key: string; label: string }[] = [...POSITION_FAMILIES];
 
   const family = params.position_family ?? "midfielders";
 

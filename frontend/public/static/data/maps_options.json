@@ -1,0 +1,59 @@
+{
+  "scatter_metrics": [
+    {
+      "key": "xpass_coe_pct",
+      "label": "COE"
+    },
+    {
+      "key": "test_impact_v2_p90",
+      "label": "Impact Passes"
+    },
+    {
+      "key": "xpv_per_pass_p90",
+      "label": "xPV/Game"
+    },
+    {
+      "key": "xpv_per_pass",
+      "label": "xPV/Pass"
+    },
+    {
+      "key": "xp_per_90",
+      "label": "xP"
+    }
+  ],
+  "pass_filters": [
+    {
+      "key": "progressive",
+      "label": "Progressive Passes"
+    },
+    {
+      "key": "key_passes",
+      "label": "Key passes"
+    },
+    {
+      "key": "test_impact_v2",
+      "label": "Impact Passes"
+    },
+    {
+      "key": "line_break",
+      "label": "Line Break"
+    }
+  ],
+  "views": [
+    {
+      "key": "scatter",
+      "label": "Scatter"
+    },
+    {
+      "key": "pass_map",
+      "label": "Pass map"
+    }
+  ],
+  "scatter_metric_labels": {
+    "xpass_coe_pct": "COE",
+    "test_impact_v2_p90": "Impact Passes",
+    "xpv_per_pass_p90": "xPV/Game",
+    "xpv_per_pass": "xPV/Pass",
+    "xp_per_90": "xP"
+  }
+}

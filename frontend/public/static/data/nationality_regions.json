@@ -1,0 +1,90 @@
+{
+  "regions": [
+    "World",
+    "Western Europe",
+    "Eastern Europe",
+    "Latin America",
+    "Africa"
+  ],
+  "countries_by_region": {
+    "Western Europe": [
+      "Albania",
+      "Austria",
+      "Belgium",
+      "Denmark",
+      "England",
+      "France",
+      "Germany",
+      "Iceland",
+      "Ireland",
+      "Italy",
+      "Kingdom of Denmark",
+      "Kingdom of the Netherlands",
+      "Norway",
+      "Portugal",
+      "Scotland",
+      "Spain",
+      "Sweden",
+      "Switzerland",
+      "The Netherlands",
+      "United Kingdom",
+      "Wales"
+    ],
+    "Eastern Europe": [
+      "Armenia",
+      "Bosnia and Herzegovina",
+      "Bulgaria",
+      "Croatia",
+      "Czechia",
+      "Hungary",
+      "Kosovo",
+      "Lithuania",
+      "Macedonia",
+      "Montenegro",
+      "Poland",
+      "Romania",
+      "Serbia",
+      "Slovakia",
+      "Ukraine"
+    ],
+    "Latin America": [
+      "Argentina",
+      "Brazil",
+      "Chile",
+      "Colombia",
+      "Ecuador",
+      "Guadeloupe",
+      "Honduras",
+      "Mexico",
+      "Paraguay",
+      "Uruguay",
+      "Venezuela"
+    ],
+    "Africa": [
+      "Algeria",
+      "Cameroon",
+      "Central African Republic",
+      "DR Congo",
+      "Equatorial Guinea",
+      "Ghana",
+      "Guinea",
+      "Ivory Coast",
+      "Libya",
+      "Mali",
+      "Mauritania",
+      "Morocco",
+      "Nigeria",
+      "Senegal",
+      "Tunisia",
+      "Zambia",
+      "Zimbabwe"
+    ]
+  },
+  "aliases": {
+    "kingdom of denmark": "Denmark",
+    "kingdom of the netherlands": "The Netherlands",
+    "ivory coast": "Ivory Coast",
+    "macedonia": "North Macedonia",
+    "united kingdom": "United Kingdom"
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "pass_count": 14,
+  "caption": "14 passes · cor = xP",
+  "pass_map_url": "/static/assets/maps/midfielders/1512625/progressive_pass.png",
+  "dest_map_url": "/static/assets/maps/midfielders/1512625/progressive_dest.png",
+  "round_options": [
+    {
+      "key": "all",
+      "label": "Todas as rodadas"
+    },
+    {
+      "key": "event:16173051",
+      "label": "Rodada 1 · Saint-Étienne vs Rodez AF · 90'"
+    },
+    {
+      "key": "event:16198895",
+      "label": "Rodada 2 · Saint-Étienne vs Nice · 90'"
+    },
+    {
+      "key": "event:16198901",
+      "label": "Rodada 3 · Nice vs Saint-Étienne · 76'"
+    }
+  ],
+  "pass_filter_options": [
+    {
+      "key": "progressive",
+      "label": "Progressive Passes"
+    },
+    {
+      "key": "key_passes",
+      "label": "Key passes"
+    },
+    {
+      "key": "test_impact_v2",
+      "label": "Impact Passes"
+    },
+    {
+      "key": "line_break",
+      "label": "Line Break"
+    }
+  ],
+  "scatter_metric_options": [
+    {
+      "key": "xpass_coe_pct",
+      "label": "COE"
+    },
+    {
+      "key": "test_impact_v2_p90",
+      "label": "Impact Passes"
+    },
+    {
+      "key": "xpv_per_pass_p90",
+      "label": "xPV/Game"
+    },
+    {
+      "key": "xpv_per_pass",
+      "label": "xPV/Pass"
+    },
+    {
+      "key": "xp_per_90",
+      "label": "xP"
+    }
+  ]
+}

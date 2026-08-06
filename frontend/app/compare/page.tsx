@@ -9,10 +9,11 @@ import { PassLengthMix } from "@/components/PassLengthMix";
 import { XpProfileBars } from "@/components/XpProfileBars";
 import { POSITION_FAMILIES } from "@/lib/positionFamilies";
 import { getCompare, getMeta, getPlayerOptionsLegacy, type ComparePayload, type PlayerOption } from "@/lib/api";
+import { imageSrcFromPayload } from "@/lib/imageSrc";
 
 export default function ComparePage() {
   const [positionFamily, setPositionFamily] = useState("midfielders");
-  const [positionFamilies, setPositionFamilies] = useState(POSITION_FAMILIES);
+  const [positionFamilies, setPositionFamilies] = useState<{ key: string; label: string }[]>([...POSITION_FAMILIES]);
   const [options, setOptions] = useState<PlayerOption[]>([]);
   const [playerA, setPlayerA] = useState("");
   const [playerB, setPlayerB] = useState("");
@@ -45,8 +46,9 @@ export default function ComparePage() {
       .finally(() => setLoading(false));
   }, [playerA, playerB, positionFamily]);
 
-  function PlayerCard({ side, player, heatmap }: { side: "a" | "b"; player: Record<string, unknown>; heatmap?: string | null }) {
+  function PlayerCard({ side, player, heatmapUrl, heatmapB64 }: { side: "a" | "b"; player: Record<string, unknown>; heatmapUrl?: string | null; heatmapB64?: string | null }) {
     const bars = (player.xp_bars as { key: string; label: string; value?: number }[]) ?? [];
+    const heatmapSrc = imageSrcFromPayload(heatmapUrl, heatmapB64);
     return (
       <div className={`player-card compare-side compare-side-${side}`}>
         <div className="identity-header">
@@ -69,7 +71,7 @@ export default function ComparePage() {
           <div className="metric-line"><span>Idade</span><span className="stat-val">{String(player.age ?? "—")}</span></div>
           <div className="metric-line"><span>Minutos</span><span className="stat-val">{String(player.minutes ?? "—")}</span></div>
         </div>
-        {heatmap && <img src={`data:image/png;base64,${heatmap}`} alt="Heatmap" className="heatmap-img" />}
+        {heatmapSrc && <img src={heatmapSrc} alt="Heatmap" className="heatmap-img" />}
         <div style={{ marginTop: "0.75rem" }}>
           <XpProfileBars bars={bars} />
         </div>
@@ -117,11 +119,11 @@ export default function ComparePage() {
 
       {data && !loading && (
         <div className="compare-layout">
-          <PlayerCard side="a" player={data.player_a} heatmap={data.heatmap_a_b64} />
+          <PlayerCard side="a" player={data.player_a} heatmapUrl={data.heatmap_a_url} heatmapB64={data.heatmap_a_b64} />
           <div className="player-card" style={{ padding: "1rem" }}>
             <CompareCenter pillars={data.pillars} passGrid={data.pass_grid} />
           </div>
-          <PlayerCard side="b" player={data.player_b} heatmap={data.heatmap_b_b64} />
+          <PlayerCard side="b" player={data.player_b} heatmapUrl={data.heatmap_b_url} heatmapB64={data.heatmap_b_b64} />
         </div>
       )}
     </div>

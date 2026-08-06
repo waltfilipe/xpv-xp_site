@@ -1,9 +1,21 @@
 /**
  * Browser → same origin (/api/...) proxied by Next.js rewrites.
  * Server  → backend directly (BACKEND_URL / 127.0.0.1:8000).
+ * Static  → NEXT_PUBLIC_STATIC_MODE=1 reads from /static/data (no backend).
  */
 import type { ProfileFilterState } from "@/lib/profileParams";
 import { filtersToApiParams } from "@/lib/profileParams";
+import * as staticApi from "@/lib/staticApi";
+import {
+  fetchAggregatedMapsFromAssets,
+  fetchPassMapFromAssets,
+  heatmapAssetUrl,
+  offlineMapsEnabled,
+} from "@/lib/assets";
+
+function isStaticMode(): boolean {
+  return process.env.NEXT_PUBLIC_STATIC_MODE === "1";
+}
 
 function getApiBase(): string {
   if (typeof window !== "undefined") return "";
@@ -72,6 +84,7 @@ export type PlayerProfile = {
   pass_scores: PassScoreSection[];
   xp_bars: XpBar[];
   origin_heatmap_b64?: string | null;
+  origin_heatmap_url?: string | null;
   long_pass_share_pct?: number | null;
   long_pass_share_ref_avg_pct?: number | null;
   long_pass_share_pctile?: number | null;
@@ -96,6 +109,8 @@ export type ComparePayload = {
   player_b: Record<string, unknown>;
   heatmap_a_b64?: string | null;
   heatmap_b_b64?: string | null;
+  heatmap_a_url?: string | null;
+  heatmap_b_url?: string | null;
   pillars: CompareMetric[];
   pass_grid: CompareMetric[];
 };
@@ -119,6 +134,7 @@ export type ScatterData = {
 };
 
 export function getMeta(positionFamily = "midfielders") {
+  if (isStaticMode()) return staticApi.staticGetMeta(positionFamily);
   return fetchApi<{
     position_family?: string;
     position_family_label?: string;
@@ -140,6 +156,9 @@ export function getPlayers(params?: {
   search?: string;
   limit?: number;
 }) {
+  if (isStaticMode()) {
+    return staticApi.staticGetPlayers(params);
+  }
   const qs = new URLSearchParams();
   if (params?.league) qs.set("league", params.league);
   if (params?.position_group) qs.set("position_group", params.position_group);
@@ -151,6 +170,7 @@ export function getPlayers(params?: {
 }
 
 export function getPlayerOptions(filters: ProfileFilterState = {}) {
+  if (isStaticMode()) return staticApi.staticGetPlayerOptions(filters);
   const qs = new URLSearchParams(filtersToApiParams(filters));
   if (filters.search) qs.set("search", filters.search);
   const q = qs.toString();
@@ -163,6 +183,7 @@ export function getPlayerOptionsLegacy(params?: {
   search?: string;
   position_family?: string;
 }) {
+  if (isStaticMode()) return staticApi.staticGetPlayerOptionsLegacy(params);
   const qs = new URLSearchParams();
   if (params?.league) qs.set("league", params.league);
   if (params?.exclude) qs.set("exclude", params.exclude);
@@ -173,20 +194,33 @@ export function getPlayerOptionsLegacy(params?: {
 }
 
 export function getPlayerProfile(id: string, positionFamily = "midfielders") {
+  if (isStaticMode()) return staticApi.staticGetPlayerProfile(id, positionFamily);
   const qs = new URLSearchParams({ position_family: positionFamily });
-  return fetchApi<PlayerProfile>(`/api/players/${id}?${qs}`);
+  return fetchApi<PlayerProfile>(`/api/players/${id}?${qs}`).then((profile) => {
+    if (offlineMapsEnabled() && !profile.origin_heatmap_b64) {
+      profile.origin_heatmap_url = heatmapAssetUrl(positionFamily, id);
+    }
+    return profile;
+  });
 }
 
 export function getCompare(playerA: string, playerB: string, positionFamily = "midfielders") {
+  if (isStaticMode()) return staticApi.staticGetCompare(playerA, playerB, positionFamily);
   const qs = new URLSearchParams({
     player_a: playerA,
     player_b: playerB,
     position_family: positionFamily,
   });
-  return fetchApi<ComparePayload>(`/api/compare?${qs}`);
+  return fetchApi<ComparePayload>(`/api/compare?${qs}`).then((payload) => {
+    if (!offlineMapsEnabled()) return payload;
+    if (!payload.heatmap_a_b64) payload.heatmap_a_url = heatmapAssetUrl(positionFamily, playerA);
+    if (!payload.heatmap_b_b64) payload.heatmap_b_url = heatmapAssetUrl(positionFamily, playerB);
+    return payload;
+  });
 }
 
 export function getScatter(x: string, y: string, highlight?: string, positionFamily = "midfielders") {
+  if (isStaticMode()) return staticApi.staticGetScatter(x, y, highlight, positionFamily);
   const qs = new URLSearchParams({ x, y, position_family: positionFamily });
   if (highlight) qs.set("highlight", highlight);
   return fetchApi<ScatterData>(`/api/maps/scatter?${qs}`);
@@ -198,6 +232,12 @@ export function getPassMap(
   roundKey: string,
   positionFamily = "midfielders",
 ) {
+  if (isStaticMode()) {
+    return staticApi.staticGetPassMap(playerId, passFilter, roundKey, positionFamily);
+  }
+  if (offlineMapsEnabled()) {
+    return fetchPassMapFromAssets(playerId, passFilter, positionFamily);
+  }
   const qs = new URLSearchParams({
     pass_filter: passFilter,
     round_key: roundKey,
@@ -207,6 +247,8 @@ export function getPassMap(
     pass_count: number;
     pass_map_b64?: string | null;
     dest_map_b64?: string | null;
+    pass_map_url?: string | null;
+    dest_map_url?: string | null;
     caption: string;
     pass_filter_options: { key: string; label: string }[];
     scatter_metric_options: { key: string; label: string }[];
@@ -214,6 +256,7 @@ export function getPassMap(
 }
 
 export function getMapsOptions() {
+  if (isStaticMode()) return staticApi.staticGetMapsOptions();
   return fetchApi<{
     scatter_metrics: { key: string; label: string }[];
     pass_filters: { key: string; label: string }[];
@@ -222,6 +265,8 @@ export function getMapsOptions() {
 }
 
 export function getAggregatedMaps(positionFamily = "midfielders") {
+  if (isStaticMode()) return staticApi.staticGetAggregatedMaps(positionFamily);
+  if (offlineMapsEnabled()) return fetchAggregatedMapsFromAssets(positionFamily);
   const qs = new URLSearchParams({ position_family: positionFamily });
   return fetchApi<{
     player_count: number;
@@ -229,5 +274,7 @@ export function getAggregatedMaps(positionFamily = "midfielders") {
     quadrant_stats: { quadrant: string; passes: number; share_pct: number }[];
     common_map_b64?: string | null;
     rare_map_b64?: string | null;
+    common_map_url?: string | null;
+    rare_map_url?: string | null;
   }>(`/api/maps/aggregated?${qs}`);
 }

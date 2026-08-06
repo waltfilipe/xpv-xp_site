@@ -1,0 +1,164 @@
+{
+  "pass_count": 10,
+  "caption": "10 passes · cor = xP",
+  "pass_map_url": "/static/assets/maps/midfielders/1930811/line_break_pass.png",
+  "dest_map_url": "/static/assets/maps/midfielders/1930811/line_break_dest.png",
+  "round_options": [
+    {
+      "key": "all",
+      "label": "Todas as rodadas"
+    },
+    {
+      "key": "event:14061192",
+      "label": "Rodada 1 · Metz vs RC Strasbourg · 90'"
+    },
+    {
+      "key": "event:14065710",
+      "label": "Rodada 2 · RC Strasbourg vs Nantes · 90'"
+    },
+    {
+      "key": "event:14065706",
+      "label": "Rodada 3 · AS Monaco vs RC Strasbourg · 80'"
+    },
+    {
+      "key": "event:14065724",
+      "label": "Rodada 4 · RC Strasbourg vs Le Havre · 45'"
+    },
+    {
+      "key": "event:14065729",
+      "label": "Rodada 5 · Paris FC vs RC Strasbourg · 90'"
+    },
+    {
+      "key": "event:14065740",
+      "label": "Rodada 6 · RC Strasbourg vs Olympique de Marseille · 58'"
+    },
+    {
+      "key": "event:14167884",
+      "label": "Rodada 7 · RC Strasbourg vs Angers · 90'"
+    },
+    {
+      "key": "event:14167897",
+      "label": "Rodada 8 · Paris Saint-Germain vs RC Strasbourg · 42'"
+    },
+    {
+      "key": "event:14167911",
+      "label": "Rodada 9 · Olympique Lyonnais vs RC Strasbourg · 58'"
+    },
+    {
+      "key": "event:14064506",
+      "label": "Rodada 10 · RC Strasbourg vs Auxerre · 90'"
+    },
+    {
+      "key": "event:14167937",
+      "label": "Rodada 11 · Stade Rennais vs RC Strasbourg · 90'"
+    },
+    {
+      "key": "event:14064410",
+      "label": "Rodada 12 · RC Strasbourg vs Lille · 87'"
+    },
+    {
+      "key": "event:14064444",
+      "label": "Rodada 13 · RC Strasbourg vs Lorient · 26'"
+    },
+    {
+      "key": "event:14064447",
+      "label": "Rodada 14 · Nice vs RC Strasbourg · 90'"
+    },
+    {
+      "key": "event:14064456",
+      "label": "Rodada 15 · RC Strasbourg vs Metz · 51'"
+    },
+    {
+      "key": "event:14064465",
+      "label": "Rodada 16 · Lille vs RC Strasbourg · 64'"
+    },
+    {
+      "key": "event:14064477",
+      "label": "Rodada 17 · RC Strasbourg vs Paris Saint-Germain · 74'"
+    },
+    {
+      "key": "event:14064494",
+      "label": "Rodada 18 · Olympique de Marseille vs RC Strasbourg · 90'"
+    },
+    {
+      "key": "event:14064501",
+      "label": "Rodada 19 · RC Strasbourg vs Olympique Lyonnais · 16'"
+    },
+    {
+      "key": "event:14167891",
+      "label": "Rodada 20 · RC Strasbourg vs RC Lens · 90'"
+    },
+    {
+      "key": "event:14167908",
+      "label": "Rodada 21 · Auxerre vs RC Strasbourg · 90'"
+    },
+    {
+      "key": "event:14167920",
+      "label": "Rodada 22 · RC Strasbourg vs Paris FC · 90'"
+    },
+    {
+      "key": "event:14167936",
+      "label": "Rodada 23 · Nantes vs RC Strasbourg · 26'"
+    },
+    {
+      "key": "event:14167979",
+      "label": "Rodada 24 · Lorient vs RC Strasbourg · 45'"
+    },
+    {
+      "key": "event:14167988",
+      "label": "Rodada 25 · RC Strasbourg vs Toulouse · 80'"
+    },
+    {
+      "key": "event:14064518",
+      "label": "Rodada 26 · Angers vs RC Strasbourg · 90'"
+    },
+    {
+      "key": "event:15889322",
+      "label": "Rodada 27 · Stade Brestois vs RC Strasbourg · 90'"
+    },
+    {
+      "key": "event:14061905",
+      "label": "Rodada 28 · RC Strasbourg vs AS Monaco · 90'"
+    }
+  ],
+  "pass_filter_options": [
+    {
+      "key": "progressive",
+      "label": "Progressive Passes"
+    },
+    {
+      "key": "key_passes",
+      "label": "Key passes"
+    },
+    {
+      "key": "test_impact_v2",
+      "label": "Impact Passes"
+    },
+    {
+      "key": "line_break",
+      "label": "Line Break"
+    }
+  ],
+  "scatter_metric_options": [
+    {
+      "key": "xpass_coe_pct",
+      "label": "COE"
+    },
+    {
+      "key": "test_impact_v2_p90",
+      "label": "Impact Passes"
+    },
+    {
+      "key": "xpv_per_pass_p90",
+      "label": "xPV/Game"
+    },
+    {
+      "key": "xpv_per_pass",
+      "label": "xPV/Pass"
+    },
+    {
+      "key": "xp_per_90",
+      "label": "xP"
+    }
+  ]
+}

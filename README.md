@@ -45,6 +45,20 @@ chmod +x scripts/start-pass-scout.sh scripts/start-cloudflared.sh
 
 Guia completo (túnel fixo, domínio, Cloudflare Access): **[docs/LOCAL_CLOUDFLARE.md](docs/LOCAL_CLOUDFLARE.md)**
 
+## Site estático para apresentação (opção B)
+
+Sem backend em runtime — JSON + PNGs pré-gerados, link público na Vercel:
+
+**[docs/STATIC_SITE.md](docs/STATIC_SITE.md)** — site 100% estático
+
+**[docs/HYBRID_DEPLOY.md](docs/HYBRID_DEPLOY.md)** — Render + R2 + Vercel (recomendado para 527 jogadores com mapas)
+
+```bash
+./scripts/build-static-site.sh --family midfielders
+cp frontend/.env.hybrid.example frontend/.env.local   # modo híbrido
+cd frontend && npm run dev
+```
+
 ## Deploy na nuvem (Render + Vercel)
 
 ### 1. Backend no Render (gratuito)

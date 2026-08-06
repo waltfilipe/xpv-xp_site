@@ -1,0 +1,33 @@
+{
+  "position_family": "midfielders",
+  "player_count": 250,
+  "total_passes": 271146,
+  "quadrant_stats": [
+    {
+      "quadrant_key": "def_left",
+      "quadrant": "Defensivo · esquerda",
+      "passes": 59496,
+      "share_pct": 21.9
+    },
+    {
+      "quadrant_key": "def_right",
+      "quadrant": "Defensivo · direita",
+      "passes": 59538,
+      "share_pct": 22.0
+    },
+    {
+      "quadrant_key": "att_left",
+      "quadrant": "Ofensivo · esquerda",
+      "passes": 75722,
+      "share_pct": 27.9
+    },
+    {
+      "quadrant_key": "att_right",
+      "quadrant": "Ofensivo · direita",
+      "passes": 76390,
+      "share_pct": 28.2
+    }
+  ],
+  "common_map_url": "/static/assets/aggregated/midfielders_common.png",
+  "rare_map_url": "/static/assets/aggregated/midfielders_rare.png"
+}
