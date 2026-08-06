@@ -1,0 +1,365 @@
+{
+  "position_family": "midfielders",
+  "position_family_label": "Meio-campistas",
+  "player_count": 665,
+  "leagues": [
+    "bundesliga",
+    "italia_seriea",
+    "laliga",
+    "ligue1",
+    "premier_league"
+  ],
+  "league_options": [
+    {
+      "key": "all",
+      "label": "All leagues"
+    },
+    {
+      "key": "premier_league",
+      "label": "Premier League"
+    },
+    {
+      "key": "italia_seriea",
+      "label": "Serie A"
+    },
+    {
+      "key": "laliga",
+      "label": "La Liga"
+    },
+    {
+      "key": "bundesliga",
+      "label": "Bundesliga"
+    },
+    {
+      "key": "ligue1",
+      "label": "Ligue 1"
+    }
+  ],
+  "position_groups": [
+    "attacking_midfielders",
+    "central_midfielders",
+    "midfielders"
+  ],
+  "position_families": [
+    {
+      "key": "centerbacks",
+      "label": "Zagueiros"
+    },
+    {
+      "key": "fullbacks",
+      "label": "Laterais"
+    },
+    {
+      "key": "midfielders",
+      "label": "Meio-campistas"
+    },
+    {
+      "key": "wingers",
+      "label": "Extremos"
+    }
+  ],
+  "nationalities": [
+    "Albania",
+    "Algeria",
+    "Argentina",
+    "Armenia",
+    "Australia",
+    "Austria",
+    "Belgium",
+    "Bosnia and Herzegovina",
+    "Brazil",
+    "Bulgaria",
+    "Cameroon",
+    "Canada",
+    "Central African Republic",
+    "Chile",
+    "Colombia",
+    "Croatia",
+    "Czechia",
+    "DR Congo",
+    "Denmark",
+    "Ecuador",
+    "England",
+    "Equatorial Guinea",
+    "France",
+    "Germany",
+    "Ghana",
+    "Guadeloupe",
+    "Guinea",
+    "Honduras",
+    "Hungary",
+    "Iceland",
+    "Ireland",
+    "Israel",
+    "Italy",
+    "Ivory Coast",
+    "Japan",
+    "Kosovo",
+    "Libya",
+    "Lithuania",
+    "Mali",
+    "Mauritania",
+    "Mexico",
+    "Montenegro",
+    "Morocco",
+    "Nigeria",
+    "North Macedonia",
+    "Norway",
+    "Paraguay",
+    "Poland",
+    "Portugal",
+    "Romania",
+    "Scotland",
+    "Senegal",
+    "Serbia",
+    "Slovakia",
+    "South Korea",
+    "Spain",
+    "Sweden",
+    "Switzerland",
+    "The Netherlands",
+    "Tunisia",
+    "Turkey",
+    "Ukraine",
+    "United Kingdom",
+    "United States",
+    "Uruguay",
+    "Venezuela",
+    "Wales",
+    "Zambia",
+    "Zimbabwe"
+  ],
+  "filter_options": {
+    "position_families": [
+      {
+        "key": "centerbacks",
+        "label": "Zagueiros"
+      },
+      {
+        "key": "fullbacks",
+        "label": "Laterais"
+      },
+      {
+        "key": "midfielders",
+        "label": "Meio-campistas"
+      },
+      {
+        "key": "wingers",
+        "label": "Extremos"
+      }
+    ],
+    "leagues": [
+      {
+        "key": "all",
+        "label": "All leagues"
+      },
+      {
+        "key": "premier_league",
+        "label": "Premier League"
+      },
+      {
+        "key": "italia_seriea",
+        "label": "Serie A"
+      },
+      {
+        "key": "laliga",
+        "label": "La Liga"
+      },
+      {
+        "key": "bundesliga",
+        "label": "Bundesliga"
+      },
+      {
+        "key": "ligue1",
+        "label": "Ligue 1"
+      }
+    ],
+    "foot": [
+      {
+        "key": "all",
+        "label": "Todos"
+      },
+      {
+        "key": "left",
+        "label": "Esquerdo"
+      },
+      {
+        "key": "right",
+        "label": "Direito"
+      },
+      {
+        "key": "both",
+        "label": "Ambidestro"
+      }
+    ],
+    "age_bands": [
+      {
+        "key": "all",
+        "label": "Todas as idades",
+        "min": null,
+        "max": null
+      },
+      {
+        "key": "u21",
+        "label": "U21",
+        "min": null,
+        "max": 21
+      },
+      {
+        "key": "u23",
+        "label": "U23",
+        "min": 22,
+        "max": 23
+      },
+      {
+        "key": "24_30",
+        "label": "24-30",
+        "min": 24,
+        "max": 30
+      },
+      {
+        "key": "over30",
+        "label": ">30",
+        "min": 31,
+        "max": null
+      }
+    ],
+    "nationality_regions": [
+      "World",
+      "Western Europe",
+      "Eastern Europe",
+      "Latin America",
+      "Africa"
+    ],
+    "age_range": {
+      "min": 16,
+      "max": 42
+    },
+    "value_range_m": {
+      "min": 0,
+      "max": 150
+    },
+    "contract_year_range": {
+      "min": 2026,
+      "max": 2033
+    },
+    "minutes_range": {
+      "min": 0,
+      "max": 3600
+    },
+    "height_range_m": {
+      "min": 1.6,
+      "max": 2.05
+    },
+    "letter_grades": [
+      {
+        "key": "all",
+        "label": "Todas"
+      },
+      {
+        "key": "A+",
+        "label": "A+"
+      },
+      {
+        "key": "A",
+        "label": "A"
+      },
+      {
+        "key": "A-",
+        "label": "A−"
+      },
+      {
+        "key": "B+",
+        "label": "B+"
+      },
+      {
+        "key": "B",
+        "label": "B"
+      },
+      {
+        "key": "B-",
+        "label": "B−"
+      },
+      {
+        "key": "C+",
+        "label": "C+"
+      },
+      {
+        "key": "C",
+        "label": "C"
+      },
+      {
+        "key": "C-",
+        "label": "C−"
+      },
+      {
+        "key": "D",
+        "label": "D"
+      }
+    ],
+    "pass_score_filters": [
+      {
+        "key": "volume_grade",
+        "label": "Volume"
+      },
+      {
+        "key": "efficiency_grade",
+        "label": "Efficiency"
+      },
+      {
+        "key": "buildup_grade",
+        "label": "Build-up"
+      },
+      {
+        "key": "chance_grade",
+        "label": "Chance creation"
+      }
+    ],
+    "position_blocks": [
+      {
+        "key": "all",
+        "label": "Todos os meio-campistas"
+      },
+      {
+        "key": "cm",
+        "label": "Meio-campistas centrais"
+      },
+      {
+        "key": "am",
+        "label": "Meio-campistas ofensivos"
+      }
+    ],
+    "defaults": {
+      "league": "all",
+      "position_family": "midfielders",
+      "position_block": "all",
+      "age_band": "all",
+      "age_slider": [
+        16,
+        42
+      ],
+      "foot": "all",
+      "value_slider_m": [
+        0,
+        150
+      ],
+      "contract_year": [
+        2026,
+        2033
+      ],
+      "minutes_slider": [
+        0,
+        3600
+      ],
+      "height_slider_m": [
+        1.6,
+        2.05
+      ],
+      "nationality_regions": [
+        "World"
+      ],
+      "nationality_countries": []
+    }
+  },
+  "description": "Premier League, Serie A, La Liga, Bundesliga and Ligue 1 meio-campistas — pass ratings (xT v4), progression ratings, and xP analytics. All scores and ranks are computed within the selected position pool."
+}

@@ -11,6 +11,7 @@ import { XpIndicesPanel } from "@/components/XpIndicesPanel";
 import { XpProfileBars } from "@/components/XpProfileBars";
 import { getPlayerProfile, type PlayerProfile } from "@/lib/api";
 import { formatContractUntil } from "@/lib/formatters";
+import { imageSrcFromPayload } from "@/lib/imageSrc";
 
 function FactIcon({ icon }: { icon: string }) {
   return (
@@ -52,6 +53,7 @@ export function ProfileView({
   if (!data) return null;
 
   const p = data.player;
+  const originHeatmapSrc = imageSrcFromPayload(data.origin_heatmap_url, data.origin_heatmap_b64);
 
   return (
     <>
@@ -123,8 +125,8 @@ export function ProfileView({
               </div>
             </div>
 
-            {data.origin_heatmap_b64 && (
-              <img src={`data:image/png;base64,${data.origin_heatmap_b64}`} alt="Origem dos passes" className="heatmap-img" />
+            {originHeatmapSrc && (
+              <img src={originHeatmapSrc} alt="Origem dos passes" className="heatmap-img" />
             )}
           </div>
         </div>

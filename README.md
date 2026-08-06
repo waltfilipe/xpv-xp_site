@@ -45,6 +45,18 @@ chmod +x scripts/start-pass-scout.sh scripts/start-cloudflared.sh
 
 Guia completo (túnel fixo, domínio, Cloudflare Access): **[docs/LOCAL_CLOUDFLARE.md](docs/LOCAL_CLOUDFLARE.md)**
 
+## Site estático para apresentação (opção B)
+
+Sem backend em runtime — JSON + PNGs pré-gerados, link público na Vercel:
+
+**[docs/STATIC_SITE.md](docs/STATIC_SITE.md)**
+
+```bash
+./scripts/build-static-site.sh --family midfielders --limit 20
+cp frontend/.env.static.example frontend/.env.local
+cd frontend && npm run dev:static
+```
+
 ## Deploy na nuvem (Render + Vercel)
 
 ### 1. Backend no Render (gratuito)

@@ -1,0 +1,140 @@
+{
+  "pass_count": 26,
+  "caption": "26 passes · cor = xP",
+  "pass_map_url": "/static/assets/maps/midfielders/915812/progressive_pass.png",
+  "dest_map_url": "/static/assets/maps/midfielders/915812/progressive_dest.png",
+  "round_options": [
+    {
+      "key": "all",
+      "label": "Todas as rodadas"
+    },
+    {
+      "key": "event:13981438",
+      "label": "Rodada 1 · Udinese vs Hellas Verona · 53'"
+    },
+    {
+      "key": "event:13981446",
+      "label": "Rodada 2 · Lazio vs Hellas Verona · 64'"
+    },
+    {
+      "key": "event:13981489",
+      "label": "Rodada 3 · Hellas Verona vs Cagliari · 26'"
+    },
+    {
+      "key": "event:13981518",
+      "label": "Rodada 4 · Hellas Verona vs Inter · 16'"
+    },
+    {
+      "key": "event:13981526",
+      "label": "Rodada 5 · Lecce vs Hellas Verona · 85'"
+    },
+    {
+      "key": "event:13981532",
+      "label": "Rodada 6 · Hellas Verona vs Parma · 11'"
+    },
+    {
+      "key": "event:13981588",
+      "label": "Rodada 7 · AC Milan vs Hellas Verona · 32'"
+    },
+    {
+      "key": "event:13981593",
+      "label": "Rodada 8 · Hellas Verona vs Torino · 90'"
+    },
+    {
+      "key": "event:13981622",
+      "label": "Rodada 9 · Cremonese vs Hellas Verona · 58'"
+    },
+    {
+      "key": "event:13981640",
+      "label": "Rodada 10 · Hellas Verona vs Udinese · 90'"
+    },
+    {
+      "key": "event:13981644",
+      "label": "Rodada 11 · Cagliari vs Hellas Verona · 90'"
+    },
+    {
+      "key": "event:13981662",
+      "label": "Rodada 12 · Hellas Verona vs Pisa · 37'"
+    },
+    {
+      "key": "event:13981668",
+      "label": "Rodada 13 · Parma vs Hellas Verona · 90'"
+    },
+    {
+      "key": "event:13981681",
+      "label": "Rodada 14 · Sassuolo vs Hellas Verona · 90'"
+    },
+    {
+      "key": "event:13981694",
+      "label": "Rodada 15 · Hellas Verona vs SSC Napoli · 90'"
+    },
+    {
+      "key": "event:13981692",
+      "label": "Rodada 16 · Bologna vs Hellas Verona · 90'"
+    },
+    {
+      "key": "event:13981710",
+      "label": "Rodada 17 · Hellas Verona vs Genoa · 90'"
+    },
+    {
+      "key": "event:13981709",
+      "label": "Rodada 18 · Atalanta vs Hellas Verona · 90'"
+    },
+    {
+      "key": "event:13981741",
+      "label": "Rodada 19 · Torino vs Hellas Verona · 90'"
+    },
+    {
+      "key": "event:13980091",
+      "label": "Rodada 20 · Juventus vs Hellas Verona · 11'"
+    },
+    {
+      "key": "event:13980067",
+      "label": "Rodada 21 · Inter vs Hellas Verona · 90'"
+    },
+    {
+      "key": "event:13980064",
+      "label": "Rodada 22 · Hellas Verona vs AS Roma · 74'"
+    }
+  ],
+  "pass_filter_options": [
+    {
+      "key": "progressive",
+      "label": "Progressive Passes"
+    },
+    {
+      "key": "key_passes",
+      "label": "Key passes"
+    },
+    {
+      "key": "test_impact_v2",
+      "label": "Impact Passes"
+    },
+    {
+      "key": "line_break",
+      "label": "Line Break"
+    }
+  ],
+  "scatter_metric_options": [
+    {
+      "key": "xpass_coe_pct",
+      "label": "COE"
+    },
+    {
+      "key": "test_impact_v2_p90",
+      "label": "Impact Passes"
+    },
+    {
+      "key": "xpv_per_pass_p90",
+      "label": "xPV/Game"
+    },
+    {
+      "key": "xpv_per_pass",
+      "label": "xPV/Pass"
+    },
+    {
+      "key": "xp_per_90",
+      "label": "xP"
+    }
+  ]
+}

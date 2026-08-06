@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:static": "NEXT_PUBLIC_STATIC_MODE=1 next dev",
     "dev:clean": "rm -rf .next node_modules/.cache && next dev",
     "build": "next build",
+    "build:static": "NEXT_PUBLIC_STATIC_MODE=1 next build",
     "build:clean": "rm -rf .next node_modules/.cache && next build",
     "start": "next start",
     "lint": "next lint"
