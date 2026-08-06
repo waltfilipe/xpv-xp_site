@@ -314,6 +314,7 @@ def aggregate_player_xpass_metrics(
             "pass_completion_pct": round(actual_pct * 100.0, 2),
             "xpass_expected_pct": round(expected_pct * 100.0, 2),
             "xpass_coe_pct": round(short_coe_pct * 100.0, 2) if short_coe_pct is not None else None,
+            "xpass_total_coe_pct": round(coe_pct * 100.0, 2),
             "xpass_coe_count": round(coe_count, 1),
             "xpass_residual_total": round(residual_total, 2),
             "xpass_residual_p90": round(_per90(residual_total, minutes) or 0.0, 3),
@@ -341,6 +342,7 @@ def _attach_ranks(players: list[dict]) -> None:
             p[f"{metric}_rank"] = i
 
     _rank("xpass_coe_pct")
+    _rank("xpass_total_coe_pct")
     _rank("xpass_residual_total")
     _rank("xpass_residual_p90")
     _rank("xpass_hard_coe_pct")
@@ -456,6 +458,7 @@ XP_PLAYER_MERGE_KEYS: tuple[str, ...] = (
     "xpass_coe_high_pct",
     "xpass_high_difficulty_p90",
     "xpass_coe_pct",
+    "xpass_total_coe_pct",
     "xpass_long_coe_pct",
     "xpass_expected_pct",
     "pass_attempts",

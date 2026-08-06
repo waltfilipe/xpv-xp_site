@@ -10,7 +10,7 @@ type Props = {
   layout?: "tooltip" | "modal";
 };
 
-type RowTone = "grade" | "eff" | "count" | "neutral";
+type RowTone = "grade" | "eff" | "count";
 
 type StatRow = {
   key: string;
@@ -19,6 +19,14 @@ type StatRow = {
   tone: RowTone;
   grade?: number | null;
   effPct?: number | null;
+  countValue?: number | null;
+};
+
+const COUNT_GRADE_CAPS: Record<string, { min: number; max: number }> = {
+  passes: { min: 12, max: 75 },
+  breakline: { min: 0, max: 5 },
+  impact: { min: 0, max: 3 },
+  key: { min: 0, max: 2 },
 };
 
 function formatPct(value?: number | null): string {
@@ -31,36 +39,43 @@ function coeToPseudoGrade(coePct: number): number {
   return Math.max(4.5, Math.min(9, 6.5 + coePct * 0.35));
 }
 
-function qualityRowStyle(tone: RowTone, grade?: number | null, effPct?: number | null): CSSProperties {
-  let pct: number | null = null;
-  if (tone === "grade" && grade != null) {
-    pct = passGradePct(grade);
-  } else if (tone === "eff" && effPct != null) {
-    pct = passGradePct(coeToPseudoGrade(effPct));
-  }
-  if (pct == null) {
+function countToPseudoGrade(key: string, value: number): number {
+  const caps = COUNT_GRADE_CAPS[key];
+  if (!caps || caps.max <= caps.min) return 6;
+  const t = Math.max(0, Math.min(1, (value - caps.min) / (caps.max - caps.min)));
+  return 4.5 + t * 4.5;
+}
+
+function rowPseudoGrade(row: StatRow): number | null {
+  if (row.tone === "grade" && row.grade != null) return row.grade;
+  if (row.tone === "eff" && row.effPct != null) return coeToPseudoGrade(row.effPct);
+  if (row.tone === "count" && row.countValue != null) return countToPseudoGrade(row.key, row.countValue);
+  return null;
+}
+
+function qualityRowStyle(row: StatRow): CSSProperties {
+  const pseudoGrade = rowPseudoGrade(row);
+  if (pseudoGrade == null) {
     return {
       background: "linear-gradient(135deg, rgba(30, 41, 59, 0.42) 0%, rgba(15, 23, 42, 0.55) 100%)",
       borderColor: "rgba(148, 163, 184, 0.12)",
     };
   }
-  const color = passGradeGradientColor(pct);
+  const color = passGradeGradientColor(passGradePct(pseudoGrade));
   return {
     background: `linear-gradient(135deg, ${color}24 0%, rgba(15, 23, 42, 0.52) 100%)`,
     borderColor: `${color}40`,
   };
 }
 
-function valueStyle(tone: RowTone, grade?: number | null, effPct?: number | null): CSSProperties | undefined {
-  if (tone === "grade" && grade != null) {
-    const color = passGradeGradientColor(passGradePct(grade));
+function valueStyle(row: StatRow): CSSProperties | undefined {
+  const pseudoGrade = rowPseudoGrade(row);
+  if (pseudoGrade == null) return undefined;
+  const color = passGradeGradientColor(passGradePct(pseudoGrade));
+  if (row.tone === "grade") {
     return { color, textShadow: `0 0 10px ${color}44` };
   }
-  if (tone === "eff" && effPct != null) {
-    const color = passGradeGradientColor(passGradePct(coeToPseudoGrade(effPct)));
-    return { color };
-  }
-  return undefined;
+  return { color };
 }
 
 function buildRows(point: XpRoundGrade): StatRow[] {
@@ -77,6 +92,7 @@ function buildRows(point: XpRoundGrade): StatRow[] {
       label: "Passes",
       value: point.passes != null ? String(point.passes) : "—",
       tone: "count",
+      countValue: point.passes,
     },
     {
       key: "short",
@@ -97,18 +113,21 @@ function buildRows(point: XpRoundGrade): StatRow[] {
       label: "Breakline passes",
       value: point.breakline_passes != null ? String(point.breakline_passes) : "—",
       tone: "count",
+      countValue: point.breakline_passes,
     },
     {
       key: "impact",
       label: "Impact passes",
       value: point.impact != null ? String(point.impact) : "—",
       tone: "count",
+      countValue: point.impact,
     },
     {
       key: "key",
       label: "Key passes",
       value: point.key_passes != null ? String(point.key_passes) : "—",
       tone: "count",
+      countValue: point.key_passes,
     },
   ];
 }
@@ -129,12 +148,12 @@ export function RoundGradeStatsPanel({ point, accent = "#a78bfa", layout = "tool
           <li
             key={row.key}
             className="round-grade-stats-row"
-            style={qualityRowStyle(row.tone, row.grade, row.effPct)}
+            style={qualityRowStyle(row)}
           >
             <span className="round-grade-stats-label">{row.label}</span>
             <span
               className="round-grade-stats-value tabular"
-              style={valueStyle(row.tone, row.grade, row.effPct)}
+              style={valueStyle(row)}
             >
               {row.value}
             </span>

@@ -1114,7 +1114,7 @@ XP_PROFILE_BAR_ICONS: dict[str, str] = {
 
 XP_PROFILE_BAR_METRICS: dict[str, tuple[str, ...]] = {
     "xp_activity_display": ("xp_per_90",),
-    "xp_edge_display": ("xpv_per_pass", "test_impact_v2_p90"),
+    "xp_edge_display": ("xpv_per_pass", "test_impact_v2_p90", "threat_pass_pct"),
     "xp_efficiency_display": ("xpass_residual_p90",),
     "xp_quality_display": ("xp_residual_median",),
     "xp_consistency_display": ("xp_game_consistency_score",),
@@ -1130,8 +1130,8 @@ XP_PROFILE_SUBMETRICS: tuple[str, ...] = (
     "xp_residual_median",
 )
 
-# Lethality pillar (xP Profile bar) — destination value + Pass Impact v2 volume.
-LETHALITY_METRICS: tuple[str, ...] = ("xpv_per_pass", "test_impact_v2_p90")
+# Lethality pillar (xP Profile bar) — mean z of xPV/pass, ImpV2 p90, and impact rate.
+LETHALITY_METRICS: tuple[str, ...] = ("xpv_per_pass", "test_impact_v2_p90", "threat_pass_pct")
 
 # xP Impact index — destination value + mean residual vs. geometric model per pass.
 IMPACT_INDEX_METRICS: tuple[str, ...] = ("xpv_per_pass", "xp_residual_mean")
@@ -1194,8 +1194,8 @@ XP_COMPARE_COLUMN_TOOLTIPS: dict[str, str] = {
         "produces per game."
     ),
     "xp_edge_display": (
-        "50% xPV per completed pass and 50% Pass Impact v2 per game — "
-        "destination value plus high-progression, difficult deliveries."
+        "Mean z-score of xPV per completed pass, Pass Impact v2 per game, and impact-pass "
+        "rate (33/33/33) within the position group."
     ),
     "passes_total": "Passes attempted per game (p90).",
 }
@@ -1216,12 +1216,12 @@ XP_COMPARE_METRIC_TOOLTIPS: dict[str, str] = {
 XP_PROFILE_BAR_TOOLTIPS: dict[str, str] = {
     "xp_activity_display": "How much xPV the player generates per game — passing volume times destination value.",
     "xp_edge_display": (
-        "Blend of xPV per completed pass and Pass Impact v2 per game (50/50) — "
-        "quality of each delivery plus selective high-impact progression."
+        "Mean z-score of xPV per completed pass, Pass Impact v2 per game, and impact-pass "
+        "rate (33/33/33) within the position group."
     ),
     "xp_efficiency_display": (
-        "75% xPass residual per 90 minutes and 25% short-pass COE vs. peers in the same "
-        "pass-volume quartile."
+        "75% xPass residual per 90 minutes and 25% COE stratum (short + total passes) vs. "
+        "peers in the same pass-volume quartile."
     ),
     "xp_quality_display": "Median xP above the model's expectation — value that comes from surprise.",
     "xp_consistency_display": "How stable game-to-game delivery grades are (low MAD of per-match scores).",
@@ -1376,7 +1376,6 @@ CONSISTENCY_INVERT_METRICS: tuple[str, ...] = ()
 
 XP_PROFILE_BAR_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("xp_activity_index", "xp_activity_display", ACTIVITY_METRICS),
-    ("xp_edge_index", "xp_edge_display", EDGE_METRICS),
     ("xp_efficiency_index", "xp_efficiency_display", EFFICIENCY_METRICS),
     ("xp_quality_index", "xp_quality_display", QUALITY_METRICS),
     ("xp_consistency_index", "xp_consistency_display", CONSISTENCY_METRICS),
@@ -2135,14 +2134,42 @@ def _attach_coe_stratum_stars(rows: list[dict]) -> None:
                 rows[int(idx)][star_key] = True
 
 
+def _ensure_xpass_total_coe_pct(rows: list[dict]) -> None:
+    """Backfill total-pass COE when only completion vs. expected % is available."""
+    for row in rows:
+        if row.get("xpass_total_coe_pct") is not None:
+            continue
+        completion = row.get("pass_completion_pct")
+        expected = row.get("xpass_expected_pct")
+        if completion is None or expected is None:
+            continue
+        row["xpass_total_coe_pct"] = round(float(completion) - float(expected), 2)
+
+
+def _coe_stratum_z_blend(
+    passes: pd.Series,
+    df: pd.DataFrame,
+    coe_cols: tuple[str, ...],
+) -> pd.Series:
+    """Average COE stratum z-scores across short and total (or other) COE columns."""
+    parts: list[pd.Series] = []
+    for col in coe_cols:
+        if col not in df.columns:
+            continue
+        parts.append(_coe_stratum_z_by_volume_quartile(passes, df[col]))
+    if not parts:
+        return pd.Series(np.nan, index=df.index, dtype=float)
+    return pd.concat(parts, axis=1).mean(axis=1, skipna=True)
+
+
 def _blend_precision_with_stratum(eligible_rows: list[dict]) -> None:
-    """Precision display = 75% residual rank score + 25% short-COE stratum rank score."""
+    """Precision display = 75% residual rank score + 25% COE stratum (short + total)."""
     import passes_engine as pe
 
     if not eligible_rows:
         return
     df = pd.DataFrame(eligible_rows)
-    if "xp_efficiency_display" not in df.columns or "xpass_coe_pct" not in df.columns:
+    if "xp_efficiency_display" not in df.columns:
         return
 
     base_display = pd.to_numeric(df["xp_efficiency_display"], errors="coerce")
@@ -2150,7 +2177,11 @@ def _blend_precision_with_stratum(eligible_rows: list[dict]) -> None:
     if not bool(base_display.notna().any()):
         return
 
-    z_stratum = _coe_stratum_z_by_volume_quartile(passes, df["xpass_coe_pct"])
+    z_stratum = _coe_stratum_z_blend(
+        passes,
+        df,
+        ("xpass_coe_pct", "xpass_total_coe_pct"),
+    )
     pool_size = len(eligible_rows)
     stratum_display = pd.Series(np.nan, index=df.index, dtype=float)
     valid_z = z_stratum.notna()
@@ -2516,6 +2547,15 @@ def attach_composite_indices(players: list[dict]) -> None:
 
         # Profile bars: rank only among eligible peers (base filters, or top 250 by passes).
         if eligible_rows:
+            _ensure_xpass_total_coe_pct(eligible_rows)
+            eligible_df = pd.DataFrame(eligible_rows)
+            lethality_composite = _mean_z_columns(eligible_df, LETHALITY_METRICS)
+            _attach_index_display_scores(
+                eligible_rows,
+                "xp_edge_index",
+                "xp_edge_display",
+                lethality_composite,
+            )
             for raw_key, display_key, metric_cols in XP_PROFILE_BAR_SPECS:
                 _attach_median_rank_display_scores(
                     eligible_rows,

@@ -2,9 +2,9 @@ export const XP_PROFILE_BAR_TOOLTIPS: Record<string, string> = {
   xp_activity_display:
     "How much xPV the player generates per game — passing volume times destination value.",
   xp_efficiency_display:
-    "75% xPass residual per 90 minutes and 25% short-pass COE vs. peers in the same pass-volume quartile.",
+    "75% xPass residual per 90 minutes and 25% COE stratum (short + total passes) vs. peers in the same pass-volume quartile.",
   xp_edge_display:
-    "Blend of xPV per completed pass and Pass Impact v2 per game (50/50) — quality of each delivery plus selective high-impact progression.",
+    "Mean z-score of xPV per completed pass, Pass Impact v2 per game, and impact-pass rate (33/33/33) within the position group.",
 };
 
 export const PASS_SCORE_TOOLTIPS: Record<string, string> = {
@@ -21,6 +21,7 @@ export const COMPONENT_TOOLTIPS: Record<string, string> = {
   passes_total: "Passes attempted per 90 minutes.",
   long_balls: "Long passes (≥30 m) per 90 minutes.",
   xpass_coe_pct: "Completion over expected on short passes (< 30 m), in percentage points.",
+  xpass_total_coe_pct: "Completion over expected on all pass attempts, in percentage points.",
   xpass_long_coe_pct: "Completion over expected on long passes (percentage points).",
   progressive_passes:
     "Progressive passes completed per game — advance ≥ 10 m toward goal, or ≥ 5 m inside the final third.",
