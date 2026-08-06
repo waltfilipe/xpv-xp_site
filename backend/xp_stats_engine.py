@@ -1773,11 +1773,11 @@ PASS_SCORE_TOOLTIPS: dict[str, str] = {
         "Within-position composite of passes and long passes per game."
     ),
     "pass_efficiency_index": (
-        "Within-position composite of COE (completion over expected) on all passes "
+        "Within-position composite of COE (completion over expected) on short passes "
         "and long passes."
     ),
     "pass_efficiency_display": (
-        "Within-position composite of COE (completion over expected) on all passes "
+        "Within-position composite of COE (completion over expected) on short passes "
         "and long passes."
     ),
     "pass_buildup_index": (

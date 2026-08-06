@@ -4,6 +4,7 @@ import { useId, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { XpRoundGrade } from "@/lib/api";
 import { passGradeGradientColor, passGradePct } from "@/lib/gradeColors";
+import { RoundGradeStatsPanel } from "@/components/RoundGradeStatsPanel";
 
 const WIDTH = 280;
 const HEIGHT = 58;
@@ -33,39 +34,6 @@ type ActiveCoord = ChartCoord & {
   tipX: number;
   tipY: number;
 };
-
-function formatPct(value?: number | null): string {
-  if (value == null || Number.isNaN(value)) return "—";
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(1)}%`;
-}
-
-function RoundGradeTooltip({ point }: { point: XpRoundGrade }) {
-  const header = `R${point.round}${point.opponent ? ` vs ${point.opponent}` : ""}`;
-  const rows: { label: string; value: string }[] = [
-    { label: "Grade", value: point.grade != null ? point.grade.toFixed(1) : "—" },
-    { label: "Passes", value: point.passes != null ? String(point.passes) : "—" },
-    { label: "% eff pass curto", value: formatPct(point.short_pass_eff_pct) },
-    { label: "% eff pass longo", value: formatPct(point.long_pass_eff_pct) },
-    { label: "Breakline passes", value: point.breakline_passes != null ? String(point.breakline_passes) : "—" },
-    { label: "Impact passes", value: point.impact != null ? String(point.impact) : "—" },
-    { label: "Key passes", value: point.key_passes != null ? String(point.key_passes) : "—" },
-  ];
-
-  return (
-    <div className="round-grade-tooltip">
-      <div className="round-grade-tooltip-head tabular">{header}</div>
-      <ul className="round-grade-tooltip-list">
-        {rows.map((row) => (
-          <li key={row.label} className="round-grade-tooltip-row">
-            <span className="round-grade-tooltip-label">{row.label}</span>
-            <span className="round-grade-tooltip-value tabular">{row.value}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
 
 export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, onPointClick }: Props) {
   const gradId = useId().replace(/:/g, "");
@@ -112,7 +80,7 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, 
             className="round-grade-tooltip-portal"
             style={{ left: active.tipX, top: active.tipY }}
           >
-            <RoundGradeTooltip point={active.point} />
+            <RoundGradeStatsPanel point={active.point} accent={accent} layout="tooltip" />
           </div>,
           document.body,
         )
@@ -151,7 +119,7 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, 
                 y1={y}
                 x2={WIDTH - PAD_X}
                 y2={y}
-                stroke="rgba(148, 163, 184, 0.05)"
+                className="round-grade-grid-line"
                 strokeWidth="1"
               />
             );

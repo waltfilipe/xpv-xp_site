@@ -9,7 +9,7 @@ export const XP_PROFILE_BAR_TOOLTIPS: Record<string, string> = {
 
 export const PASS_SCORE_TOOLTIPS: Record<string, string> = {
   Volume: "Within-position composite of passes and long passes per game.",
-  Efficiency: "Within-position composite of COE (completion over expected) on all passes and long passes.",
+  Efficiency: "Within-position composite of COE (completion over expected) on short passes and long passes.",
   "Build-up": "Within-position composite of progressive passes, final-third entries and line-breaking passes per game.",
   "Chance creation":
     "Within-position composite of key passes, passes into the box, and Test Impact v2 passes originating in the final third per game.",
@@ -20,7 +20,7 @@ export const PASS_SCORE_TOOLTIPS: Record<string, string> = {
 export const COMPONENT_TOOLTIPS: Record<string, string> = {
   passes_total: "Passes attempted per 90 minutes.",
   long_balls: "Long passes (≥30 m) per 90 minutes.",
-  xpass_coe_pct: "Completion over expected on all passes (percentage points).",
+  xpass_coe_pct: "Completion over expected on short passes (< 30 m), in percentage points.",
   xpass_long_coe_pct: "Completion over expected on long passes (percentage points).",
   progressive_passes:
     "Progressive passes completed per game — advance ≥ 10 m toward goal, or ≥ 5 m inside the final third.",

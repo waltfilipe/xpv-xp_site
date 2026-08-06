@@ -106,7 +106,11 @@ export function ConsistencyAccordion({
 
         {chart && <div className="consistency-accordion-panel">{chart}</div>}
       </details>
-      <GameStatsModal game={selectedGame} onClose={() => setSelectedGame(null)} />
+      <GameStatsModal
+        game={selectedGame}
+        onClose={() => setSelectedGame(null)}
+        accent={chartAccent}
+      />
     </>
   );
 }

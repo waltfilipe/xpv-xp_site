@@ -1,10 +1,12 @@
 "use client";
 
 import type { XpRoundGrade } from "@/lib/api";
+import { RoundGradeStatsPanel } from "@/components/RoundGradeStatsPanel";
 
 type Props = {
   game: XpRoundGrade | null;
   onClose: () => void;
+  accent?: string;
 };
 
 function formatDate(value?: string | null): string {
@@ -18,7 +20,7 @@ function formatDate(value?: string | null): string {
   });
 }
 
-export function GameStatsModal({ game, onClose }: Props) {
+export function GameStatsModal({ game, onClose, accent = "#a78bfa" }: Props) {
   if (!game) return null;
 
   return (
@@ -29,6 +31,7 @@ export function GameStatsModal({ game, onClose }: Props) {
         aria-modal="true"
         aria-labelledby="game-stats-title"
         onClick={(e) => e.stopPropagation()}
+        style={{ "--stats-accent": accent } as React.CSSProperties}
       >
         <header className="game-stats-modal-head">
           <div>
@@ -43,44 +46,7 @@ export function GameStatsModal({ game, onClose }: Props) {
           </button>
         </header>
 
-        <div className="game-stats-modal-grid">
-          <div className="game-stats-modal-stat">
-            <span className="game-stats-modal-label">Grade</span>
-            <strong className="tabular">{game.grade != null ? game.grade.toFixed(1) : "—"}</strong>
-          </div>
-          <div className="game-stats-modal-stat">
-            <span className="game-stats-modal-label">Passes</span>
-            <strong className="tabular">{game.passes ?? "—"}</strong>
-          </div>
-          <div className="game-stats-modal-stat">
-            <span className="game-stats-modal-label">% eff pass curto</span>
-            <strong className="tabular">
-              {game.short_pass_eff_pct != null
-                ? `${game.short_pass_eff_pct > 0 ? "+" : ""}${game.short_pass_eff_pct.toFixed(1)}%`
-                : "—"}
-            </strong>
-          </div>
-          <div className="game-stats-modal-stat">
-            <span className="game-stats-modal-label">% eff pass longo</span>
-            <strong className="tabular">
-              {game.long_pass_eff_pct != null
-                ? `${game.long_pass_eff_pct > 0 ? "+" : ""}${game.long_pass_eff_pct.toFixed(1)}%`
-                : "—"}
-            </strong>
-          </div>
-          <div className="game-stats-modal-stat">
-            <span className="game-stats-modal-label">Breakline passes</span>
-            <strong className="tabular">{game.breakline_passes ?? "—"}</strong>
-          </div>
-          <div className="game-stats-modal-stat">
-            <span className="game-stats-modal-label">Impact passes</span>
-            <strong className="tabular">{game.impact ?? "—"}</strong>
-          </div>
-          <div className="game-stats-modal-stat">
-            <span className="game-stats-modal-label">Key passes</span>
-            <strong className="tabular">{game.key_passes ?? "—"}</strong>
-          </div>
-        </div>
+        <RoundGradeStatsPanel point={game} accent={accent} layout="modal" />
       </div>
     </div>
   );
