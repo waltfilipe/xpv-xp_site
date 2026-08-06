@@ -111,13 +111,18 @@ def load_player_analysis_bundle(
         xp_profile["photo_url"] = pp.read_cached_photo_url(pid)
         origin = origin_by_id.get(pid)
         if origin:
-            xp_profile.setdefault("league", origin.get("league"))
-            xp_profile.setdefault("league_source", origin.get("league_source"))
+            if origin.get("league"):
+                xp_profile["league"] = origin.get("league")
+            if origin.get("league_source"):
+                xp_profile["league_source"] = origin.get("league_source")
             xp_profile["position_group"] = origin.get("position_group") or xp_profile.get("position_group")
             xp_profile["midfield_offensive_origin_pct"] = origin.get("midfield_offensive_origin_pct")
             xp_profile["midfield_origin_profile"] = origin.get("midfield_origin_profile")
     if family == "midfielders":
         xe.refresh_xp_midfield_origin_rankings(xp_players)
+    import defensive_engine as de
+
+    de.attach_defensive_contribution(xp_players)
     xp_by_id = {str(p["player_id"]): p for p in xp_players}
     for prof in progression_by_id.values():
         pid = str(prof.get("player_id"))
@@ -132,8 +137,10 @@ def load_player_analysis_bundle(
         prof["photo_url"] = pp.read_cached_photo_url(pid)
         origin = origin_by_id.get(pid)
         if origin:
-            prof.setdefault("league", origin.get("league"))
-            prof.setdefault("league_source", origin.get("league_source"))
+            if origin.get("league"):
+                prof["league"] = origin.get("league")
+            if origin.get("league_source"):
+                prof["league_source"] = origin.get("league_source")
             prof["position_group"] = origin.get("position_group") or prof.get("position_group")
     return (
         analysis_players,

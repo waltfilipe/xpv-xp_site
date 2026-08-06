@@ -6,15 +6,34 @@ from typing import Any
 
 import progression_engine as pge
 from passes_maps import draw_action_origin_smooth_heatmap
-from xp_stats_engine import XP_ROUND_SERIES_KEY, round_production_series
+from xp_stats_engine import COE_STRATUM_METRICS, XP_ROUND_SERIES_KEY, round_production_series
 
 from services.figures import fig_to_b64
+
+COE_STRATUM_STAR_BY_METRIC = dict(COE_STRATUM_METRICS)
 
 XP_PA_REGULAR_SCORE_SPECS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...] = (
     ("pass_volume_display", "pass_volume_index", "pass_volume_letter", "Volume", ("passes_total", "long_balls")),
     ("pass_efficiency_display", "pass_efficiency_index", "pass_efficiency_letter", "Efficiency", ("xpass_coe_pct", "xpass_long_coe_pct")),
     ("pass_buildup_display", "pass_buildup_index", "pass_buildup_letter", "Build-up", ("progressive_passes", "final_third_passes", "special_line_break_p90")),
     ("pass_chance_creation_display", "pass_chance_creation_index", "pass_chance_creation_letter", "Chance creation", ("key_passes", "passes_to_box", "test_impact_v2_start_final_third_p90")),
+)
+
+DEFENSIVE_SCORE_SPEC = (
+    "defense_display",
+    "defense_index",
+    "defense_letter",
+    "Defensive Contribution",
+    (
+        "def_won_tackle_p90",
+        "def_interception_p90",
+        "def_clearance_p90",
+        "def_recovery_p90",
+        "def_aerial_won_p90",
+        "def_block_p90",
+        "def_tackle_won_pct",
+        "def_aerial_won_pct",
+    ),
 )
 
 XP_PROFILE_BAR_KEYS = ("xp_activity_display", "xp_efficiency_display", "xp_edge_display")
@@ -30,7 +49,7 @@ def build_pass_score_sections(xp_profile: dict) -> list[dict[str, Any]]:
     for display_key, index_key, letter_key, title, component_keys in XP_PA_REGULAR_SCORE_SPECS:
         components = []
         for ck in component_keys:
-            star_key = f"{ck}_stratum_star"
+            star_key = COE_STRATUM_STAR_BY_METRIC.get(ck, f"{ck}_stratum_star")
             components.append({
                 "key": ck,
                 "value": xp_profile.get(ck),
@@ -48,6 +67,30 @@ def build_pass_score_sections(xp_profile: dict) -> list[dict[str, Any]]:
             "components": components,
         })
     return sections
+
+
+def build_defensive_score_section(xp_profile: dict) -> dict[str, Any] | None:
+    if xp_profile.get("defense_display") is None and xp_profile.get("defense_letter") in (None, "—"):
+        return None
+    display_key, index_key, letter_key, title, component_keys = DEFENSIVE_SCORE_SPEC
+    components = []
+    for ck in component_keys:
+        components.append({
+            "key": ck,
+            "value": xp_profile.get(ck),
+            "rank": xp_profile.get(f"{ck}_rank_in_league"),
+            "rank_pool": xp_profile.get(f"{ck}_rank_pool_in_league"),
+            "stratum_star": False,
+        })
+    return {
+        "title": title,
+        "display_score": xp_profile.get(display_key),
+        "letter": xp_profile.get(letter_key),
+        "index": xp_profile.get(index_key),
+        "rank": xp_profile.get(f"{index_key}_rank_in_league"),
+        "rank_pool": xp_profile.get(f"{index_key}_rank_pool_in_league"),
+        "components": components,
+    }
 
 
 def build_xp_profile_bars(xp_profile: dict) -> list[dict[str, Any]]:
@@ -135,6 +178,7 @@ def build_profile_payload(
         "player": merged,
         "xp": xp,
         "pass_scores": build_pass_score_sections(xp) if xp else [],
+        "defensive_score": build_defensive_score_section(xp) if xp else None,
         "xp_bars": build_xp_profile_bars(xp) if xp else [],
         "origin_heatmap_b64": origin_heatmap_b64(player_id, passes_by_player, merged.get("player_name", "")),
         "long_pass_share_pct": xp.get("long_pass_share_pct") if xp else None,

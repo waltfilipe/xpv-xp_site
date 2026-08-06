@@ -22,6 +22,7 @@ from services.compare_service import build_compare_payload  # noqa: E402
 from services.filters import (  # noqa: E402
     filter_player_pool,
     filter_players_by_pass_letters,
+    normalize_league_filter_key,
     parse_age_band,
     player_options,
 )
@@ -70,6 +71,7 @@ PLAYER_LIST_FIELDS = (
     "xp_pass_rating", "team",
   "pass_volume_letter", "pass_efficiency_letter",
   "pass_buildup_letter", "pass_chance_creation_letter",
+  "defense_letter", "defense_display",
 )
 
 
@@ -142,6 +144,13 @@ def list_players(
         progression = progression_by_id.get(pid, {})
         xp = xp_by_id.get(pid, {}) if isinstance(xp_by_id, dict) else {}
         row = {**rated, **({"xp_pass_rating": xp.get("xp_pass_rating")} if xp else {})}
+        if xp:
+            for key in (
+                "pass_volume_letter", "pass_efficiency_letter", "pass_buildup_letter",
+                "pass_chance_creation_letter", "defense_letter", "defense_display",
+            ):
+                if row.get(key) is None:
+                    row[key] = xp.get(key)
         if progression:
             row["progression_rating"] = progression.get("progression_rating")
             row["progression_rating_rank"] = progression.get("progression_rating_rank")
@@ -149,7 +158,7 @@ def list_players(
         rows.append(_pick_fields(row, PLAYER_LIST_FIELDS))
 
     if league and league != "all":
-        rows = [r for r in rows if str(r.get("league_source", "")).lower() == league.lower()]
+        rows = [r for r in rows if normalize_league_filter_key(r) == league.lower()]
     if position_group:
         rows = [r for r in rows if str(r.get("position_group", "")).lower() == position_group.lower()]
     if search:

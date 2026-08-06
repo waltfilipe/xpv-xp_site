@@ -62,6 +62,17 @@ LEAGUE_OPTIONS = [
     ("ligue1", "Ligue 1"),
 ]
 
+LEAGUE_LABEL_TO_KEY = {label.lower(): key for key, label in LEAGUE_OPTIONS if key != "all"}
+LEAGUE_LABEL_TO_KEY.update({key: key for key, _label in LEAGUE_OPTIONS if key != "all"})
+
+
+def normalize_league_filter_key(player: dict) -> str:
+    source = str(player.get("league_source") or "").strip().lower()
+    if source:
+        return source
+    label = str(player.get("league") or "").strip().lower()
+    return LEAGUE_LABEL_TO_KEY.get(label, label)
+
 FOOT_OPTIONS = [
     ("all", "Todos"),
     ("left", "Esquerdo"),
@@ -234,7 +245,7 @@ def filter_player_pool(
     out: list[dict] = []
     for player in all_players:
         pid = str(player["player_id"])
-        if league != "all" and str(player.get("league_source") or "") != league:
+        if league != "all" and normalize_league_filter_key(player) != league.lower():
             continue
         age = player.get("age")
         if age is None:

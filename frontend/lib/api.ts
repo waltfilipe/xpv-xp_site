@@ -41,6 +41,8 @@ export type PlayerSummary = {
   pass_efficiency_letter?: string | null;
   pass_buildup_letter?: string | null;
   pass_chance_creation_letter?: string | null;
+  defense_letter?: string | null;
+  defense_display?: number | null;
 };
 
 export type PlayerOption = {
@@ -96,6 +98,7 @@ export type PlayerProfile = {
   player: Record<string, unknown>;
   xp: Record<string, unknown>;
   pass_scores: PassScoreSection[];
+  defensive_score?: PassScoreSection | null;
   xp_bars: XpBar[];
   origin_heatmap_b64?: string | null;
   long_pass_share_pct?: number | null;

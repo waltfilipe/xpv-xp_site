@@ -7,45 +7,81 @@ import { formatMetric } from "@/lib/formatters";
 import { rankToBarScore } from "@/lib/gradeColors";
 import { COMPONENT_LABELS, COMPONENT_TOOLTIPS, PASS_SCORE_TOOLTIPS } from "@/lib/tooltips";
 
-export function PassScoreSections({ sections }: { sections: PassScoreSection[] }) {
+function SectionMetrics({ section }: { section: PassScoreSection }) {
+  return (
+    <div className="pass-score-metrics">
+      {section.components.map((c) => {
+        const barScore = rankToBarScore(c.rank, c.rank_pool);
+        return (
+          <Tooltip key={c.key} content={COMPONENT_TOOLTIPS[c.key] ?? ""} block>
+            <div className="pass-metric-block">
+              <div className="pass-metric-head">
+                <span className="pass-metric-label">
+                  {COMPONENT_LABELS[c.key] ?? c.key.replace(/_/g, " ")}
+                  <PassMetricStratumStar show={c.stratum_star} />
+                </span>
+                <span className="pass-metric-value tabular">
+                  {formatMetric(c.value, c.key)}
+                </span>
+              </div>
+              <MetricGradientBar
+                score={barScore}
+                letter={section.letter}
+                displayScore={section.display_score}
+              />
+            </div>
+          </Tooltip>
+        );
+      })}
+    </div>
+  );
+}
+
+export function PassScoreSections({
+  sections,
+  defensiveScore,
+}: {
+  sections: PassScoreSection[];
+  defensiveScore?: PassScoreSection | null;
+}) {
   return (
     <div className="pass-scores-panel">
-      {sections.map((s) => (
-        <section key={s.title} className="pass-score-section">
-          <div className="pass-score-section-head">
-            <Tooltip content={PASS_SCORE_TOOLTIPS[s.title] ?? ""}>
-              <h4 className="pass-score-section-title">{s.title}</h4>
-            </Tooltip>
-            <GradeBadge letter={s.letter} displayScore={s.display_score} size="sm" />
-          </div>
-
-          <div className="pass-score-metrics">
-            {s.components.map((c) => {
-              const barScore = rankToBarScore(c.rank, c.rank_pool);
-              return (
-                <Tooltip key={c.key} content={COMPONENT_TOOLTIPS[c.key] ?? ""} block>
-                  <div className="pass-metric-block">
-                    <div className="pass-metric-head">
-                      <span className="pass-metric-label">
-                        {COMPONENT_LABELS[c.key] ?? c.key.replace(/_/g, " ")}
-                        <PassMetricStratumStar show={c.stratum_star} />
-                      </span>
-                      <span className="pass-metric-value tabular">
-                        {formatMetric(c.value, c.key)}
-                      </span>
-                    </div>
-                    <MetricGradientBar
-                      score={barScore}
-                      letter={s.letter}
-                      displayScore={s.display_score}
-                    />
-                  </div>
+      <div className="report-pass-accordion">
+        {sections.map((section) => (
+          <details key={section.title} className="report-pass-accordion-item">
+            <summary className="report-pass-accordion-trigger">
+              <span className="report-pass-accordion-left">
+                <i className="fa-solid fa-chevron-right report-pass-accordion-chevron" aria-hidden="true" />
+                <Tooltip content={PASS_SCORE_TOOLTIPS[section.title] ?? ""}>
+                  <span className="report-pass-accordion-title">{section.title}</span>
                 </Tooltip>
-              );
-            })}
+              </span>
+              <span className="report-pass-accordion-right">
+                <GradeBadge letter={section.letter} displayScore={section.display_score} size="sm" />
+              </span>
+            </summary>
+            <div className="report-pass-accordion-panel">
+              <SectionMetrics section={section} />
+            </div>
+          </details>
+        ))}
+      </div>
+
+      {defensiveScore && (
+        <section className="pass-score-section pass-score-section-defense">
+          <div className="pass-score-section-head">
+            <Tooltip content={PASS_SCORE_TOOLTIPS[defensiveScore.title] ?? ""}>
+              <h4 className="pass-score-section-title">{defensiveScore.title}</h4>
+            </Tooltip>
+            <GradeBadge
+              letter={defensiveScore.letter}
+              displayScore={defensiveScore.display_score}
+              size="sm"
+            />
           </div>
+          <SectionMetrics section={defensiveScore} />
         </section>
-      ))}
+      )}
     </div>
   );
 }

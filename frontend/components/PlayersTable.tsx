@@ -16,7 +16,8 @@ type SortKey =
   | "pass_volume_letter"
   | "pass_efficiency_letter"
   | "pass_buildup_letter"
-  | "pass_chance_creation_letter";
+  | "pass_chance_creation_letter"
+  | "defense_letter";
 
 type SortDir = "asc" | "desc";
 type SortEntry = { key: SortKey; dir: SortDir };
@@ -60,6 +61,7 @@ function compareValues(a: unknown, b: unknown, key: SortKey): number {
     || key === "pass_efficiency_letter"
     || key === "pass_buildup_letter"
     || key === "pass_chance_creation_letter"
+    || key === "defense_letter"
   ) {
     return letterRank(String(a ?? "")) - letterRank(String(b ?? ""));
   }
@@ -167,6 +169,11 @@ export function PlayersTable({ players, positionFamily }: Props) {
                 Chance creation {sortIndicator("pass_chance_creation_letter")}
               </button>
             </th>
+            <th>
+              <button type="button" className="players-sort-btn" onClick={() => toggleSort("defense_letter")}>
+                Defense {sortIndicator("defense_letter")}
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -188,11 +195,12 @@ export function PlayersTable({ players, positionFamily }: Props) {
               <td><GradeBadge letter={player.pass_efficiency_letter} size="sm" /></td>
               <td><GradeBadge letter={player.pass_buildup_letter} size="sm" /></td>
               <td><GradeBadge letter={player.pass_chance_creation_letter} size="sm" /></td>
+              <td><GradeBadge letter={player.defense_letter} displayScore={player.defense_display} size="sm" /></td>
             </tr>
           ))}
           {sorted.length === 0 && (
             <tr>
-              <td colSpan={8} className="muted" style={{ textAlign: "center", padding: "2rem" }}>
+              <td colSpan={9} className="muted" style={{ textAlign: "center", padding: "2rem" }}>
                 Nenhum jogador encontrado.
               </td>
             </tr>
