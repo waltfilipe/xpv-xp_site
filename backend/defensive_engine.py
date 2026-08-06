@@ -1,4 +1,4 @@
-"""Defensive contribution scores from per-match CSV exports (PL + Serie A)."""
+"""Defensive contribution scores from per-match CSV exports (top-five leagues)."""
 
 from __future__ import annotations
 
@@ -11,13 +11,23 @@ import passes_engine as pe
 from xp_stats_engine import rank_percentile_letter_grade
 
 BACKEND_ROOT = Path(__file__).resolve().parent
-PREMIER_DEFENSIVE_CSV = BACKEND_ROOT / "Premier_defensive.csv"
-SERIEA_DEFENSIVE_CSV = BACKEND_ROOT / "SerieA_defensive.csv"
 
-DEFENSIVE_LEAGUE_SOURCES: tuple[tuple[str, Path], ...] = (
-    ("premier_league", PREMIER_DEFENSIVE_CSV),
-    ("italia_seriea", SERIEA_DEFENSIVE_CSV),
-)
+DEFENSIVE_LEAGUE_FILE_MAP: dict[str, str] = {
+    "premier_league": "Premier_defensive.csv",
+    "italia_seriea": "SerieA_defensive.csv",
+    "laliga": "LaLiga_defensive.csv",
+    "bundesliga": "Bundes_defensive.csv",
+    "ligue1": "Ligue1_defensive.csv",
+}
+
+
+def _defensive_league_sources() -> tuple[tuple[str, Path], ...]:
+    sources: list[tuple[str, Path]] = []
+    for league_source, filename in DEFENSIVE_LEAGUE_FILE_MAP.items():
+        path = BACKEND_ROOT / filename
+        if path.is_file():
+            sources.append((league_source, path))
+    return tuple(sources)
 
 QTY_P90_METRICS: tuple[str, ...] = (
     "def_won_tackle_p90",
@@ -59,7 +69,7 @@ def _mean_z_columns(df: pd.DataFrame, cols: tuple[str, ...]) -> pd.Series:
 
 def _load_defensive_frames() -> pd.DataFrame:
     frames: list[pd.DataFrame] = []
-    for league_source, path in DEFENSIVE_LEAGUE_SOURCES:
+    for league_source, path in _defensive_league_sources():
         if not path.is_file():
             continue
         frame = pd.read_csv(path, low_memory=False)
