@@ -1220,7 +1220,8 @@ XP_PROFILE_BAR_TOOLTIPS: dict[str, str] = {
         "quality of each delivery plus selective high-impact progression."
     ),
     "xp_efficiency_display": (
-        "Sum of (pass completed − xP probability) per 90 minutes — execution above the geometric model."
+        "75% xPass residual per 90 minutes and 25% short-pass COE vs. peers in the same "
+        "pass-volume quartile."
     ),
     "xp_quality_display": "Median xP above the model's expectation — value that comes from surprise.",
     "xp_consistency_display": "How stable game-to-game delivery grades are (low MAD of per-match scores).",
@@ -1293,6 +1294,14 @@ XP_PROFILE_ARCHETYPE_FILTER_ALL = ""
 ACTIVITY_METRICS: tuple[str, ...] = ("xp_per_90",)
 EDGE_METRICS: tuple[str, ...] = LETHALITY_METRICS
 EFFICIENCY_METRICS: tuple[str, ...] = ("xpass_residual_p90",)
+
+PRECISION_BASE_BLEND_WEIGHT = 0.75
+PRECISION_STRATUM_BLEND_WEIGHT = 0.25
+COE_STRATUM_STAR_TOP_FRAC = 0.25
+COE_STRATUM_METRICS: tuple[tuple[str, str], ...] = (
+    ("xpass_coe_pct", "xpass_coe_stratum_star"),
+    ("xpass_long_coe_pct", "xpass_long_coe_stratum_star"),
+)
 
 # Grade = weighted mean of three pillars (z-scores within position group).
 XP_PASS_RATING_FEATURE_WEIGHTS: dict[str, float] = {
@@ -2056,6 +2065,132 @@ def _attach_index_display_scores(
         row[display_key] = float(pe.rank_to_display_score(rank, pool_size))
 
 
+def _coe_stratum_z_by_volume_quartile(
+    passes: pd.Series,
+    coe: pd.Series,
+) -> pd.Series:
+    """Z-score of COE within quartiles of passes per game."""
+    out = pd.Series(np.nan, index=passes.index, dtype=float)
+    work = pd.DataFrame({"passes": passes.astype(float), "coe": pd.to_numeric(coe, errors="coerce")})
+    valid = work["passes"].notna() & (work["passes"] > 0) & work["coe"].notna()
+    if int(valid.sum()) < 8:
+        return out
+    try:
+        work.loc[valid, "vol_q"] = pd.qcut(
+            work.loc[valid, "passes"],
+            4,
+            labels=False,
+            duplicates="drop",
+        )
+    except ValueError:
+        return out
+    for _, sub in work.loc[valid].groupby("vol_q", sort=False):
+        vals = sub["coe"].astype(float)
+        mean = float(vals.mean())
+        std = float(vals.std())
+        if std == 0.0 or np.isnan(std):
+            out.loc[sub.index] = 0.0
+        else:
+            out.loc[sub.index] = (vals - mean) / std
+    return out
+
+
+def _attach_coe_stratum_stars(rows: list[dict]) -> None:
+    """Flag players in the top quartile of COE z within their pass-volume stratum."""
+    if not rows:
+        return
+    for _metric, star_key in COE_STRATUM_METRICS:
+        for row in rows:
+            row[star_key] = False
+
+    df = pd.DataFrame(rows)
+    if "passes_total" not in df.columns:
+        return
+    passes = pd.to_numeric(df["passes_total"], errors="coerce")
+
+    for metric, star_key in COE_STRATUM_METRICS:
+        if metric not in df.columns:
+            continue
+        z = _coe_stratum_z_by_volume_quartile(passes, df[metric])
+        valid = z.notna()
+        if not bool(valid.any()):
+            continue
+        try:
+            vol_q = pd.Series(np.nan, index=df.index, dtype=float)
+            vol_q.loc[passes[valid].index] = pd.qcut(
+                passes[valid],
+                4,
+                labels=False,
+                duplicates="drop",
+            )
+        except ValueError:
+            continue
+        for q in sorted(vol_q.dropna().unique()):
+            q_mask = valid & (vol_q == q)
+            if int(q_mask.sum()) < 4:
+                continue
+            q_z = z[q_mask]
+            threshold = float(q_z.quantile(1.0 - COE_STRATUM_STAR_TOP_FRAC))
+            for idx in q_z.index[q_z >= threshold]:
+                rows[int(idx)][star_key] = True
+
+
+def _blend_precision_with_stratum(eligible_rows: list[dict]) -> None:
+    """Precision display = 75% residual rank score + 25% short-COE stratum rank score."""
+    import passes_engine as pe
+
+    if not eligible_rows:
+        return
+    df = pd.DataFrame(eligible_rows)
+    if "xp_efficiency_display" not in df.columns or "xpass_coe_pct" not in df.columns:
+        return
+
+    base_display = pd.to_numeric(df["xp_efficiency_display"], errors="coerce")
+    passes = pd.to_numeric(df.get("passes_total"), errors="coerce")
+    if not bool(base_display.notna().any()):
+        return
+
+    z_stratum = _coe_stratum_z_by_volume_quartile(passes, df["xpass_coe_pct"])
+    pool_size = len(eligible_rows)
+    stratum_display = pd.Series(np.nan, index=df.index, dtype=float)
+    valid_z = z_stratum.notna()
+    if bool(valid_z.any()):
+        z_ranks = z_stratum[valid_z].rank(method="min", ascending=False)
+        for idx, rank_val in z_ranks.items():
+            stratum_display.loc[idx] = float(pe.rank_to_display_score(int(rank_val), pool_size))
+
+    blended: list[float | None] = []
+    for i, row in enumerate(eligible_rows):
+        base = base_display.iloc[i]
+        strat = stratum_display.iloc[i]
+        if pd.isna(base):
+            blended.append(None)
+            continue
+        if pd.isna(strat):
+            blended.append(float(base))
+            continue
+        value = (
+            PRECISION_BASE_BLEND_WEIGHT * float(base)
+            + PRECISION_STRATUM_BLEND_WEIGHT * float(strat)
+        )
+        blended.append(round(value, 4))
+        row["xp_efficiency_display_base"] = float(base)
+
+    composite = pd.Series(
+        [float(v) if v is not None else np.nan for v in blended],
+        dtype=float,
+    )
+    _attach_index_display_scores(
+        eligible_rows,
+        "xp_efficiency_index",
+        "xp_efficiency_display",
+        composite,
+    )
+    for row, value in zip(eligible_rows, blended):
+        if value is not None:
+            row["xp_efficiency_display"] = value
+
+
 def _attach_median_rank_display_scores(
     rows: list[dict],
     cols: tuple[str, ...],
@@ -2377,6 +2512,8 @@ def attach_composite_indices(players: list[dict]) -> None:
         for raw_key, composite in composites.items():
             _attach_index_display_scores(rows, raw_key, display_map[raw_key], composite)
 
+        _attach_coe_stratum_stars(rows)
+
         # Profile bars: rank only among eligible peers (base filters, or top 250 by passes).
         if eligible_rows:
             for raw_key, display_key, metric_cols in XP_PROFILE_BAR_SPECS:
@@ -2393,6 +2530,7 @@ def attach_composite_indices(players: list[dict]) -> None:
                     f"{metric}_sub_index",
                     f"{metric}_sub_display",
                 )
+            _blend_precision_with_stratum(eligible_rows)
             _attach_secondary_indices(eligible_rows)
             _attach_xp_profile_archetypes(eligible_rows)
         for row in rows:

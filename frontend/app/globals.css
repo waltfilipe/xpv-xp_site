@@ -1910,9 +1910,19 @@ button, input, select { font: inherit; }
 }
 
 .pass-metric-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-secondary);
+}
+
+.pass-metric-stratum-star {
+  font-size: 0.52rem;
+  color: #facc15;
+  opacity: 0.92;
+  filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.35));
 }
 
 .pass-metric-value {
@@ -3742,13 +3752,9 @@ tr:last-child td { border-bottom: none; }
   border-radius: 6px;
   font-size: 0.68rem;
   font-weight: 800;
-  color: #f8fafc;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--stats-accent) 28%, transparent) 0%,
-    color-mix(in srgb, var(--stats-accent) 8%, transparent) 100%
-  );
-  border: 1px solid color-mix(in srgb, var(--stats-accent) 22%, transparent);
+  color: #e2e8f0;
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.55) 0%, rgba(15, 23, 42, 0.75) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.16);
 }
 
 .round-grade-stats-list {

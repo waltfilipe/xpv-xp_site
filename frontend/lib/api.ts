@@ -56,7 +56,7 @@ export type PassScoreSection = {
   letter?: string | null;
   rank?: number | null;
   rank_pool?: number | null;
-  components: { key: string; value: unknown; rank?: number | null; rank_pool?: number | null }[];
+  components: { key: string; value: unknown; rank?: number | null; rank_pool?: number | null; stratum_star?: boolean }[];
 };
 
 export type XpBar = { key: string; label: string; value?: number | null; rank?: number | null };

@@ -2,7 +2,7 @@ export const XP_PROFILE_BAR_TOOLTIPS: Record<string, string> = {
   xp_activity_display:
     "How much xPV the player generates per game — passing volume times destination value.",
   xp_efficiency_display:
-    "Sum of (pass completed − xP probability) per 90 minutes — execution above the geometric model.",
+    "75% xPass residual per 90 minutes and 25% short-pass COE vs. peers in the same pass-volume quartile.",
   xp_edge_display:
     "Blend of xPV per completed pass and Pass Impact v2 per game (50/50) — quality of each delivery plus selective high-impact progression.",
 };

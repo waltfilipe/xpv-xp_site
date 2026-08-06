@@ -1,3 +1,4 @@
+import { PassMetricStratumStar } from "@/components/PassMetricStratumStar";
 import type { PassScoreSection } from "@/lib/api";
 import { GradeBadge } from "@/components/ui/GradeBadge";
 import { MetricGradientBar } from "@/components/ui/MetricGradientBar";
@@ -27,6 +28,7 @@ export function PassScoreSections({ sections }: { sections: PassScoreSection[] }
                     <div className="pass-metric-head">
                       <span className="pass-metric-label">
                         {COMPONENT_LABELS[c.key] ?? c.key.replace(/_/g, " ")}
+                        <PassMetricStratumStar show={c.stratum_star} />
                       </span>
                       <span className="pass-metric-value tabular">
                         {formatMetric(c.value, c.key)}

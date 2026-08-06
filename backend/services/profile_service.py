@@ -30,11 +30,13 @@ def build_pass_score_sections(xp_profile: dict) -> list[dict[str, Any]]:
     for display_key, index_key, letter_key, title, component_keys in XP_PA_REGULAR_SCORE_SPECS:
         components = []
         for ck in component_keys:
+            star_key = f"{ck}_stratum_star"
             components.append({
                 "key": ck,
                 "value": xp_profile.get(ck),
                 "rank": xp_profile.get(f"{ck}_rank_in_group"),
                 "rank_pool": xp_profile.get(f"{ck}_rank_pool_in_group"),
+                "stratum_star": bool(xp_profile.get(star_key)),
             })
         sections.append({
             "title": title,
