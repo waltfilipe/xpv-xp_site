@@ -4139,71 +4139,132 @@ tr:last-child td { border-bottom: none; }
   }
 
   .report-print-root .report-identity-card {
-    padding: 0.35rem 0.4rem !important;
-    gap: 0.4rem !important;
+    display: flex;
+    flex-direction: column;
+    padding: 0.45rem 0.5rem !important;
+    gap: 0.45rem !important;
     height: 100%;
   }
 
   .report-print-root .identity-hero-side {
-    gap: 0.4rem;
-    align-items: flex-start;
+    display: flex;
+    flex-direction: row;
+    gap: 0.55rem;
+    align-items: stretch;
+  }
+
+  .report-print-root .identity-hero-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   .report-print-root .identity-photo-side {
-    width: 62px !important;
-    min-height: 72px !important;
-    border-radius: 9px;
+    width: 38% !important;
+    max-width: 82px;
+    min-width: 64px;
+    min-height: 96px;
+    align-self: stretch;
+    border-radius: 12px;
     box-shadow: none;
+    flex-shrink: 0;
   }
 
   .report-print-root .identity-title,
   .report-print-root .report-player-name {
-    font-size: 0.84rem !important;
+    font-size: 0.88rem !important;
     line-height: 1.15;
   }
 
-  .report-print-root .identity-subline,
+  .report-print-root .identity-subline {
+    font-size: 0.68rem !important;
+    margin-bottom: 0 !important;
+  }
+
   .report-print-root .report-league-line {
-    font-size: 0.66rem !important;
-    margin-bottom: 0.12rem !important;
+    display: none !important;
   }
 
   .report-print-root .identity-facts-side {
-    margin-top: 0.18rem;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.1rem 0.3rem;
+    margin-top: 0.32rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
   }
 
   .report-print-root .identity-facts-side .identity-fact {
-    grid-template-columns: 0.95rem 1fr auto;
-    gap: 0.18rem;
-    padding: 0.08rem 0;
+    display: grid;
+    grid-template-columns: 1.15rem 1fr auto;
+    align-items: center;
+    gap: 0.32rem;
+    padding: 0.24rem 0;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  }
+
+  .report-print-root .identity-facts-side .identity-fact:last-child {
+    border-bottom: none;
+  }
+
+  .report-print-root .identity-fact-icon {
+    width: 1.15rem;
+    height: 1.15rem;
+    font-size: 0.58rem;
   }
 
   .report-print-root .identity-facts-side .identity-fact-label {
-    font-size: 0.58rem !important;
+    font-size: 0.6rem !important;
+    letter-spacing: 0.04em;
   }
 
   .report-print-root .identity-facts-side .identity-fact-value {
-    font-size: 0.64rem !important;
+    font-size: 0.72rem !important;
+    text-align: right;
   }
 
   .report-print-root .identity-meta-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.22rem;
-    margin-top: 0.12rem;
+    gap: 0.35rem;
+    margin-top: 0;
   }
 
   .report-print-root .identity-meta-pill {
-    padding: 0.18rem 0.25rem;
-    font-size: 0.58rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.32rem 0.38rem;
     min-width: 0;
+    border-radius: 8px;
+  }
+
+  .report-print-root .identity-meta-pill span {
+    font-size: 0.56rem;
+    gap: 0.25rem;
+  }
+
+  .report-print-root .identity-meta-pill .identity-fact-icon {
+    width: 1rem;
+    height: 1rem;
+    font-size: 0.54rem;
   }
 
   .report-print-root .identity-meta-pill strong {
-    font-size: 0.64rem;
+    font-size: 0.7rem;
+  }
+
+  .report-print-root .identity-meta-pill-minutes {
+    padding: 0.32rem 0.38rem;
+    margin: 0;
+  }
+
+  .report-print-root .report-heatmap {
+    max-height: 48mm !important;
+    min-height: 36mm;
+    width: 100%;
+    object-fit: contain;
+    margin-top: 0.15rem;
+    flex-shrink: 0;
   }
 
   /* Center column — match profile stack (grade + xP profile + indices + length mix) */
@@ -4321,13 +4382,6 @@ tr:last-child td { border-bottom: none; }
     max-width: 100%;
     overflow: visible;
     page-break-after: always;
-  }
-
-  .report-print-root .report-heatmap {
-    max-height: 42mm !important;
-    min-height: 32mm;
-    width: 100%;
-    object-fit: contain;
   }
 
   .report-print-root .report-sheet-header {
