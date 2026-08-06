@@ -28,6 +28,39 @@ type Coord = {
   point: XpRoundGrade;
 };
 
+function formatPct(value?: number | null): string {
+  if (value == null || Number.isNaN(value)) return "—";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(1)}%`;
+}
+
+function RoundGradeTooltip({ point }: { point: XpRoundGrade }) {
+  const header = `R${point.round}${point.opponent ? ` vs ${point.opponent}` : ""}`;
+  const rows: { label: string; value: string }[] = [
+    { label: "Grade", value: point.grade != null ? point.grade.toFixed(1) : "—" },
+    { label: "Passes", value: point.passes != null ? String(point.passes) : "—" },
+    { label: "% eff pass curto", value: formatPct(point.short_pass_eff_pct) },
+    { label: "% eff pass longo", value: formatPct(point.long_pass_eff_pct) },
+    { label: "Breakline passes", value: point.breakline_passes != null ? String(point.breakline_passes) : "—" },
+    { label: "Impact passes", value: point.impact != null ? String(point.impact) : "—" },
+    { label: "Key passes", value: point.key_passes != null ? String(point.key_passes) : "—" },
+  ];
+
+  return (
+    <div className="round-grade-tooltip">
+      <div className="round-grade-tooltip-head tabular">{header}</div>
+      <ul className="round-grade-tooltip-list">
+        {rows.map((row) => (
+          <li key={row.label} className="round-grade-tooltip-row">
+            <span className="round-grade-tooltip-label">{row.label}</span>
+            <span className="round-grade-tooltip-value tabular">{row.value}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, onPointClick }: Props) {
   const gradId = useId().replace(/:/g, "");
   const [active, setActive] = useState<Coord | null>(null);
@@ -53,9 +86,6 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, 
   const areaPath = `${linePath} L ${coords[coords.length - 1].x.toFixed(1)} ${(PAD_Y + innerH).toFixed(1)} L ${coords[0].x.toFixed(1)} ${(PAD_Y + innerH).toFixed(1)} Z`;
 
   const tipLeft = active ? `${(active.x / WIDTH) * 100}%` : "0%";
-  const tipLabel = active
-    ? `R${active.round} · ${active.grade.toFixed(1)}${active.opponent ? ` vs ${active.opponent}` : ""}`
-    : "";
 
   return (
     <div className={`round-grade-chart${embedded ? " round-grade-chart-embedded" : ""}`}>
@@ -67,8 +97,8 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, 
 
       <div className="round-grade-chart-wrap">
         {active && (
-          <div className="round-grade-tooltip tabular" style={{ left: tipLeft }}>
-            {tipLabel}
+          <div className="round-grade-tooltip-wrap" style={{ left: tipLeft }}>
+            <RoundGradeTooltip point={active.point} />
           </div>
         )}
 

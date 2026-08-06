@@ -685,10 +685,66 @@ def _opponent_array(scored: pd.DataFrame) -> np.ndarray:
     return np.where(team == home, away, home)
 
 
-def round_production_series(scored: pd.DataFrame) -> tuple[dict[str, float | int | str], ...]:
-    """Per-match xP and I.P. production ordered by match date, for the profile chart."""
-    if scored is None or scored.empty or "event_id" not in scored.columns:
+def _event_pass_eff_pct(attempts: pd.DataFrame, *, long_only: bool | None = None) -> float | None:
+    """Completion-over-expected (p.p.) for one match's pass attempts."""
+    import xpass_engine as xpe
+
+    if attempts is None or attempts.empty or xpe.XPASS_COL not in attempts.columns:
+        return None
+    work = attempts[attempts[xpe.XPASS_COL].notna()].copy()
+    if work.empty:
+        return None
+    if long_only is not None:
+        if "distance_band" in work.columns:
+            long_mask = work["distance_band"].astype(str) == "long"
+        elif "pass_distance" in work.columns:
+            long_mask = work["pass_distance"].to_numpy(dtype=float) > XP_DISTANCE_BAND_MAX_SHORT_M
+        else:
+            return None
+        work = work[long_mask if long_only else ~long_mask]
+        if work.empty:
+            return None
+    won = work["is_won"].astype(int).to_numpy()
+    xpass = work[xpe.XPASS_COL].to_numpy(dtype=float)
+    n = len(work)
+    coe = (float(won.sum()) / n) - (float(xpass.sum()) / n)
+    return round(coe * 100.0, 1)
+
+
+def _event_pass_eff_by_id(grp: pd.DataFrame) -> tuple[dict[str, float | None], dict[str, float | None]]:
+    import xpass_engine as xpe
+
+    short_by_event: dict[str, float | None] = {}
+    long_by_event: dict[str, float | None] = {}
+    if grp is None or grp.empty or xpe.XPASS_COL not in grp.columns:
+        return short_by_event, long_by_event
+    attempts = grp[grp[xpe.XPASS_COL].notna()].copy()
+    if attempts.empty:
+        return short_by_event, long_by_event
+    if "distance_band" not in attempts.columns and "pass_distance" in attempts.columns:
+        attempts["distance_band"] = xse._distance_band_series(attempts["pass_distance"])
+    for event_id, sub in attempts.groupby("event_id", sort=False):
+        eid = str(event_id)
+        short_by_event[eid] = _event_pass_eff_pct(sub, long_only=False)
+        long_by_event[eid] = _event_pass_eff_pct(sub, long_only=True)
+    return short_by_event, long_by_event
+
+
+def round_production_series(grp: pd.DataFrame) -> tuple[dict[str, float | int | str | None], ...]:
+    """Per-match xP and pass stats ordered by match date, for the profile chart."""
+    if grp is None or grp.empty or "event_id" not in grp.columns:
         return ()
+    scored = grp[grp["is_won"] & grp["has_end"]].copy()
+    if scored.empty or XP_COL not in scored.columns:
+        return ()
+
+    masks = compute_special_pass_masks(scored)
+    line_break = masks["line_break"]
+    key_pass = (
+        scored["is_key_pass"].astype(bool).to_numpy()
+        if "is_key_pass" in scored.columns
+        else np.zeros(len(scored), dtype=bool)
+    )
     work = pd.DataFrame({
         "event_id": scored["event_id"].astype(str).to_numpy(),
         "xp": scored[XP_COL].to_numpy(dtype=float),
@@ -697,6 +753,8 @@ def round_production_series(scored: pd.DataFrame) -> tuple[dict[str, float | int
             if THREAT_COL in scored.columns
             else np.zeros(len(scored), dtype=bool)
         ),
+        "line_break": line_break,
+        "key_pass": key_pass,
         "date": (
             scored["match_date"].astype(str).to_numpy()
             if "match_date" in scored.columns
@@ -710,11 +768,14 @@ def round_production_series(scored: pd.DataFrame) -> tuple[dict[str, float | int
             xp=("xp", "sum"),
             impact=("impact", "sum"),
             passes=("xp", "size"),
+            breakline_passes=("line_break", "sum"),
+            key_passes=("key_pass", "sum"),
             date=("date", "first"),
             opponent=("opponent", "first"),
         )
         .sort_values(["date", "event_id"], kind="stable")
     )
+    short_eff_by_event, long_eff_by_event = _event_pass_eff_by_id(grp)
     return tuple(
         {
             "round": index,
@@ -724,6 +785,10 @@ def round_production_series(scored: pd.DataFrame) -> tuple[dict[str, float | int
             "xp": round(float(row.xp), 3),
             "impact": int(row.impact),
             "passes": int(row.passes),
+            "short_pass_eff_pct": short_eff_by_event.get(str(row.Index)),
+            "long_pass_eff_pct": long_eff_by_event.get(str(row.Index)),
+            "breakline_passes": int(row.breakline_passes),
+            "key_passes": int(row.key_passes),
         }
         for index, row in enumerate(grouped.itertuples(), start=1)
     )
@@ -829,7 +894,7 @@ def compute_extended_xp_stats(
         out["xp_game_std"] = float(game_xp.std()) if len(game_xp) > 1 else 0.0
         med = float(game_xp.median()) if len(game_xp) else 0.0
         out["xp_games_above_median_pct"] = float((game_xp > med).mean()) if len(game_xp) else 0.0
-        out[XP_ROUND_SERIES_KEY] = round_production_series(scored)
+        out[XP_ROUND_SERIES_KEY] = round_production_series(grp)
     else:
         out["xp_game_mean"] = 0.0
         out["xp_game_std"] = 0.0

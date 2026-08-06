@@ -6,6 +6,7 @@ from typing import Any
 
 import progression_engine as pge
 from passes_maps import draw_action_origin_smooth_heatmap
+from xp_stats_engine import XP_ROUND_SERIES_KEY, round_production_series
 
 from services.figures import fig_to_b64
 
@@ -60,8 +61,23 @@ def build_xp_profile_bars(xp_profile: dict) -> list[dict[str, Any]]:
     return bars
 
 
-def build_round_grade_series(xp_profile: dict) -> list[dict[str, Any]]:
-    series = xp_profile.get("xp_round_series") or []
+def _prepare_passes_for_round_series(passes_df):
+    if passes_df is None or getattr(passes_df, "empty", True):
+        return None
+    import xpass_engine as xpe
+
+    return xpe.attach_xpass_to_passes(passes_df.copy())
+
+
+def _round_series_source(xp_profile: dict, passes_df) -> list[dict[str, Any]]:
+    prepared = _prepare_passes_for_round_series(passes_df)
+    if prepared is not None:
+        return list(round_production_series(prepared))
+    return list(xp_profile.get(XP_ROUND_SERIES_KEY) or [])
+
+
+def build_round_grade_series(xp_profile: dict, passes_df=None) -> list[dict[str, Any]]:
+    series = _round_series_source(xp_profile, passes_df)
     grades = xp_profile.get("xp_game_grades") or ()
     out: list[dict[str, Any]] = []
     for i, point in enumerate(series):
@@ -75,6 +91,10 @@ def build_round_grade_series(xp_profile: dict) -> list[dict[str, Any]]:
             "impact": point.get("impact"),
             "passes": point.get("passes"),
             "event_id": point.get("event_id"),
+            "short_pass_eff_pct": point.get("short_pass_eff_pct"),
+            "long_pass_eff_pct": point.get("long_pass_eff_pct"),
+            "breakline_passes": point.get("breakline_passes"),
+            "key_passes": point.get("key_passes"),
         })
     return out
 
@@ -154,5 +174,5 @@ def build_profile_payload(
                 ],
             },
         ] if xp else [],
-        "xp_round_grades": build_round_grade_series(xp) if xp else [],
+        "xp_round_grades": build_round_grade_series(xp, passes_by_player.get(player_id)) if xp else [],
     }

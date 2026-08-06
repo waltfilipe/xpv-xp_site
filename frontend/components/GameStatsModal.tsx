@@ -49,16 +49,36 @@ export function GameStatsModal({ game, onClose }: Props) {
             <strong className="tabular">{game.grade != null ? game.grade.toFixed(1) : "—"}</strong>
           </div>
           <div className="game-stats-modal-stat">
-            <span className="game-stats-modal-label">xP</span>
-            <strong className="tabular">{game.xp != null ? game.xp.toFixed(3) : "—"}</strong>
+            <span className="game-stats-modal-label">Passes</span>
+            <strong className="tabular">{game.passes ?? "—"}</strong>
+          </div>
+          <div className="game-stats-modal-stat">
+            <span className="game-stats-modal-label">% eff pass curto</span>
+            <strong className="tabular">
+              {game.short_pass_eff_pct != null
+                ? `${game.short_pass_eff_pct > 0 ? "+" : ""}${game.short_pass_eff_pct.toFixed(1)}%`
+                : "—"}
+            </strong>
+          </div>
+          <div className="game-stats-modal-stat">
+            <span className="game-stats-modal-label">% eff pass longo</span>
+            <strong className="tabular">
+              {game.long_pass_eff_pct != null
+                ? `${game.long_pass_eff_pct > 0 ? "+" : ""}${game.long_pass_eff_pct.toFixed(1)}%`
+                : "—"}
+            </strong>
+          </div>
+          <div className="game-stats-modal-stat">
+            <span className="game-stats-modal-label">Breakline passes</span>
+            <strong className="tabular">{game.breakline_passes ?? "—"}</strong>
           </div>
           <div className="game-stats-modal-stat">
             <span className="game-stats-modal-label">Impact passes</span>
             <strong className="tabular">{game.impact ?? "—"}</strong>
           </div>
           <div className="game-stats-modal-stat">
-            <span className="game-stats-modal-label">Passes</span>
-            <strong className="tabular">{game.passes ?? "—"}</strong>
+            <span className="game-stats-modal-label">Key passes</span>
+            <strong className="tabular">{game.key_passes ?? "—"}</strong>
           </div>
         </div>
       </div>

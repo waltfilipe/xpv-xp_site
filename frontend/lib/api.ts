@@ -86,6 +86,10 @@ export type XpRoundGrade = {
   impact?: number | null;
   passes?: number | null;
   event_id?: string | null;
+  short_pass_eff_pct?: number | null;
+  long_pass_eff_pct?: number | null;
+  breakline_passes?: number | null;
+  key_passes?: number | null;
 };
 
 export type PlayerProfile = {
