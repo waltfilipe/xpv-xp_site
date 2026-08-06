@@ -16,6 +16,10 @@ import {
   listPlayerSummaries,
 } from "@/lib/static/filters";
 import {
+  fetchAggregatedMapsFromAssets,
+  fetchPassMapFromAssets,
+} from "@/lib/assets";
+import {
   loadMapsOptions,
   loadMeta,
   loadPool,
@@ -142,19 +146,7 @@ export async function staticGetPassMap(
   _roundKey: string,
   positionFamily = "midfielders",
 ) {
-  const path = `/static/assets/maps/${positionFamily}/${playerId}/${passFilter}.json`;
-  const res = await fetch(path, { cache: "force-cache" });
-  if (!res.ok) {
-    return {
-      pass_count: 0,
-      pass_map_url: null,
-      dest_map_url: null,
-      caption: "Mapa não disponível neste build estático.",
-      pass_filter_options: [],
-      scatter_metric_options: [],
-    };
-  }
-  return res.json();
+  return fetchPassMapFromAssets(playerId, passFilter, positionFamily);
 }
 
 export async function staticGetMapsOptions() {
@@ -167,12 +159,7 @@ export async function staticGetMapsOptions() {
 }
 
 export async function staticGetAggregatedMaps(positionFamily = "midfielders") {
-  const path = `/static/assets/aggregated/${positionFamily}.json`;
-  const res = await fetch(path, { cache: "force-cache" });
-  if (!res.ok) {
-    return { player_count: 0, total_passes: 0, quadrant_stats: [] };
-  }
-  return res.json();
+  return fetchAggregatedMapsFromAssets(positionFamily);
 }
 
 export async function staticSiteReady(): Promise<boolean> {

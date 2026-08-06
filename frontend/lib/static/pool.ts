@@ -1,4 +1,5 @@
 import { STATIC_ROOT } from "@/lib/static/constants";
+import { heatmapAssetUrl as cdnHeatmapUrl } from "@/lib/assets";
 
 export type PoolPlayer = Record<string, unknown>;
 
@@ -102,5 +103,5 @@ export function poolParts(players: PoolPlayer[], positionFamily: string) {
 }
 
 export function heatmapUrl(positionFamily: string, playerId: string): string {
-  return `/static/assets/heatmaps/${positionFamily}/${playerId}.png`;
+  return cdnHeatmapUrl(positionFamily, playerId);
 }

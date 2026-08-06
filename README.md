@@ -49,12 +49,14 @@ Guia completo (túnel fixo, domínio, Cloudflare Access): **[docs/LOCAL_CLOUDFLA
 
 Sem backend em runtime — JSON + PNGs pré-gerados, link público na Vercel:
 
-**[docs/STATIC_SITE.md](docs/STATIC_SITE.md)**
+**[docs/STATIC_SITE.md](docs/STATIC_SITE.md)** — site 100% estático
+
+**[docs/HYBRID_DEPLOY.md](docs/HYBRID_DEPLOY.md)** — Render + R2 + Vercel (recomendado para 527 jogadores com mapas)
 
 ```bash
-./scripts/build-static-site.sh --family midfielders --limit 20
-cp frontend/.env.static.example frontend/.env.local
-cd frontend && npm run dev:static
+./scripts/build-static-site.sh --family midfielders
+cp frontend/.env.hybrid.example frontend/.env.local   # modo híbrido
+cd frontend && npm run dev
 ```
 
 ## Deploy na nuvem (Render + Vercel)

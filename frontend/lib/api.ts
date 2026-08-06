@@ -6,6 +6,12 @@
 import type { ProfileFilterState } from "@/lib/profileParams";
 import { filtersToApiParams } from "@/lib/profileParams";
 import * as staticApi from "@/lib/staticApi";
+import {
+  fetchAggregatedMapsFromAssets,
+  fetchPassMapFromAssets,
+  heatmapAssetUrl,
+  offlineMapsEnabled,
+} from "@/lib/assets";
 
 function isStaticMode(): boolean {
   return process.env.NEXT_PUBLIC_STATIC_MODE === "1";
@@ -190,7 +196,12 @@ export function getPlayerOptionsLegacy(params?: {
 export function getPlayerProfile(id: string, positionFamily = "midfielders") {
   if (isStaticMode()) return staticApi.staticGetPlayerProfile(id, positionFamily);
   const qs = new URLSearchParams({ position_family: positionFamily });
-  return fetchApi<PlayerProfile>(`/api/players/${id}?${qs}`);
+  return fetchApi<PlayerProfile>(`/api/players/${id}?${qs}`).then((profile) => {
+    if (offlineMapsEnabled() && !profile.origin_heatmap_b64) {
+      profile.origin_heatmap_url = heatmapAssetUrl(positionFamily, id);
+    }
+    return profile;
+  });
 }
 
 export function getCompare(playerA: string, playerB: string, positionFamily = "midfielders") {
@@ -200,7 +211,12 @@ export function getCompare(playerA: string, playerB: string, positionFamily = "m
     player_b: playerB,
     position_family: positionFamily,
   });
-  return fetchApi<ComparePayload>(`/api/compare?${qs}`);
+  return fetchApi<ComparePayload>(`/api/compare?${qs}`).then((payload) => {
+    if (!offlineMapsEnabled()) return payload;
+    if (!payload.heatmap_a_b64) payload.heatmap_a_url = heatmapAssetUrl(positionFamily, playerA);
+    if (!payload.heatmap_b_b64) payload.heatmap_b_url = heatmapAssetUrl(positionFamily, playerB);
+    return payload;
+  });
 }
 
 export function getScatter(x: string, y: string, highlight?: string, positionFamily = "midfielders") {
@@ -218,6 +234,9 @@ export function getPassMap(
 ) {
   if (isStaticMode()) {
     return staticApi.staticGetPassMap(playerId, passFilter, roundKey, positionFamily);
+  }
+  if (offlineMapsEnabled()) {
+    return fetchPassMapFromAssets(playerId, passFilter, positionFamily);
   }
   const qs = new URLSearchParams({
     pass_filter: passFilter,
@@ -247,6 +266,7 @@ export function getMapsOptions() {
 
 export function getAggregatedMaps(positionFamily = "midfielders") {
   if (isStaticMode()) return staticApi.staticGetAggregatedMaps(positionFamily);
+  if (offlineMapsEnabled()) return fetchAggregatedMapsFromAssets(positionFamily);
   const qs = new URLSearchParams({ position_family: positionFamily });
   return fetchApi<{
     player_count: number;
