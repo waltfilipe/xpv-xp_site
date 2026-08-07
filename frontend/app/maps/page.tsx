@@ -14,8 +14,11 @@ import {
   type PlayerOption,
   type ScatterData,
 } from "@/lib/api";
+import { useI18n } from "@/lib/i18n/context";
+import { translateMapFilterKey } from "@/lib/i18n/localize";
 
 function MapsContent() {
+  const { t } = useI18n();
   const searchParams = useSearchParams();
   const positionFamily = "midfielders";
   const [options, setOptions] = useState<PlayerOption[]>([]);
@@ -47,8 +50,8 @@ function MapsContent() {
           return opts.options[0]?.player_id ?? "";
         });
       })
-      .catch(() => setError("Backend indisponível"));
-  }, [positionFamily]);
+      .catch(() => setError(t.common.backendUnavailable));
+  }, [positionFamily, t.common.backendUnavailable]);
 
   useEffect(() => {
     if (view !== "scatter" || !playerId) return;
@@ -70,7 +73,7 @@ function MapsContent() {
 
   return (
     <div className="container">
-      <PageHero title="Maps" subtitle="Scatter e mapas de passes — meio-campistas." icon="fa-map-location-dot" />
+      <PageHero title={t.maps.title} subtitle={t.maps.subtitle} icon="fa-map-location-dot" />
 
       {error && <div className="error-box">{error}</div>}
 
@@ -80,22 +83,22 @@ function MapsContent() {
             {options.map((o) => <option key={o.player_id} value={o.player_id}>{o.label}</option>)}
           </select>
           <div className="view-toggle">
-            <button type="button" className={view === "scatter" ? "active" : ""} onClick={() => setView("scatter")}>Scatter</button>
-            <button type="button" className={view === "pass_map" ? "active" : ""} onClick={() => setView("pass_map")}>Pass map</button>
+            <button type="button" className={view === "scatter" ? "active" : ""} onClick={() => setView("scatter")}>{t.maps.scatter}</button>
+            <button type="button" className={view === "pass_map" ? "active" : ""} onClick={() => setView("pass_map")}>{t.maps.passMap}</button>
           </div>
         </div>
       </div>
 
-      {loading && <LoadingState message="Gerando mapas…" />}
+      {loading && <LoadingState message={t.maps.loading} />}
 
       {view === "scatter" && mapOpts && !loading && (
         <>
           <div className="filters">
             <select value={xKey} onChange={(e) => setXKey(e.target.value)}>
-              {mapOpts.scatter_metrics.map((m) => <option key={m.key} value={m.key}>{m.label} (X)</option>)}
+              {mapOpts.scatter_metrics.map((m) => <option key={m.key} value={m.key}>{t.maps.axisX(m.label)}</option>)}
             </select>
             <select value={yKey} onChange={(e) => setYKey(e.target.value)}>
-              {mapOpts.scatter_metrics.map((m) => <option key={m.key} value={m.key}>{m.label} (Y)</option>)}
+              {mapOpts.scatter_metrics.map((m) => <option key={m.key} value={m.key}>{t.maps.axisY(m.label)}</option>)}
             </select>
           </div>
           {scatter && <ScatterChart points={scatter.points} xLabel={scatter.x_label} yLabel={scatter.y_label} means={scatter.means} />}
@@ -106,13 +109,15 @@ function MapsContent() {
         <>
           <div className="filters">
             <select value={passFilter} onChange={(e) => setPassFilter(e.target.value)}>
-              {mapOpts.pass_filters.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
+              {mapOpts.pass_filters.map((f) => (
+                <option key={f.key} value={f.key}>{translateMapFilterKey(f.key, t)}</option>
+              ))}
             </select>
           </div>
           {passMap && (
             <div className="maps-grid">
-              {passMap.pass_map_b64 && <img src={`data:image/png;base64,${passMap.pass_map_b64}`} alt="Pass map" className="map-img" />}
-              {passMap.dest_map_b64 && <img src={`data:image/png;base64,${passMap.dest_map_b64}`} alt="Destination heatmap" className="map-img" />}
+              {passMap.pass_map_b64 && <img src={`data:image/png;base64,${passMap.pass_map_b64}`} alt={t.maps.passMapAlt} className="map-img" />}
+              {passMap.dest_map_b64 && <img src={`data:image/png;base64,${passMap.dest_map_b64}`} alt={t.maps.destMapAlt} className="map-img" />}
               <p className="muted" style={{ gridColumn: "1 / -1" }}>{passMap.caption}</p>
             </div>
           )}
@@ -121,10 +126,10 @@ function MapsContent() {
 
       {aggregated && (
         <section style={{ marginTop: "2rem" }}>
-          <h3 className="section-label" style={{ fontSize: "0.75rem", marginBottom: "0.75rem" }}>Visão agregada · top 250 por volume</h3>
+          <h3 className="section-label" style={{ fontSize: "0.75rem", marginBottom: "0.75rem" }}>{t.maps.aggregatedView}</h3>
           <div className="maps-grid">
-            {aggregated.common_map_b64 && <img src={`data:image/png;base64,${aggregated.common_map_b64}`} alt="Common passes" className="map-img" />}
-            {aggregated.rare_map_b64 && <img src={`data:image/png;base64,${aggregated.rare_map_b64}`} alt="Rare passes" className="map-img" />}
+            {aggregated.common_map_b64 && <img src={`data:image/png;base64,${aggregated.common_map_b64}`} alt={t.maps.commonMapAlt} className="map-img" />}
+            {aggregated.rare_map_b64 && <img src={`data:image/png;base64,${aggregated.rare_map_b64}`} alt={t.maps.rareMapAlt} className="map-img" />}
           </div>
         </section>
       )}

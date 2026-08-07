@@ -163,7 +163,7 @@ export function heatBarColor(positionPct: number): string {
 }
 
 export const LETTER_GRADE_FILTER_OPTIONS = [
-  { key: "all", label: "Todas" },
+  { key: "all", label: "All" },
   { key: "A+", label: "A+" },
   { key: "A", label: "A" },
   { key: "A-", label: "A−" },

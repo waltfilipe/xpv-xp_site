@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { LoadingState } from "@/components/LoadingState";
 import {
   PlayerReportSheet,
-  REPORT_MAP_FILTERS,
   type PlayerReportMaps,
   type ReportMapSlot,
 } from "@/components/PlayerReportSheet";
 import { getPassMap, getPlayerProfile, type PlayerProfile } from "@/lib/api";
+import { useI18n } from "@/lib/i18n/context";
+import { getReportMapFilters, translateReportCategory } from "@/lib/i18n/localize";
 import {
   enrichedReportPlayers,
   PLAYER_REPORT_CATEGORIES,
@@ -57,16 +58,17 @@ async function mapPool<T, R>(
 async function loadMapSlots(
   playerId: string,
   family: string,
+  mapFilters: { key: string; label: string }[],
   existing?: ReportMapSlot[] | null,
 ): Promise<ReportMapSlot[]> {
-  const slots: ReportMapSlot[] = REPORT_MAP_FILTERS.map((f) => {
+  const slots: ReportMapSlot[] = mapFilters.map((f) => {
     const prev = existing?.find((s) => s.key === f.key);
     return prev?.pass_map_b64
       ? { ...prev }
       : { key: f.key, label: f.label, loading: true };
   });
 
-  for (const filter of REPORT_MAP_FILTERS) {
+  for (const filter of mapFilters) {
     const idx = slots.findIndex((s) => s.key === filter.key);
     if (slots[idx]?.pass_map_b64) continue;
     try {
@@ -83,7 +85,7 @@ async function loadMapSlots(
         key: filter.key,
         label: filter.label,
         loading: false,
-        error: e instanceof Error ? e.message : "Falha",
+        error: e instanceof Error ? e.message : "Error",
       };
     }
   }
@@ -117,6 +119,8 @@ async function waitForPrintMapImages(playerIds: string[], expectedPerPlayer = 4)
 }
 
 export function ReportsClient() {
+  const { t } = useI18n();
+  const mapFilters = getReportMapFilters(t);
   const [reports, setReports] = useState<ReportEntry[]>(emptyReports);
   const [bootLoading, setBootLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>(PLAYER_REPORT_CATEGORIES[0]?.id ?? "u23-breakout");
@@ -222,7 +226,7 @@ export function ReportsClient() {
       const updatedSlots: Record<string, ReportMapSlot[]> = {};
       for (const item of targets) {
         const family = item.entry.positionFamily ?? "midfielders";
-        const slots = await loadMapSlots(item.entry.playerId, family, item.mapSlots);
+        const slots = await loadMapSlots(item.entry.playerId, family, mapFilters, item.mapSlots);
         updatedSlots[item.entry.playerId] = slots;
         patchReport(item.entry.playerId, {
           mapSlots: slots,
@@ -243,7 +247,7 @@ export function ReportsClient() {
       setPrintPreparing(false);
       setPrintQueue(targets.map((t) => t.entry.playerId));
     },
-    [reports, patchReport],
+    [reports, patchReport, mapFilters],
   );
 
   const okCount = reports.filter((r) => r.profile).length;
@@ -255,25 +259,22 @@ export function ReportsClient() {
       <header className="reports-hero-card report-screen-only">
         <div className="reports-hero-main">
           <div className="reports-hero-copy">
-            <p className="reports-hero-eyebrow">Scouting intelligence</p>
-            <h1 className="reports-hero-title">Midfielder Reports</h1>
-            <p className="reports-hero-lead">
-              {totalReportCount()} perfis curados em 3 faixas etárias — overview xP, pass scores,
-              consistency e mapas de passe. Exportação PDF por grupo.
-            </p>
+            <p className="reports-hero-eyebrow">{t.reports.eyebrow}</p>
+            <h1 className="reports-hero-title">{t.reports.title}</h1>
+            <p className="reports-hero-lead">{t.reports.lead}</p>
           </div>
           <div className="reports-hero-stats">
             <div className="reports-hero-stat">
               <span className="reports-hero-stat-val tabular">{okCount || "—"}</span>
-              <span className="reports-hero-stat-label">relatórios</span>
+              <span className="reports-hero-stat-label">{t.reports.reportsCount}</span>
             </div>
             <div className="reports-hero-stat">
               <span className="reports-hero-stat-val">3</span>
-              <span className="reports-hero-stat-label">grupos</span>
+              <span className="reports-hero-stat-label">{t.reports.groups}</span>
             </div>
             <div className="reports-hero-stat">
               <span className="reports-hero-stat-val">PDF</span>
-              <span className="reports-hero-stat-label">exportável</span>
+              <span className="reports-hero-stat-label">{t.reports.exportable}</span>
             </div>
           </div>
         </div>
@@ -294,11 +295,17 @@ export function ReportsClient() {
                 } as CSSProperties}
                 onClick={() => setActiveCategory(cat.id)}
               >
-                <span className="reports-category-card-eyebrow">{cat.subtitle}</span>
-                <strong className="reports-category-card-title">{cat.title}</strong>
-                <p className="reports-category-card-desc">{cat.description}</p>
+                <span className="reports-category-card-eyebrow">
+                  {translateReportCategory(cat.id, "subtitle", t, cat.subtitle)}
+                </span>
+                <strong className="reports-category-card-title">
+                  {translateReportCategory(cat.id, "title", t, cat.title)}
+                </strong>
+                <p className="reports-category-card-desc">
+                  {translateReportCategory(cat.id, "description", t, cat.description)}
+                </p>
                 <div className="reports-category-card-foot">
-                  <span className="reports-category-card-count tabular">{count} atletas</span>
+                  <span className="reports-category-card-count tabular">{t.reports.athletes(count)}</span>
                   <span
                     role="button"
                     tabIndex={0}
@@ -315,7 +322,7 @@ export function ReportsClient() {
                       }
                     }}
                   >
-                    <i className="fa-solid fa-file-pdf" /> Exportar grupo
+                    <i className="fa-solid fa-file-pdf" /> {t.reports.exportGroup}
                   </span>
                 </div>
               </button>
@@ -327,9 +334,13 @@ export function ReportsClient() {
       {activeCategoryMeta && (
         <div className="reports-active-banner report-screen-only">
           <div>
-            <span className="reports-active-eyebrow">Grupo selecionado</span>
-            <h2 style={{ color: activeCategoryMeta.accent }}>{activeCategoryMeta.title}</h2>
-            <p className="muted">{activeCategoryMeta.description}</p>
+            <span className="reports-active-eyebrow">{t.reports.selectedGroup}</span>
+            <h2 style={{ color: activeCategoryMeta.accent }}>
+              {translateReportCategory(activeCategoryMeta.id, "title", t, activeCategoryMeta.title)}
+            </h2>
+            <p className="muted">
+              {translateReportCategory(activeCategoryMeta.id, "description", t, activeCategoryMeta.description)}
+            </p>
           </div>
           <button
             type="button"
@@ -338,19 +349,19 @@ export function ReportsClient() {
             disabled={busy}
           >
             <i className="fa-solid fa-file-pdf" />
-            {printPreparing ? "Preparando mapas…" : "Exportar grupo"}
+            {printPreparing ? t.reports.preparingMaps : t.reports.exportGroup}
           </button>
         </div>
       )}
 
       <p className="reports-hint muted report-screen-only">
         {bootLoading
-          ? "Carregando relatórios em lotes…"
-          : `${okCount} prontos · ${visibleReports.length} no grupo · mapas carregam ao exportar PDF`}
+          ? t.reports.hintLoading
+          : t.reports.hintReady(okCount, visibleReports.length)}
       </p>
 
       {bootLoading && loadingCount === reports.length && (
-        <LoadingState message="Carregando primeiros relatórios…" />
+        <LoadingState message={t.reports.loadingFirst} />
       )}
 
       <div id="report-print-root" className="report-print-root" aria-hidden={!printing}>
@@ -377,7 +388,7 @@ export function ReportsClient() {
             return (
               <div key={item.entry.playerId} className="player-report-bundle">
                 <div className="player-report-sheet report-loading-sheet">
-                  <LoadingState message={`Carregando ${item.entry.playerId}…`} />
+                  <LoadingState message={t.reports.loadingPlayer(item.entry.playerId)} />
                 </div>
               </div>
             );
@@ -388,7 +399,7 @@ export function ReportsClient() {
               <div key={item.entry.playerId} className="player-report-bundle report-error-bundle">
                 <div className="player-report-sheet report-error-sheet">
                   <p className="error-box">
-                    Falha ao carregar jogador {item.entry.playerId}
+                    {t.reports.loadFailed(item.entry.playerId)}
                     {item.error ? `: ${item.error}` : ""}
                   </p>
                 </div>

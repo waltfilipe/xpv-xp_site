@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useTransition } from "react";
+import { useI18n } from "@/lib/i18n/context";
 
 type Props = {
   leagues: { key: string; label: string }[];
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export function PoolFilters({ leagues, currentLeague, currentSearch, actionPath }: Props) {
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
@@ -30,15 +32,15 @@ export function PoolFilters({ leagues, currentLeague, currentSearch, actionPath 
     <div className="filter-card">
       <div className="filter-head">
         <span className="filter-title">
-          <i className="fa-solid fa-sliders" /> Filtros
+          <i className="fa-solid fa-sliders" /> {t.poolFilters.title}
         </span>
-        <span className="filter-sub">Refine o grupo de jogadores e selecione o jogador.</span>
+        <span className="filter-sub">{t.poolFilters.subtitle}</span>
       </div>
       <form className="filters" style={{ marginBottom: 0 }} onSubmit={onSubmit}>
         <input
           name="search"
           type="search"
-          placeholder="Buscar jogador…"
+          placeholder={t.poolFilters.searchPlaceholder}
           defaultValue={currentSearch ?? searchParams.get("search") ?? ""}
         />
         <select name="league" defaultValue={currentLeague ?? searchParams.get("league") ?? "all"}>
@@ -47,7 +49,7 @@ export function PoolFilters({ leagues, currentLeague, currentSearch, actionPath 
           ))}
         </select>
         <button type="submit" className="btn btn-primary" disabled={pending}>
-          {pending ? "…" : "Filtrar"}
+          {pending ? "…" : t.poolFilters.filter}
         </button>
       </form>
     </div>

@@ -6,7 +6,8 @@ import { RangeDual } from "@/components/ui/RangeDual";
 import { getMeta } from "@/lib/api";
 import type { FilterOptionsMeta } from "@/lib/filterTypes";
 import { mergeFilterOptions } from "@/lib/filterDefaults";
-import { positionBlocksForFamily } from "@/lib/positionFamilies";
+import { useI18n } from "@/lib/i18n/context";
+import { applyFilterLocalization, localizeFilterOptions, positionBlocksForFamily } from "@/lib/i18n/localize";
 import type { ProfileFilterState } from "@/lib/profileParams";
 import { buildProfileUrl } from "@/lib/profileParams";
 
@@ -25,22 +26,27 @@ function metersToCm(m: number): number {
 }
 
 export function ProfileFilters({ options: initialOptions, nationalities: initialNats, current }: Props) {
+  const { t } = useI18n();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [options, setOptions] = useState(initialOptions);
+  const [options, setOptions] = useState(() => applyFilterLocalization(t, initialOptions));
   const [nationalities, setNationalities] = useState(initialNats);
   const [countriesOpen, setCountriesOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
+    setOptions(applyFilterLocalization(t, initialOptions));
+  }, [t, initialOptions]);
+
+  useEffect(() => {
     if (options.leagues.length > 1 && nationalities.length > 0) return;
     getMeta()
       .then((meta) => {
-        setOptions(mergeFilterOptions(meta));
+        setOptions(localizeFilterOptions(t, meta));
         if (meta.nationalities?.length) setNationalities(meta.nationalities);
       })
       .catch(() => { /* keep defaults */ });
-  }, [options.leagues.length, nationalities.length]);
+  }, [options.leagues.length, nationalities.length, t]);
 
   const defaults = options.defaults;
 
@@ -71,12 +77,12 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
   const selectedCountries = useMemo(() => new Set(state.countries), [state.countries]);
 
   const countrySummary = state.countries.length
-    ? `${state.countries.length} selecionada${state.countries.length > 1 ? "s" : ""}`
-    : "Selecionar países";
+    ? t.profile.countriesSelected(state.countries.length)
+    : t.profile.selectCountries;
 
   const positionBlocks = useMemo(
-    () => positionBlocksForFamily("midfielders"),
-    [],
+    () => positionBlocksForFamily(t, state.position_family),
+    [t, state.position_family],
   );
 
   function toFilters(): ProfileFilterState {
@@ -179,27 +185,24 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
         >
           <div className="filter-head">
             <span className="filter-title">
-              <i className="fa-solid fa-sliders" /> Filtros do grupo
+              <i className="fa-solid fa-sliders" /> {t.profile.filterTitle}
             </span>
-            <span className="filter-sub">
-              Refine posição, liga, idade, valor, contrato, minutos, altura, pass scores e nacionalidade.
-              Métricas e notas são sempre comparadas dentro do pool da posição selecionada.
-            </span>
+            <span className="filter-sub">{t.profile.filterSubtitle}</span>
           </div>
           <i className={`fa-solid fa-chevron-${filtersOpen ? "up" : "down"} filter-panel-chevron`} />
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={clearFilters}>
-          Limpar filtros
+          {t.profile.clearFilters}
         </button>
       </div>
 
       {filtersOpen && (
       <form className="profile-filters-form" onSubmit={onSubmit}>
         <div className="filter-section">
-          <h4 className="filter-section-title">Perfil</h4>
+          <h4 className="filter-section-title">{t.profile.profileSection}</h4>
         <div className="filter-grid filter-grid-2">
           <label className="filter-field">
-            <span className="filter-label">Subgrupo</span>
+            <span className="filter-label">{t.profile.subgroup}</span>
             <select
               value={state.position_block}
               onChange={(e) => setState((s) => ({ ...s, position_block: e.target.value }))}
@@ -211,7 +214,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
           </label>
 
           <label className="filter-field">
-            <span className="filter-label">Liga</span>
+            <span className="filter-label">{t.common.league}</span>
             <select value={state.league} onChange={(e) => setState((s) => ({ ...s, league: e.target.value }))}>
               {options.leagues.map((l) => (
                 <option key={l.key} value={l.key}>{l.label}</option>
@@ -220,7 +223,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
           </label>
 
           <label className="filter-field">
-            <span className="filter-label">Pé dominante</span>
+            <span className="filter-label">{t.profile.dominantFoot}</span>
             <select value={state.foot} onChange={(e) => setState((s) => ({ ...s, foot: e.target.value }))}>
               {options.foot.map((f) => (
                 <option key={f.key} value={f.key}>{f.label}</option>
@@ -231,7 +234,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
 
         <div className="filter-grid filter-grid-age">
           <label className="filter-field">
-            <span className="filter-label">Faixa etária</span>
+            <span className="filter-label">{t.profile.ageBand}</span>
             <select value={state.age_band} onChange={(e) => setState((s) => ({ ...s, age_band: e.target.value }))}>
               {options.age_bands.map((b) => (
                 <option key={b.key} value={b.key}>{b.label}</option>
@@ -241,7 +244,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
 
           <div className="filter-field filter-range filter-range-compact">
             <span className="filter-label filter-label-strong">
-              Idade <strong className="tabular">{state.age_min}–{state.age_max}</strong>
+              {t.common.age} <strong className="tabular">{state.age_min}–{state.age_max}</strong>
             </span>
             <RangeDual
               className="range-dual-xs"
@@ -255,11 +258,11 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
         </div>
 
         <div className="filter-section">
-          <h4 className="filter-section-title">Mercado &amp; físico</h4>
+          <h4 className="filter-section-title">{t.profile.marketPhysical}</h4>
         <div className="filter-grid filter-grid-2">
           <div className="filter-field filter-range filter-range-compact">
             <span className="filter-label filter-label-strong">
-              Valor (€M) <strong className="tabular">{state.value_min}–{state.value_max}</strong>
+              {t.profile.valueEm(state.value_min, state.value_max)}
             </span>
             <RangeDual
               className="range-dual-xs"
@@ -272,7 +275,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
 
           <div className="filter-field filter-range filter-range-compact">
             <span className="filter-label filter-label-strong">
-              Contrato <strong className="tabular">{state.contract_min}–{state.contract_max}</strong>
+              {t.profile.contractYears(state.contract_min, state.contract_max)}
             </span>
             <RangeDual
               className="range-dual-xs"
@@ -287,7 +290,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
         <div className="filter-grid filter-grid-2">
           <div className="filter-field filter-range filter-range-compact">
             <span className="filter-label filter-label-strong">
-              Minutos <strong className="tabular">{state.minutes_min}–{state.minutes_max}</strong>
+              {t.profile.minutesRange(state.minutes_min, state.minutes_max)}
             </span>
             <RangeDual
               className="range-dual-xs"
@@ -301,7 +304,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
 
           <div className="filter-field filter-range filter-range-compact">
             <span className="filter-label filter-label-strong">
-              Altura (m) <strong className="tabular">{formatHeightFromCm(state.height_min_cm)}–{formatHeightFromCm(state.height_max_cm)}</strong>
+              {t.profile.heightM(formatHeightFromCm(state.height_min_cm), formatHeightFromCm(state.height_max_cm))}
             </span>
             <RangeDual
               className="range-dual-xs"
@@ -316,7 +319,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
         </div>
 
         <div className="filter-section">
-          <h4 className="filter-section-title">Pass scores (nota mínima ≥)</h4>
+          <h4 className="filter-section-title">{t.profile.passScoresMin}</h4>
         <div className="filter-grid filter-grid-pass-grades">
           {options.pass_score_filters.map((filter) => {
             const key = filter.key as "volume_grade" | "efficiency_grade" | "buildup_grade" | "chance_grade";
@@ -338,9 +341,9 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
         </div>
 
         <div className="filter-section">
-          <h4 className="filter-section-title">Nacionalidade</h4>
+          <h4 className="filter-section-title">{t.profile.nationality}</h4>
         <div className="filter-field filter-nationality">
-          <span className="filter-label filter-label-strong">Região e países</span>
+          <span className="filter-label filter-label-strong">{t.profile.regionAndCountries}</span>
           <div className="nationality-panel">
             <div className="chip-group">
               {options.nationality_regions.map((region) => (
@@ -403,7 +406,7 @@ export function ProfileFilters({ options: initialOptions, nationalities: initial
 
         <div className="filter-actions">
           <button type="submit" className="btn btn-primary" disabled={pending}>
-            {pending ? "Aplicando…" : "Aplicar filtros"}
+            {pending ? t.common.applying : t.common.apply}
           </button>
         </div>
       </form>

@@ -1,19 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ComparePlayerPicker } from "@/components/ComparePlayerPicker";
 import { CompareXpIndicesStrip } from "@/components/CompareXpIndicesStrip";
 import { PassLengthMix } from "@/components/PassLengthMix";
 import { getPassMap } from "@/lib/api";
 import { formatContractUntil } from "@/lib/formatters";
-
-export const COMPARE_MAP_FILTERS: { key: string; label: string }[] = [
-  { key: "progressive", label: "Progressive Passes" },
-  { key: "test_impact_v2", label: "Impact Passes" },
-  { key: "line_break", label: "Breakline passes" },
-  { key: "key_passes", label: "Key Passes" },
-];
+import { useI18n } from "@/lib/i18n/context";
+import { getCompareMapFilters } from "@/lib/i18n/localize";
 
 const POSITION_FAMILY = "midfielders";
 
@@ -61,8 +56,11 @@ export function ComparePlayerCard({
   mapsMode = false,
   onToggleMaps,
 }: Props) {
+  const { t } = useI18n();
+  const mapFilters = useMemo(() => getCompareMapFilters(t), [t]);
   const [mapSlots, setMapSlots] = useState<MapSlot[]>([]);
   const xpIndices = (player.xp_indices as IndexItem[] | undefined) ?? [];
+  const playerLabel = t.compare.playerLabel(side === "a" ? "A" : "B");
 
   useEffect(() => {
     if (!mapsMode || !playerId) {
@@ -71,11 +69,11 @@ export function ComparePlayerCard({
     }
 
     let cancelled = false;
-    setMapSlots(COMPARE_MAP_FILTERS.map((f) => ({ ...f, loading: true })));
+    setMapSlots(mapFilters.map((f) => ({ ...f, loading: true })));
 
     (async () => {
       const next = await Promise.all(
-        COMPARE_MAP_FILTERS.map(async (filter) => {
+        mapFilters.map(async (filter) => {
           try {
             const res = await getPassMap(playerId, filter.key, "all", POSITION_FAMILY);
             return {
@@ -90,7 +88,7 @@ export function ComparePlayerCard({
               key: filter.key,
               label: filter.label,
               loading: false,
-              error: e instanceof Error ? e.message : "Falha ao carregar mapa",
+              error: e instanceof Error ? e.message : t.compare.mapLoadFailed,
             } satisfies MapSlot;
           }
         }),
@@ -101,13 +99,13 @@ export function ComparePlayerCard({
     return () => {
       cancelled = true;
     };
-  }, [mapsMode, playerId]);
+  }, [mapsMode, playerId, mapFilters, t.compare.mapLoadFailed]);
 
   if (mapsMode) {
     return (
       <div className={`player-card compare-side compare-side-${side} compare-side-maps`}>
         <ComparePlayerPicker
-          label={`Jogador ${side === "a" ? "A" : "B"}`}
+          label={playerLabel}
           value={playerId}
           exclude={excludePlayerId}
           onChange={onPlayerChange}
@@ -134,7 +132,7 @@ export function ComparePlayerCard({
         {onToggleMaps && (
           <button type="button" className="compare-maps-toggle-btn" onClick={onToggleMaps}>
             <i className="fa-solid fa-user" />
-            Voltar ao perfil
+            {t.compare.backToProfile}
           </button>
         )}
       </div>
@@ -144,7 +142,7 @@ export function ComparePlayerCard({
   return (
     <div className={`player-card identity-card compare-side compare-side-${side}`}>
       <ComparePlayerPicker
-        label={`Jogador ${side === "a" ? "A" : "B"}`}
+        label={playerLabel}
         value={playerId}
         exclude={excludePlayerId}
         onChange={onPlayerChange}
@@ -177,22 +175,22 @@ export function ComparePlayerCard({
           <div className="identity-facts identity-facts-side">
             <div className="identity-fact">
               <FactIcon icon="fa-cake-candles" />
-              <span className="identity-fact-label">Idade</span>
+              <span className="identity-fact-label">{t.common.age}</span>
               <span className="identity-fact-value tabular">{player.age != null ? String(player.age) : "—"}</span>
             </div>
             <div className="identity-fact">
               <FactIcon icon="fa-ruler-vertical" />
-              <span className="identity-fact-label">Altura</span>
+              <span className="identity-fact-label">{t.common.height}</span>
               <span className="identity-fact-value">{String(player.height ?? "—")}</span>
             </div>
             <div className="identity-fact">
               <FactIcon icon="fa-earth-americas" />
-              <span className="identity-fact-label">Nacionalidade</span>
+              <span className="identity-fact-label">{t.common.nationality}</span>
               <span className="identity-fact-value">{String(player.nationality ?? "—")}</span>
             </div>
             <div className="identity-fact">
               <FactIcon icon="fa-shoe-prints" />
-              <span className="identity-fact-label">Pé</span>
+              <span className="identity-fact-label">{t.common.foot}</span>
               <span className="identity-fact-value">{String(player.dominant_foot ?? "—")}</span>
             </div>
           </div>
@@ -201,21 +199,21 @@ export function ComparePlayerCard({
 
       <div className="identity-meta-row">
         <div className="identity-meta-pill">
-          <span><FactIcon icon="fa-coins" /> Valor</span>
+          <span><FactIcon icon="fa-coins" /> {t.common.value}</span>
           <strong>{String(player.market_value ?? "—")}</strong>
         </div>
         <div className="identity-meta-pill">
-          <span><FactIcon icon="fa-calendar-days" /> Contrato</span>
+          <span><FactIcon icon="fa-calendar-days" /> {t.common.contract}</span>
           <strong>{formatContractUntil(player.contract_until)}</strong>
         </div>
         <div className="identity-meta-pill">
-          <span><FactIcon icon="fa-clock" /> Minutos</span>
+          <span><FactIcon icon="fa-clock" /> {t.common.minutes}</span>
           <strong className="tabular">{player.minutes != null ? String(player.minutes) : "—"}</strong>
         </div>
       </div>
 
       {heatmap && (
-        <img src={`data:image/png;base64,${heatmap}`} alt="Origem dos passes" className="heatmap-img" />
+        <img src={`data:image/png;base64,${heatmap}`} alt={t.profile.passOriginAlt} className="heatmap-img" />
       )}
 
       <CompareXpIndicesStrip indices={xpIndices} />
@@ -229,7 +227,7 @@ export function ComparePlayerCard({
       {onToggleMaps && (
         <button type="button" className="compare-maps-toggle-btn" onClick={onToggleMaps}>
           <i className="fa-solid fa-map-location-dot" />
-          Comparar mapas
+          {t.compare.compareMaps}
         </button>
       )}
     </div>

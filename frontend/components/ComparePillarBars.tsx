@@ -4,6 +4,8 @@ import type { CompareMetric } from "@/lib/api";
 import { CompareDualMetricTip } from "@/components/CompareDualMetricTip";
 import { XpHeatBar } from "@/components/ui/XpHeatBar";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { translateXpBarLabel, useI18n } from "@/lib/i18n/context";
+
 const PILLAR_ICONS: Record<string, string> = {
   xp_activity_display: "fa-chart-simple",
   xp_efficiency_display: "fa-gauge-high",
@@ -37,6 +39,8 @@ function BarRow({
 }
 
 export function ComparePillarBars({ metrics, nameA, nameB }: Props) {
+  const { t } = useI18n();
+
   return (
     <div className="compare-pillar-bars">
       <div className="compare-pillar-legend">
@@ -52,13 +56,14 @@ export function ComparePillarBars({ metrics, nameA, nameB }: Props) {
 
       {metrics.map((metric) => {
         const icon = PILLAR_ICONS[metric.key] ?? "fa-circle";
+        const label = translateXpBarLabel(metric.key, t);
         const tip = (
           <CompareDualMetricTip
             nameA={nameA}
             nameB={nameB}
             components={[{
               key: metric.key,
-              label: metric.label,
+              label,
               value_a: metric.value_a,
               value_b: metric.value_b,
               winner: metric.winner,
@@ -70,7 +75,7 @@ export function ComparePillarBars({ metrics, nameA, nameB }: Props) {
             <div className="compare-pillar-head">
               <span className="compare-pillar-label">
                 <i className={`fa-solid ${icon} compare-pillar-icon`} aria-hidden="true" />
-                {metric.label}
+                {label}
               </span>
             </div>
             <BarRow

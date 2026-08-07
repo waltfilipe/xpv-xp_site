@@ -1,21 +1,22 @@
 "use client";
 
-import { PASS_GRADE_TOOLTIP } from "@/lib/tooltips";
 import { gradeTier, passGradeGradientColor, passGradePct } from "@/lib/gradeColors";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { useI18n, translatePassGradeTier } from "@/lib/i18n/context";
 
 type Props = { rating: number | null | undefined };
 
 export function PassGradePanel({ rating }: Props) {
+  const { t } = useI18n();
   const displayScore = rating != null ? rating * 10 : null;
 
   if (rating == null || displayScore == null) {
     return (
       <div className="player-card pass-grade-card">
         <div className="pass-grade-head">
-          <span className="pass-grade-title">Overall Pass Grade</span>
+          <span className="pass-grade-title">{t.passGrade.title}</span>
         </div>
-        <p className="placeholder-note">Grade unavailable</p>
+        <p className="placeholder-note">{t.passGrade.unavailable}</p>
       </div>
     );
   }
@@ -23,13 +24,13 @@ export function PassGradePanel({ rating }: Props) {
   const pct = passGradePct(displayScore);
   const markerPct = Math.max(1.5, Math.min(98.5, pct));
   const color = passGradeGradientColor(pct);
-  const tier = gradeTier(displayScore);
+  const tier = translatePassGradeTier(gradeTier(displayScore), t);
   const tierKey = tier.toLowerCase().replace(/\s+/g, "-");
 
   const panel = (
     <div className={`player-card pass-grade-card pass-grade-tier-${tierKey}`}>
       <div className="pass-grade-head">
-        <span className="pass-grade-title">Overall Pass Grade</span>
+        <span className="pass-grade-title">{t.passGrade.title}</span>
         <span
           className="pass-grade-tier"
           style={{ color, borderColor: `${color}55`, background: `${color}1a` }}
@@ -58,5 +59,5 @@ export function PassGradePanel({ rating }: Props) {
     </div>
   );
 
-  return <Tooltip content={PASS_GRADE_TOOLTIP} block>{panel}</Tooltip>;
+  return <Tooltip content={t.passGrade.tooltip} block>{panel}</Tooltip>;
 }

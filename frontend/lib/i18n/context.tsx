@@ -128,3 +128,14 @@ export function translateTier(tier: string | null | undefined, t: TranslationDic
   const map = t.xpProfile.tiers as Record<string, string>;
   return map[tier ?? "mid"] ?? tier ?? "—";
 }
+
+export function translatePassGradeTier(tier: string, t: TranslationDict): string {
+  const map: Record<string, string> = {
+    Elite: t.passGrade.tiers.elite,
+    "Very good": t.passGrade.tiers.veryGood,
+    Good: t.passGrade.tiers.good,
+    Average: t.passGrade.tiers.average,
+    "Below average": t.passGrade.tiers.belowAverage,
+  };
+  return map[tier] ?? tier;
+}

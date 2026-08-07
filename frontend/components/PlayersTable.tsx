@@ -148,7 +148,7 @@ export function PlayersTable({ players, positionFamily }: Props) {
             </th>
             <th>
               <button type="button" className="players-sort-btn" onClick={() => toggleSort("pass_rating")}>
-                Pass Rating {sortIndicator("pass_rating")}
+                {t.players.passRating} {sortIndicator("pass_rating")}
               </button>
             </th>
             <th>

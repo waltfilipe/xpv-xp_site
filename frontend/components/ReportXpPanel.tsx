@@ -1,9 +1,10 @@
+"use client";
+
 import { PassLengthMix } from "@/components/PassLengthMix";
-import { ConsistencyAccordion } from "@/components/ConsistencyAccordion";
-import { ImpactAccordion } from "@/components/ImpactAccordion";
 import { XpProfileBars } from "@/components/XpProfileBars";
 import type { PlayerProfile } from "@/lib/api";
 import { XpIndicesPanel } from "@/components/XpIndicesPanel";
+import { useI18n } from "@/lib/i18n/context";
 
 type Props = {
   profile: PlayerProfile;
@@ -12,9 +13,11 @@ type Props = {
 };
 
 export function ReportXpPanel({ profile, accent = "#a78bfa", expandAll = false }: Props) {
+  const { t } = useI18n();
+
   return (
     <div className="player-card xp-profile-card report-xp-card">
-      <h3 className="section-label">xP Profile</h3>
+      <h3 className="section-label">{t.profile.xpProfile}</h3>
       <XpProfileBars bars={profile.xp_bars} />
 
       {(profile.xp_indices?.length ?? 0) > 0 && (

@@ -1,7 +1,7 @@
 "use client";
 
 import { Tooltip } from "@/components/ui/Tooltip";
-import { PASS_LENGTH_TOOLTIP } from "@/lib/tooltips";
+import { useI18n } from "@/lib/i18n/context";
 
 const REF_CENTER_PCT = 11.4;
 
@@ -12,6 +12,7 @@ export type PassLengthData = {
 };
 
 export function PassLengthMix({ data }: { data: PassLengthData }) {
+  const { t } = useI18n();
   const share = data.long_pass_share_pct;
   if (share == null) return null;
 
@@ -25,33 +26,33 @@ export function PassLengthMix({ data }: { data: PassLengthData }) {
         <span className="pass-mix-icon">
           <i className="fa-solid fa-ruler-horizontal" />
         </span>
-        <span className="pass-mix-title">Pass Length Mix</span>
+        <span className="pass-mix-title">{t.passLength.title}</span>
       </div>
 
       <div className="pass-mix-track">
         <span
           className="pass-mix-center"
           style={{ left: `${refPos}%` }}
-          title={`League reference: ${REF_CENTER_PCT}% long`}
+          title={t.passLength.leagueRef(REF_CENTER_PCT)}
         />
         <span
           className="pass-mix-marker"
           style={{ left: `${playerPos}%` }}
-          title={`Player: ${share.toFixed(1)}% long`}
+          title={t.passLength.playerRef(share.toFixed(1))}
         />
       </div>
 
       <div className="pass-mix-axis">
-        <span className="axis-short">Short</span>
-        <span className="axis-long">Long</span>
+        <span className="axis-short">{t.passLength.short}</span>
+        <span className="axis-long">{t.passLength.long}</span>
       </div>
 
       <div className="pass-mix-legend">
-        <span className="legend-short"><strong>{shortShare.toFixed(1)}%</strong> short</span>
-        <span className="legend-long"><strong>{share.toFixed(1)}%</strong> long</span>
+        <span className="legend-short"><strong>{shortShare.toFixed(1)}%</strong> {t.passLength.short.toLowerCase()}</span>
+        <span className="legend-long"><strong>{share.toFixed(1)}%</strong> {t.passLength.long.toLowerCase()}</span>
       </div>
     </div>
   );
 
-  return <Tooltip content={PASS_LENGTH_TOOLTIP} block>{card}</Tooltip>;
+  return <Tooltip content={t.passLength.tooltip} block>{card}</Tooltip>;
 }
