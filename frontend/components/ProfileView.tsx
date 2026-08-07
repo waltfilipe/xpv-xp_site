@@ -11,6 +11,7 @@ import { XpIndicesPanel } from "@/components/XpIndicesPanel";
 import { XpProfileBars } from "@/components/XpProfileBars";
 import { getPlayerProfile, type PlayerProfile } from "@/lib/api";
 import { formatContractUntil } from "@/lib/formatters";
+import { useI18n } from "@/lib/i18n/context";
 
 function FactIcon({ icon }: { icon: string }) {
   return (
@@ -27,6 +28,7 @@ export function ProfileView({
   playerId: string;
   positionFamily?: string;
 }) {
+  const { t } = useI18n();
   const [data, setData] = useState<PlayerProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,21 +39,22 @@ export function ProfileView({
     getPlayerProfile(playerId, positionFamily)
       .then(setData)
       .catch((e) => {
-        const msg = e instanceof Error ? e.message : "Erro";
+        const msg = e instanceof Error ? e.message : t.common.error;
         setError(
           msg === "Failed to fetch"
-            ? "Não foi possível conectar ao backend. Verifique se o FastAPI está rodando (porta 8000)."
+            ? t.common.backendConnectError
             : msg,
         );
       })
       .finally(() => setLoading(false));
-  }, [playerId, positionFamily]);
+  }, [playerId, positionFamily, t.common.backendConnectError, t.common.error]);
 
-  if (loading) return <LoadingState message="Carregando perfil do jogador…" />;
+  if (loading) return <LoadingState message={t.profile.loading} />;
   if (error) return <div className="error-box">{error}</div>;
   if (!data) return null;
 
   const p = data.player;
+  const xpvPerGame = Number(data.xp?.xpv_per_pass_p90 ?? p.xpv_per_pass_p90);
 
   return (
     <>
@@ -86,22 +89,22 @@ export function ProfileView({
                 <div className="identity-facts identity-facts-side">
                   <div className="identity-fact">
                     <FactIcon icon="fa-cake-candles" />
-                    <span className="identity-fact-label">Idade</span>
+                    <span className="identity-fact-label">{t.common.age}</span>
                     <span className="identity-fact-value tabular">{p.age != null ? String(p.age) : "—"}</span>
                   </div>
                   <div className="identity-fact">
                     <FactIcon icon="fa-ruler-vertical" />
-                    <span className="identity-fact-label">Altura</span>
+                    <span className="identity-fact-label">{t.common.height}</span>
                     <span className="identity-fact-value">{String(p.height ?? "—")}</span>
                   </div>
                   <div className="identity-fact">
                     <FactIcon icon="fa-earth-americas" />
-                    <span className="identity-fact-label">Nacionalidade</span>
+                    <span className="identity-fact-label">{t.common.nationality}</span>
                     <span className="identity-fact-value">{String(p.nationality ?? "—")}</span>
                   </div>
                   <div className="identity-fact">
                     <FactIcon icon="fa-shoe-prints" />
-                    <span className="identity-fact-label">Pé</span>
+                    <span className="identity-fact-label">{t.common.foot}</span>
                     <span className="identity-fact-value">{String(p.dominant_foot ?? "—")}</span>
                   </div>
                 </div>
@@ -110,21 +113,21 @@ export function ProfileView({
 
             <div className="identity-meta-row">
               <div className="identity-meta-pill">
-                <span><FactIcon icon="fa-coins" /> Valor</span>
+                <span><FactIcon icon="fa-coins" /> {t.common.value}</span>
                 <strong>{String(p.market_value ?? "—")}</strong>
               </div>
               <div className="identity-meta-pill">
-                <span><FactIcon icon="fa-calendar-days" /> Contrato</span>
+                <span><FactIcon icon="fa-calendar-days" /> {t.common.contract}</span>
                 <strong>{formatContractUntil(p.contract_until)}</strong>
               </div>
               <div className="identity-meta-pill">
-                <span><FactIcon icon="fa-clock" /> Minutos</span>
+                <span><FactIcon icon="fa-clock" /> {t.common.minutes}</span>
                 <strong className="tabular">{p.minutes != null ? String(p.minutes) : "—"}</strong>
               </div>
             </div>
 
             {data.origin_heatmap_b64 && (
-              <img src={`data:image/png;base64,${data.origin_heatmap_b64}`} alt="Origem dos passes" className="heatmap-img" />
+              <img src={`data:image/png;base64,${data.origin_heatmap_b64}`} alt={t.profile.passOriginAlt} className="heatmap-img" />
             )}
           </div>
         </div>
@@ -134,8 +137,11 @@ export function ProfileView({
             <PassGradePanel rating={data.xp_pass_rating} />
 
             <div className="player-card xp-profile-card">
-              <h3 className="section-label">xP Profile</h3>
-              <XpProfileBars bars={data.xp_bars} />
+              <h3 className="section-label">{t.profile.xpProfile}</h3>
+              <XpProfileBars
+                bars={data.xp_bars}
+                xpvPerGame={Number.isFinite(xpvPerGame) ? xpvPerGame : null}
+              />
               <XpIndicesPanel
                 indices={data.xp_indices ?? []}
                 roundGrades={data.xp_round_grades ?? []}
@@ -147,7 +153,7 @@ export function ProfileView({
 
         <div className="pa-col pa-col-pillars">
           <div className="player-card pillars-card">
-            <h3 className="section-label">Pass Scores</h3>
+            <h3 className="section-label">{t.profile.passScores}</h3>
             <PassScoreSections sections={data.pass_scores} />
           </div>
         </div>
@@ -155,10 +161,10 @@ export function ProfileView({
 
       <div className="profile-actions">
         <Link href={`/compare?a=${playerId}`} className="btn btn-primary">
-          <i className="fa-solid fa-scale-balanced" /> Comparar
+          <i className="fa-solid fa-scale-balanced" /> {t.profile.compare}
         </Link>
         <Link href={`/maps?player=${playerId}`} className="btn btn-ghost">
-          <i className="fa-solid fa-map-location-dot" /> Ver mapas
+          <i className="fa-solid fa-map-location-dot" /> {t.profile.viewMaps}
         </Link>
       </div>
     </>

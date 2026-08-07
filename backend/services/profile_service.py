@@ -16,7 +16,7 @@ XP_PA_REGULAR_SCORE_SPECS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...
     ("pass_volume_display", "pass_volume_index", "pass_volume_letter", "Volume", ("passes_total", "long_balls")),
     ("pass_efficiency_display", "pass_efficiency_index", "pass_efficiency_letter", "Efficiency", ("xpass_coe_pct", "xpass_long_coe_pct")),
     ("pass_buildup_display", "pass_buildup_index", "pass_buildup_letter", "Build-up", ("progressive_passes", "final_third_passes", "special_line_break_p90")),
-    ("pass_chance_creation_display", "pass_chance_creation_index", "pass_chance_creation_letter", "Chance creation", ("key_xpv_p90", "box_xpv_p90", "ip_ft_xpv_p90")),
+    ("pass_chance_creation_display", "pass_chance_creation_index", "pass_chance_creation_letter", "Chance creation", ("key_passes", "passes_to_box", "test_impact_v2_start_final_third_p90", "xpv_threat_p90")),
 )
 
 DEFENSIVE_INDEX_COMPONENTS: tuple[tuple[str, str], ...] = (

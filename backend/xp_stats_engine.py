@@ -952,6 +952,7 @@ def attach_xpv_chance_creation_metrics(
         "key_xpv_p90": 0.0,
         "box_xpv_p90": 0.0,
         "ip_ft_xpv_p90": 0.0,
+        "xpv_threat_p90": 0.0,
     }
     if scored.empty or XP_COL not in scored.columns:
         metrics.update(empty)
@@ -989,6 +990,7 @@ def attach_xpv_chance_creation_metrics(
         "key_xpv_p90": round(key_xpv * factor, 3),
         "box_xpv_p90": round(box_xpv * factor, 3),
         "ip_ft_xpv_p90": round(ip_ft_xpv * factor, 3),
+        "xpv_threat_p90": round((key_xpv + box_xpv + ip_ft_xpv) * factor, 3),
     })
 
 
@@ -1812,6 +1814,7 @@ XP_REGULAR_STAT_RANK_KEYS: tuple[str, ...] = (
     "key_xpv_p90",
     "box_xpv_p90",
     "ip_ft_xpv_p90",
+    "xpv_threat_p90",
     "pass_volume_index",
     "pass_efficiency_index",
     "pass_buildup_index",
@@ -1836,9 +1839,9 @@ PASS_BUILDUP_METRICS: tuple[str, ...] = (
     "special_line_break_p90",
 )
 PASS_CHANCE_CREATION_METRICS: tuple[str, ...] = (
-    "key_xpv_p90",
-    "box_xpv_p90",
-    "ip_ft_xpv_p90",
+    "key_passes",
+    "passes_to_box",
+    "test_impact_v2_start_final_third_p90",
 )
 PASS_IMPACT_METRICS: tuple[str, ...] = (
     "test_impact_v2_p90",
@@ -1888,12 +1891,12 @@ PASS_SCORE_TOOLTIPS: dict[str, str] = {
         "and line-breaking passes per game."
     ),
     "pass_chance_creation_index": (
-        "Within-position composite of xPV generated per game from key passes, "
-        "passes into the box, and impact passes originating in the final third."
+        "Within-position composite of key passes, passes into the box, and impact passes "
+        "originating in the final third per game."
     ),
     "pass_chance_creation_display": (
-        "Within-position composite of xPV generated per game from key passes, "
-        "passes into the box, and impact passes originating in the final third."
+        "Within-position composite of key passes, passes into the box, and impact passes "
+        "originating in the final third per game."
     ),
     "pass_impact_index": (
         "Within-position composite of Test Impact v2 volume, attempt-pool completion "
@@ -3265,8 +3268,7 @@ def format_stats_value(key: str, value: float | int | None) -> str:
         return f"{val:.2f}"
     if key in {
         "long_balls", "progressive_passes", "final_third_passes",
-        "passes_to_box", "key_passes", "test_impact_v2_start_final_third_p90",
-        "key_xpv_p90", "box_xpv_p90", "ip_ft_xpv_p90",
+        "key_xpv_p90", "box_xpv_p90", "ip_ft_xpv_p90", "xpv_threat_p90", "xpv_threat_p90",
     }:
         return f"{val:.1f}"
     if key == "pass_mean_distance":

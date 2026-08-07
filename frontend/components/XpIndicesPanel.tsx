@@ -4,8 +4,13 @@ import { ConsistencyAccordion } from "@/components/ConsistencyAccordion";
 import { ImpactAccordion, type ImpactIndexComponent } from "@/components/ImpactAccordion";
 import type { XpRoundGrade } from "@/lib/api";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { XP_INDEX_TIER_LABELS, xpIndexTierClass } from "@/lib/gradeColors";
-import { INDEX_TOOLTIPS } from "@/lib/tooltips";
+import { xpIndexTierClass } from "@/lib/gradeColors";
+import {
+  translateIndexLabel,
+  translateIndexTip,
+  translateTier,
+  useI18n,
+} from "@/lib/i18n/context";
 
 export type XpIndexItem = {
   key: string;
@@ -35,8 +40,9 @@ function IndexRow({
   tierKey: string;
   icon: string;
 }) {
-  const tierLabel = XP_INDEX_TIER_LABELS[tier ?? "mid"] ?? tier ?? "—";
-  const tip = INDEX_TOOLTIPS[tierKey] ?? INDEX_TOOLTIPS[label] ?? "";
+  const { t } = useI18n();
+  const tierLabel = translateTier(tier, t);
+  const tip = translateIndexTip(tierKey, label, t);
 
   return (
     <Tooltip content={tip} block>
@@ -44,7 +50,7 @@ function IndexRow({
         <span className="xp-index-row-icon">
           <i className={`fa-solid ${icon}`} />
         </span>
-        <span className="xp-index-row-name">{label}</span>
+        <span className="xp-index-row-name">{translateIndexLabel(label, t)}</span>
         <span className="xp-index-row-sep" aria-hidden="true" />
         <span className="xp-index-row-val">{tierLabel}</span>
       </div>
@@ -58,6 +64,7 @@ export function XpIndicesPanel({
   accent,
   expandAll = false,
 }: Props) {
+  const { t } = useI18n();
   const rows = indices.filter((i) => i.tier);
   if (!rows.length) return null;
 
@@ -70,11 +77,11 @@ export function XpIndicesPanel({
 
   return (
     <div className="xp-indices-panel">
-      <h4 className="section-label-sm">xP Indices</h4>
+      <h4 className="section-label-sm">{t.xpProfile.indices}</h4>
       <div className="xp-indices-list">
         {consistency && (
           <ConsistencyAccordion
-            label={consistency.label}
+            label={translateIndexLabel(consistency.label, t)}
             tier={consistency.tier}
             tierKey={consistency.tier_key ?? consistency.label}
             icon={consistency.icon ?? "fa-wave-square"}
@@ -85,7 +92,7 @@ export function XpIndicesPanel({
         )}
         {impact && impact.components && impact.components.length > 0 && (
           <ImpactAccordion
-            label={impact.label}
+            label={translateIndexLabel(impact.label, t)}
             tier={impact.tier}
             tierKey={impact.tier_key ?? impact.label}
             icon={impact.icon ?? "fa-crosshairs"}
@@ -103,7 +110,7 @@ export function XpIndicesPanel({
         )}
         {defense && defense.components && defense.components.length > 0 && (
           <ImpactAccordion
-            label={defense.label}
+            label={translateIndexLabel(defense.label, t)}
             tier={defense.tier}
             tierKey={defense.tier_key ?? defense.label}
             icon={defense.icon ?? "fa-shield-halved"}

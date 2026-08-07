@@ -11,7 +11,7 @@ from position_families import DEFAULT_POSITION_FAMILY, normalize_position_family
 from services.serialization import sanitize_for_json
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
-POOL_CACHE_VERSION = 7
+POOL_CACHE_VERSION = 8
 
 
 def api_pool_path(position_family: str) -> Path:
