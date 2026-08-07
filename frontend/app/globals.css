@@ -1954,6 +1954,18 @@ button, input, select { font: inherit; }
   opacity: 0.85;
 }
 
+.metric-gradient-bar-midline {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-50%);
+  background: rgba(248, 250, 252, 0.12);
+  pointer-events: none;
+  z-index: 1;
+}
+
 .metric-gradient-bar-fill {
   position: absolute;
   inset: 0 auto 0 0;

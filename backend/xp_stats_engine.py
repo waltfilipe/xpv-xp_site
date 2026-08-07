@@ -910,6 +910,88 @@ def compute_extended_xp_stats(
     return out
 
 
+def _build_keypass_lookup(raw_pass_frame: pd.DataFrame) -> pd.DataFrame:
+    """Lookup table to attach Wyscout key-pass flags to scored parquet rows."""
+    if raw_pass_frame is None or raw_pass_frame.empty:
+        return pd.DataFrame()
+    work = raw_pass_frame.copy()
+    work["player_id"] = work["player_id"].astype(str)
+    work["event_id"] = work["event_id"].astype(str)
+    sx, sy = pe._wyscout_to_sb(work["start_x"], work["start_y"])
+    has_end = work["end_x"].notna() & work["end_y"].notna()
+    ex = np.full(len(work), np.nan)
+    ey = np.full(len(work), np.nan)
+    if has_end.any():
+        ex[has_end.to_numpy()], ey[has_end.to_numpy()] = pe._wyscout_to_sb(
+            work.loc[has_end, "end_x"], work.loc[has_end, "end_y"]
+        )
+    work["x_start_r"] = np.round(sx, 2)
+    work["y_start_r"] = np.round(sy, 2)
+    work["x_end_r"] = np.round(ex, 2)
+    work["y_end_r"] = np.round(ey, 2)
+    work["is_key_pass"] = (
+        pe._parse_bool_series(work["keypass"]) if "keypass" in work.columns else False
+    )
+    merge_cols = ["event_id", "player_id", "x_start_r", "y_start_r", "x_end_r", "y_end_r"]
+    return work[merge_cols + ["is_key_pass"]].drop_duplicates(subset=merge_cols)
+
+
+def attach_xpv_chance_creation_metrics(
+    metrics: dict[str, float | int],
+    grp: pd.DataFrame,
+    *,
+    keypass_lookup: pd.DataFrame | None = None,
+    minutes: float | None = None,
+) -> None:
+    """Attach xPV totals and per-90 from key passes, into-box, and IP final-third passes."""
+    scored = grp[grp["is_won"] & grp["has_end"]].copy()
+    empty = {
+        "key_xpv_total": 0.0,
+        "box_xpv_total": 0.0,
+        "ip_ft_xpv_total": 0.0,
+        "key_xpv_p90": 0.0,
+        "box_xpv_p90": 0.0,
+        "ip_ft_xpv_p90": 0.0,
+    }
+    if scored.empty or XP_COL not in scored.columns:
+        metrics.update(empty)
+        return
+
+    import xp_engine as xe_mod
+
+    xp = scored[XP_COL].astype(float)
+    masks = compute_special_pass_masks(scored)
+    in_box = masks["in_box"]
+    ti_v2 = xe_mod.filter_test_impact_v2_passes(scored)
+    ti_v2_mask = scored.index.isin(set(ti_v2.index))
+    ti_v2_ft = ti_v2_mask & (scored["x_start"].astype(float).to_numpy() >= FINAL_X_MIN)
+
+    is_key = np.zeros(len(scored), dtype=bool)
+    if keypass_lookup is not None and not keypass_lookup.empty:
+        merge_cols = ["event_id", "player_id", "x_start_r", "y_start_r", "x_end_r", "y_end_r"]
+        scored_merge = scored.copy()
+        scored_merge["player_id"] = scored_merge["player_id"].astype(str)
+        scored_merge["event_id"] = scored_merge["event_id"].astype(str)
+        for col in ("x_start", "y_start", "x_end", "y_end"):
+            scored_merge[f"{col}_r"] = np.round(scored_merge[col].astype(float), 2)
+        merged = scored_merge.merge(keypass_lookup, on=merge_cols, how="left")
+        is_key = merged["is_key_pass"].fillna(False).astype(bool).to_numpy()
+
+    key_xpv = float(xp[is_key].sum()) if is_key.any() else 0.0
+    box_xpv = float(xp[in_box].sum()) if in_box.any() else 0.0
+    ip_ft_xpv = float(xp[ti_v2_ft].sum()) if ti_v2_ft.any() else 0.0
+    factor = 90.0 / float(minutes) if minutes and float(minutes) > 0 else 0.0
+
+    metrics.update({
+        "key_xpv_total": round(key_xpv, 2),
+        "box_xpv_total": round(box_xpv, 2),
+        "ip_ft_xpv_total": round(ip_ft_xpv, 2),
+        "key_xpv_p90": round(key_xpv * factor, 3),
+        "box_xpv_p90": round(box_xpv * factor, 3),
+        "ip_ft_xpv_p90": round(ip_ft_xpv * factor, 3),
+    })
+
+
 def attach_regular_pass_stats_from_enriched(
     metrics: dict[str, float | int],
     enriched_passes: pd.DataFrame,
@@ -931,6 +1013,7 @@ def attach_regular_pass_stats_from_enriched(
     metrics["final_third_passes"] = float(pass_metrics.get("final_third_passes_p90", 0) or 0)
     metrics["pass_completion_pct"] = pass_metrics.get("pass_completion_pct", 0.0)
     metrics["long_ball_completion_pct"] = pass_metrics.get("long_ball_completion_pct", 0.0)
+    metrics["threat_pass_pct"] = pass_metrics.get("threat_pass_pct", 0.0)
 
 
 def attach_regular_pass_stats(
@@ -951,6 +1034,7 @@ def attach_regular_pass_stats(
             metrics.setdefault(key, 0.0)
         metrics.setdefault("pass_completion_pct", 0.0)
         metrics.setdefault("long_ball_completion_pct", 0.0)
+        metrics.setdefault("threat_pass_pct", 0.0)
         return
 
     enriched = pe._enrich_passes(raw_pass_frame)
@@ -965,6 +1049,7 @@ def attach_regular_pass_stats(
     metrics["final_third_passes"] = float(pass_metrics.get("final_third_passes_p90", 0) or 0)
     metrics["pass_completion_pct"] = pass_metrics.get("pass_completion_pct", 0.0)
     metrics["long_ball_completion_pct"] = pass_metrics.get("long_ball_completion_pct", 0.0)
+    metrics["threat_pass_pct"] = pass_metrics.get("threat_pass_pct", 0.0)
 
 
 def apply_per90_metrics(metrics: dict[str, float | int], minutes: float | None) -> None:
@@ -1113,7 +1198,7 @@ XP_PROFILE_BAR_ICONS: dict[str, str] = {
 }
 
 XP_PROFILE_BAR_METRICS: dict[str, tuple[str, ...]] = {
-    "xp_activity_display": ("xp_per_90",),
+    "xp_activity_display": ("xpv_per_pass_p90",),
     "xp_edge_display": ("xpv_per_pass", "test_impact_v2_p90", "threat_pass_pct"),
     "xp_efficiency_display": ("xpass_residual_p90",),
     "xp_quality_display": ("xp_residual_median",),
@@ -1133,8 +1218,8 @@ XP_PROFILE_SUBMETRICS: tuple[str, ...] = (
 # Lethality pillar (xP Profile bar) — mean z of xPV/pass, ImpV2 p90, and impact rate.
 LETHALITY_METRICS: tuple[str, ...] = ("xpv_per_pass", "test_impact_v2_p90", "threat_pass_pct")
 
-# xP Impact index — destination value + mean residual vs. geometric model per pass.
-IMPACT_INDEX_METRICS: tuple[str, ...] = ("xpv_per_pass", "xp_residual_mean")
+# xP Impact index — destination value per pass + impact-pass rate.
+IMPACT_INDEX_METRICS: tuple[str, ...] = ("xpv_per_pass", "threat_pass_pct")
 
 # (index_key, label, metrics, invert_metrics)
 XP_INDEX_ELITE_TOP_N = 10
@@ -1157,8 +1242,8 @@ XP_INDEX_TOOLTIPS: dict[str, str] = {
         "(median absolute deviation), which is robust to outlier games."
     ),
     "xp_idx_impact": (
-        "50% xPV per completed pass and 50% mean (xP − xP expected) per pass — "
-        "destination value plus how much the player beats the geometric model on average."
+        "50% xPV per completed pass and 50% impact-pass rate — "
+        "destination value plus the share of all passes classified as impact passes."
     ),
 }
 
@@ -1214,7 +1299,7 @@ XP_COMPARE_METRIC_TOOLTIPS: dict[str, str] = {
 }
 
 XP_PROFILE_BAR_TOOLTIPS: dict[str, str] = {
-    "xp_activity_display": "How much xPV the player generates per game — passing volume times destination value.",
+    "xp_activity_display": "xPV per game — total destination value generated per 90 minutes.",
     "xp_edge_display": (
         "Mean z-score of xPV per completed pass, Pass Impact v2 per game, and impact-pass "
         "rate (33/33/33) within the position group."
@@ -1291,7 +1376,7 @@ XP_PROFILE_ARCHETYPE_ICONS: dict[str, str] = {
 
 XP_PROFILE_ARCHETYPE_FILTER_ALL = ""
 
-ACTIVITY_METRICS: tuple[str, ...] = ("xp_per_90",)
+ACTIVITY_METRICS: tuple[str, ...] = ("xpv_per_pass_p90",)
 EDGE_METRICS: tuple[str, ...] = LETHALITY_METRICS
 EFFICIENCY_METRICS: tuple[str, ...] = ("xpass_residual_p90",)
 
@@ -1721,6 +1806,12 @@ XP_REGULAR_STAT_RANK_KEYS: tuple[str, ...] = (
     "test_impact_v2_start_final_third_p90",
     "test_impact_v2_attempt_completion_pct",
     "test_impact_v2_attempt_coe_pct",
+    "threat_pass_pct",
+    "xpv_per_pass",
+    "xpv_per_pass_p90",
+    "key_xpv_p90",
+    "box_xpv_p90",
+    "ip_ft_xpv_p90",
     "pass_volume_index",
     "pass_efficiency_index",
     "pass_buildup_index",
@@ -1745,9 +1836,9 @@ PASS_BUILDUP_METRICS: tuple[str, ...] = (
     "special_line_break_p90",
 )
 PASS_CHANCE_CREATION_METRICS: tuple[str, ...] = (
-    "key_passes",
-    "passes_to_box",
-    "test_impact_v2_start_final_third_p90",
+    "key_xpv_p90",
+    "box_xpv_p90",
+    "ip_ft_xpv_p90",
 )
 PASS_IMPACT_METRICS: tuple[str, ...] = (
     "test_impact_v2_p90",
@@ -1797,12 +1888,12 @@ PASS_SCORE_TOOLTIPS: dict[str, str] = {
         "and line-breaking passes per game."
     ),
     "pass_chance_creation_index": (
-        "Within-position composite of key passes, passes into the box, and Test Impact v2 "
-        "passes originating in the final third per game."
+        "Within-position composite of xPV generated per game from key passes, "
+        "passes into the box, and impact passes originating in the final third."
     ),
     "pass_chance_creation_display": (
-        "Within-position composite of key passes, passes into the box, and Test Impact v2 "
-        "passes originating in the final third per game."
+        "Within-position composite of xPV generated per game from key passes, "
+        "passes into the box, and impact passes originating in the final third."
     ),
     "pass_impact_index": (
         "Within-position composite of Test Impact v2 volume, attempt-pool completion "
@@ -3175,6 +3266,7 @@ def format_stats_value(key: str, value: float | int | None) -> str:
     if key in {
         "long_balls", "progressive_passes", "final_third_passes",
         "passes_to_box", "key_passes", "test_impact_v2_start_final_third_p90",
+        "key_xpv_p90", "box_xpv_p90", "ip_ft_xpv_p90",
     }:
         return f"{val:.1f}"
     if key == "pass_mean_distance":

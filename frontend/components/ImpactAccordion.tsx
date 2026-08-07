@@ -39,17 +39,15 @@ const TIER_ACCENT: Record<string, string> = {
 
 const COMPONENT_TIPS: Record<string, string> = {
   xpv_per_pass: "Average destination value (xPV) on completed passes.",
-  xp_residual_mean:
-    "Mean (actual xP − expected xP) per completed pass — how much the player beats the model on average.",
+  threat_pass_pct: "Share of all passes classified as impact passes.",
   ...COMPONENT_TOOLTIPS,
 };
 
 function formatImpactValue(key: string, value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "—";
   if (key.startsWith("def_")) return formatMetric(value, key);
-  if (key === "xp_residual_mean") {
-    const cents = value * 100;
-    return `${cents >= 0 ? "+" : ""}${cents.toFixed(2)}¢`;
+  if (key === "threat_pass_pct") {
+    return `${value.toFixed(1)}%`;
   }
   return value.toFixed(3);
 }
