@@ -347,9 +347,7 @@ def transfermarkt_age_cache_is_fresh(player_id: str, *, force: bool = False) -> 
     profile = read_cached_profile(player_id)
     if not profile:
         return False
-    if profile.get("age") is not None or profile.get("date_of_birth"):
-        return True
-    return profile.get(TRANSFERMARKT_PROFILE_FETCH_STATUS_KEY) == "not_found"
+    return profile.get("age") is not None or bool(profile.get("date_of_birth"))
 
 
 def transfermarkt_cache_is_fresh(player_id: str, *, force: bool = False) -> bool:
@@ -439,7 +437,11 @@ async def fetch_transfermarkt_player_async(
         api_error = str(exc)
 
     if include_profile and (not api_fields.get("age") and not api_fields.get("date_of_birth")):
-        html = _fetch_transfermarkt_profile_html(transfermarkt_id, picked_name or player_name)
+        html = await asyncio.to_thread(
+            _fetch_transfermarkt_profile_html,
+            transfermarkt_id,
+            picked_name or player_name,
+        )
         if html:
             html_fields = transfermarkt_fields_from_html(html)
             for key, value in html_fields.items():
@@ -549,3 +551,63 @@ def prefetch_transfermarkt_photo_for_player(
         return profile
     fetched = asyncio.run(fetch_transfermarkt_photo_by_id_async(str(transfermarkt_id)))
     return update_player_profile_cache(pid, fetched)
+
+
+async def prefetch_transfermarkt_ages_batch_async(
+    players: list[dict],
+    *,
+    concurrency: int = 12,
+    only_missing: bool = True,
+) -> dict[str, int]:
+    """Fetch Transfermarkt ages concurrently for a list of players."""
+    sem = asyncio.Semaphore(max(1, concurrency))
+    stats = {"resolved": 0, "not_found": 0, "skipped": 0, "errors": 0}
+    total = len(players)
+
+    async def one(index: int, player: dict) -> None:
+        pid = str(player.get("player_id", ""))
+        name = str(player.get("player_name", ""))
+        team = str(player.get("team", ""))
+        if only_missing and transfermarkt_age_cache_is_fresh(pid):
+            stats["skipped"] += 1
+            return
+        async with sem:
+            try:
+                fetched = await fetch_transfermarkt_player_async(
+                    name,
+                    team,
+                    include_market_value=False,
+                    include_profile=True,
+                )
+                update_player_profile_cache(pid, fetched)
+                if read_cached_profile(pid).get("age") is not None:
+                    stats["resolved"] += 1
+                elif fetched.get(TRANSFERMARKT_PROFILE_FETCH_STATUS_KEY) == "not_found":
+                    stats["not_found"] += 1
+            except Exception:
+                stats["errors"] += 1
+        if index % 50 == 0 or index == total:
+            print(
+                f"  {index}/{total} · resolved: {stats['resolved']} · "
+                f"not found: {stats['not_found']} · skipped: {stats['skipped']} · "
+                f"errors: {stats['errors']}",
+                flush=True,
+            )
+
+    await asyncio.gather(*(one(i, player) for i, player in enumerate(players, start=1)))
+    return stats
+
+
+def prefetch_transfermarkt_ages_batch(
+    players: list[dict],
+    *,
+    concurrency: int = 12,
+    only_missing: bool = True,
+) -> dict[str, int]:
+    return asyncio.run(
+        prefetch_transfermarkt_ages_batch_async(
+            players,
+            concurrency=concurrency,
+            only_missing=only_missing,
+        )
+    )
