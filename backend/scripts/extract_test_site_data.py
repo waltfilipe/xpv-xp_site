@@ -140,9 +140,7 @@ def main() -> None:
         "options": player_options(analysis_players, progression_by_id, xp_by_id=xp_by_id, position_family=POSITION_FAMILY),
     })
     _write_json(OUTPUT_DIR / "maps-options.json", {
-        "scatter_metrics": [{"key": k, "label": label} for k, label in xstats.maps_tab_scatter_metric_options()],
         "pass_filters": [{"key": k, "label": label} for k, label in xstats.maps_tab_pass_options()],
-        "views": [{"key": k, "label": label} for k, label in xstats.maps_tab_view_options()],
     })
 
     profiles: dict[str, Any] = {}

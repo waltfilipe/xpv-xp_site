@@ -522,6 +522,9 @@ def get_player_profile(
         profile["fetch_status"] = "not_found"
 
     if pid:
+        existing = cache.get(pid)
+        if isinstance(existing, dict):
+            profile = _merge_profiles(existing, profile)
         cache[pid] = profile
         _save_cache(cache)
     return profile

@@ -216,7 +216,6 @@ MAPS_STAT_TYPE_OPTIONS: tuple[tuple[str, str], ...] = (
 MAPS_TAB_VIEW_SCATTER = "scatter"
 MAPS_TAB_VIEW_PASS_MAP = "pass_map"
 MAPS_TAB_VIEW_OPTIONS: tuple[tuple[str, str], ...] = (
-    (MAPS_TAB_VIEW_SCATTER, "Scatter"),
     (MAPS_TAB_VIEW_PASS_MAP, "Pass map"),
 )
 MAPS_TAB_SCATTER_METRIC_OPTIONS: tuple[tuple[str, str], ...] = (
@@ -228,7 +227,6 @@ MAPS_TAB_SCATTER_METRIC_OPTIONS: tuple[tuple[str, str], ...] = (
 )
 MAPS_TAB_PASS_OPTIONS: tuple[tuple[str, str], ...] = (
     ("progressive", "Progressive Passes"),
-    ("key_passes", "Key passes"),
     (MAPS_TEST_IMPACT_V2_PASS_KEY, "Impact Passes"),
     ("line_break", "Line Break"),
 )
