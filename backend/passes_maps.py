@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import LinearSegmentedColormap, Normalize
+from matplotlib.colors import LinearSegmentedColormap, Normalize, PowerNorm
 from matplotlib.lines import Line2D
 from matplotlib.patches import FancyArrowPatch, Rectangle
 from mplsoccer import Pitch, VerticalPitch
@@ -37,6 +37,10 @@ COLOR_PROGRESSIVE = "#22c55e"
 COLOR_HIGHLY_PROGRESSIVE = "#4ade80"
 CMAP_PASS_DEST = LinearSegmentedColormap.from_list(
     "pass_dest", ["#1a1a2e", "#1e3a8a", "#3b82f6", "#fbbf24", "#ef4444"]
+)
+CMAP_REPORT_PROGRESSIVE = LinearSegmentedColormap.from_list(
+    "report_prog",
+    ["#14101c", "#450a0a", "#991b1b", "#ea580c", "#fbbf24", "#fff7ed"],
 )
 CMAP_XT_GRID = LinearSegmentedColormap.from_list(
     "xt_grid", ["#1a1a2e", "#3b82f6", "#fbbf24", "#ef4444"]
@@ -830,13 +834,14 @@ def draw_xt_surface_heatmap(
 
 
 # Report maps — large vertical progressive trio.
-REPORT_PORTRAIT_FIG_W = 5.2
-REPORT_PORTRAIT_FIG_H = 7.4
-REPORT_PORTRAIT_DPI = 300
-REPORT_PITCH_PAD_BOTTOM = 3.0
-REPORT_PROGRESSIVE_GRID_COLS = 52
-REPORT_PROGRESSIVE_GRID_ROWS = 78
-REPORT_PROGRESSIVE_CELL_GAP = 0.08
+REPORT_PORTRAIT_FIG_W = 6.8
+REPORT_PORTRAIT_FIG_H = 10.0
+REPORT_PORTRAIT_DPI = 320
+REPORT_PITCH_PAD_BOTTOM = 2.5
+REPORT_PROGRESSIVE_GRID_COLS = 36
+REPORT_PROGRESSIVE_GRID_ROWS = 54
+REPORT_PROGRESSIVE_CELL_GAP = 0.14
+REPORT_PROGRESSIVE_GAMMA = 0.72
 REPORT_LINK_ZONE_COLS = 5
 REPORT_LINK_ZONE_ROWS = 5
 REPORT_LINK_TOP_N = 5
@@ -908,7 +913,7 @@ def _report_vertical_binned_grid_heatmap(
     x_col: str,
     y_col: str,
 ) -> plt.Figure:
-    """Dense binned heatmap — small adjacent cells with minimal gutter."""
+    """Dense portrait heatmap — fine grid cells with warm elegant palette."""
     figsize = (REPORT_PORTRAIT_FIG_W, REPORT_PORTRAIT_FIG_H)
     fig, ax, pitch = _base_vertical_pitch(
         figsize=figsize,
@@ -941,32 +946,32 @@ def _report_vertical_binned_grid_heatmap(
             grid[ix, iy] += 1.0
 
         vmax = max(float(grid.max()), 1.0)
-        norm = Normalize(vmin=0.0, vmax=vmax)
+        norm = PowerNorm(gamma=REPORT_PROGRESSIVE_GAMMA, vmin=0.0, vmax=vmax)
         gap = REPORT_PROGRESSIVE_CELL_GAP
+        empty_color = "#14101c"
 
         for ix in range(REPORT_PROGRESSIVE_GRID_ROWS):
             for iy in range(REPORT_PROGRESSIVE_GRID_COLS):
                 value = float(grid[ix, iy])
-                if value <= 0:
-                    continue
                 x0, x1 = float(x_bins[ix]), float(x_bins[ix + 1])
                 y0, y1 = float(y_bins[iy]), float(y_bins[iy + 1])
+                face = CMAP_REPORT_PROGRESSIVE(norm(value)) if value > 0 else empty_color
                 ax.add_patch(
                     Rectangle(
                         (y0 + gap, x0 + gap),
-                        (y1 - y0) - 2 * gap,
-                        (x1 - x0) - 2 * gap,
-                        facecolor=CMAP_PASS_DEST(norm(value)),
-                        edgecolor=(1.0, 1.0, 1.0, 0.05),
-                        linewidth=0.15,
-                        alpha=0.96,
+                        max((y1 - y0) - 2 * gap, 0.05),
+                        max((x1 - x0) - 2 * gap, 0.05),
+                        facecolor=face,
+                        edgecolor=(0.0, 0.0, 0.0, 0.42),
+                        linewidth=0.22,
+                        alpha=0.98 if value > 0 else 0.55,
                         zorder=2,
                     )
                 )
 
         pitch.draw(ax=ax)
 
-    fig.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.05)
+    fig.subplots_adjust(left=0.005, right=0.995, top=0.995, bottom=0.04)
     ax.set_title("")
     _report_vertical_attack_arrow(fig, ax)
     ax.set_axis_off()
