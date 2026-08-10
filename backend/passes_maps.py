@@ -827,3 +827,157 @@ def draw_xt_surface_heatmap(
     plt.setp(cbar.ax.axes.get_yticklabels(), color="#ffffff")
     _attack_arrow(fig, fig_w=fig_w, has_cbar=True)
     return fig
+
+
+# Report maps — portrait orientation (taller than wide).
+REPORT_PORTRAIT_FIG_W = 2.85
+REPORT_PORTRAIT_FIG_H = 3.85
+REPORT_PORTRAIT_DPI = 220
+REPORT_IMPACT_ORIGIN_MARKER_SIZE = 5.5
+REPORT_IMPACT_DEST_MARKER_SIZE = 7.5
+REPORT_IMPACT_LINE_ALPHA = 0.28
+REPORT_IMPACT_LINE_WIDTH = 0.45
+
+
+def _draw_report_portrait_smooth_heatmap(
+    passes,
+    *,
+    x_col: str,
+    y_col: str,
+) -> plt.Figure:
+    """Smooth density heatmap in portrait layout (profile-style, no title)."""
+    from scipy.ndimage import gaussian_filter
+
+    figsize = (REPORT_PORTRAIT_FIG_W, REPORT_PORTRAIT_FIG_H)
+    fig, ax, pitch = _base_pitch(
+        figsize=figsize,
+        dpi=REPORT_PORTRAIT_DPI,
+        pad_bottom=PROFILE_PITCH_PAD_BOTTOM,
+    )
+    grid_x = 96
+    grid_y = 64
+    x_bins = np.linspace(0.0, FIELD_X, grid_x + 1)
+    y_bins = np.linspace(0.0, FIELD_Y, grid_y + 1)
+    density = np.zeros((grid_y, grid_x), dtype=float)
+
+    work = filter_live_ball_passes(passes)
+    if work is not None and not work.empty:
+        if "has_end" in work.columns and x_col.endswith("_end"):
+            work = work[work["has_end"].astype(bool)]
+        if not work.empty and x_col in work.columns and y_col in work.columns:
+            hist, _, _ = np.histogram2d(
+                work[y_col].to_numpy(),
+                work[x_col].to_numpy(),
+                bins=[y_bins, x_bins],
+            )
+            density += hist
+
+    if density.max() > 0:
+        density = gaussian_filter(density, sigma=2.8)
+        density = density / max(float(density.max()), 1e-9)
+
+    pitch.draw(ax=ax)
+    if density.max() > 0:
+        ax.imshow(
+            density,
+            origin="lower",
+            extent=[0.0, FIELD_X, 0.0, FIELD_Y],
+            cmap=CMAP_PASS_DEST,
+            alpha=0.72,
+            aspect="auto",
+            zorder=1,
+            vmin=0.0,
+            vmax=1.0,
+            interpolation="bilinear",
+        )
+
+    ax.set_title("")
+    _profile_attack_arrow(fig, ax)
+    ax.set_axis_off()
+    return fig
+
+
+def draw_report_progressive_origin_heatmap(passes) -> plt.Figure:
+    """Portrait origin heatmap for progressive passes."""
+    return _draw_report_portrait_smooth_heatmap(
+        passes,
+        x_col="x_start",
+        y_col="y_start",
+    )
+
+
+def draw_report_progressive_dest_heatmap(passes) -> plt.Figure:
+    """Portrait destination heatmap for progressive passes."""
+    return _draw_report_portrait_smooth_heatmap(
+        passes,
+        x_col="x_end",
+        y_col="y_end",
+    )
+
+
+def draw_report_impact_passes_map(passes) -> plt.Figure:
+    """Portrait impact-pass map — delicate circle origin, small square destination."""
+    figsize = (REPORT_PORTRAIT_FIG_W, REPORT_PORTRAIT_FIG_H)
+    fig, ax, pitch = _base_pitch(
+        figsize=figsize,
+        dpi=REPORT_PORTRAIT_DPI,
+        pad_bottom=PROFILE_PITCH_PAD_BOTTOM,
+    )
+
+    work = filter_live_ball_passes(passes)
+    if work is not None and not work.empty and "has_end" in work.columns:
+        work = work[work["has_end"].astype(bool)].copy()
+
+    pitch.draw(ax=ax)
+
+    if work is not None and not work.empty:
+        xp_vals = work["xp_m4"].to_numpy(dtype=float) if "xp_m4" in work.columns else None
+        if xp_vals is not None and len(xp_vals):
+            vmin = float(np.nanpercentile(xp_vals, 5))
+            vmax = float(np.nanpercentile(xp_vals, 95))
+            if vmax <= vmin:
+                vmax = vmin + 1e-6
+            norm = Normalize(vmin=vmin, vmax=vmax)
+            colors = [CMAP_PASS_DEST(norm(float(v))) for v in xp_vals]
+        else:
+            colors = [COLOR_PROGRESSIVE] * len(work)
+
+        for row, color in zip(work.itertuples(index=False), colors):
+            pitch.plot(
+                [row.x_start, row.x_end],
+                [row.y_start, row.y_end],
+                color=color,
+                linewidth=REPORT_IMPACT_LINE_WIDTH,
+                alpha=REPORT_IMPACT_LINE_ALPHA,
+                zorder=2,
+                ax=ax,
+            )
+            pitch.scatter(
+                row.x_start,
+                row.y_start,
+                s=REPORT_IMPACT_ORIGIN_MARKER_SIZE,
+                marker="o",
+                color=color,
+                edgecolors=(1, 1, 1, 0.35),
+                linewidths=0.2,
+                ax=ax,
+                zorder=4,
+                alpha=0.82,
+            )
+            pitch.scatter(
+                row.x_end,
+                row.y_end,
+                s=REPORT_IMPACT_DEST_MARKER_SIZE,
+                marker="s",
+                color=color,
+                edgecolors=(1, 1, 1, 0.4),
+                linewidths=0.25,
+                ax=ax,
+                zorder=5,
+                alpha=0.88,
+            )
+
+    ax.set_title("")
+    _profile_attack_arrow(fig, ax)
+    ax.set_axis_off()
+    return fig
