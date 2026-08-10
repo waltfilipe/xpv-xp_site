@@ -830,13 +830,13 @@ def draw_xt_surface_heatmap(
 
 
 # Report maps — large vertical progressive trio.
-REPORT_PORTRAIT_FIG_W = 3.35
-REPORT_PORTRAIT_FIG_H = 4.75
+REPORT_PORTRAIT_FIG_W = 3.5
+REPORT_PORTRAIT_FIG_H = 5.0
 REPORT_PORTRAIT_DPI = 240
 REPORT_PITCH_PAD_BOTTOM = 8.0
-REPORT_PROGRESSIVE_GRID_COLS = 24
-REPORT_PROGRESSIVE_GRID_ROWS = 18
-REPORT_PROGRESSIVE_SMOOTH_SIGMA = 0.95
+REPORT_PROGRESSIVE_GRID_COLS = 48
+REPORT_PROGRESSIVE_GRID_ROWS = 32
+REPORT_PROGRESSIVE_SMOOTH_SIGMA = 1.85
 REPORT_LINK_ZONE_COLS = 5
 REPORT_LINK_ZONE_ROWS = 5
 REPORT_LINK_TOP_N = 5
@@ -940,12 +940,12 @@ def _report_vertical_soft_grid_heatmap(
                 origin="lower",
                 extent=[0.0, FIELD_Y, 0.0, FIELD_X],
                 cmap=CMAP_PASS_DEST,
-                alpha=0.92,
+                alpha=0.88,
                 aspect="auto",
                 zorder=1,
                 vmin=0.0,
                 vmax=1.0,
-                interpolation="nearest",
+                interpolation="bilinear",
             )
             pitch.draw(ax=ax)
 
