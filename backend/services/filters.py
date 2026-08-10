@@ -62,6 +62,17 @@ LEAGUE_OPTIONS = [
     ("ligue1", "Ligue 1"),
 ]
 
+LEAGUE_LABEL_TO_KEY = {label.lower(): key for key, label in LEAGUE_OPTIONS if key != "all"}
+LEAGUE_LABEL_TO_KEY.update({key: key for key, _label in LEAGUE_OPTIONS if key != "all"})
+
+
+def normalize_league_filter_key(player: dict) -> str:
+    source = str(player.get("league_source") or "").strip().lower()
+    if source:
+        return source
+    label = str(player.get("league") or "").strip().lower()
+    return LEAGUE_LABEL_TO_KEY.get(label, label)
+
 FOOT_OPTIONS = [
     ("all", "Todos"),
     ("left", "Esquerdo"),
@@ -234,7 +245,7 @@ def filter_player_pool(
     out: list[dict] = []
     for player in all_players:
         pid = str(player["player_id"])
-        if league != "all" and str(player.get("league_source") or "") != league:
+        if league != "all" and normalize_league_filter_key(player) != league.lower():
             continue
         age = player.get("age")
         if age is None:
@@ -425,7 +436,13 @@ def player_options(
         xp_profile = (xp_by_id or {}).get(pid, {})
         if sort_by == "xp_pass_rating":
             rating_val = xp_profile.get("xp_pass_rating")
-            suffix = f"· Pass {fmt_rating_score(rating_val)}" if rating_val is not None else "· Pass —"
+            if rating_val is not None:
+                try:
+                    suffix = f"· {float(rating_val) * 10:.1f}"
+                except (TypeError, ValueError):
+                    suffix = "· —"
+            else:
+                suffix = "· —"
         else:
             suffix = f"· xP {sort_key:.1f}"
         options.append({

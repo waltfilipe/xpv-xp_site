@@ -1,11 +1,11 @@
-"""Prefetch Transfermarkt market values for European midfielders.
+"""Prefetch Transfermarkt market values for European players.
 
-Run offline so the Streamlit app reads values from player_profiles_cache.json
+Run offline so the app reads values from player_profiles_cache.json
 without hitting Transfermarkt on every page load.
 
 Examples:
-    python scripts/prefetch_transfermarkt_values.py --only-missing --limit 10
-    python scripts/prefetch_transfermarkt_values.py --force
+    python scripts/prefetch_transfermarkt_values.py --family fullbacks --only-missing
+    python scripts/prefetch_transfermarkt_values.py --family wingers --only-missing --limit 10
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ if str(ROOT) not in sys.path:
 
 import passes_engine as pe
 import transfermarkt_profiles as tm
+from position_families import DEFAULT_POSITION_FAMILY, EUROPEAN_POSITION_FAMILY_LABELS, normalize_position_family
 
 
 def _needs_fetch(player: dict, *, only_missing: bool, force: bool) -> bool:
@@ -35,6 +36,11 @@ def _needs_fetch(player: dict, *, only_missing: bool, force: bool) -> bool:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Prefetch Transfermarkt market values.")
     parser.add_argument(
+        "--family",
+        default=DEFAULT_POSITION_FAMILY,
+        help=f"Position family (default: {DEFAULT_POSITION_FAMILY})",
+    )
+    parser.add_argument(
         "--only-missing",
         action="store_true",
         help="Fetch only players without a cached market value.",
@@ -47,8 +53,8 @@ def main() -> None:
     parser.add_argument(
         "--sleep",
         type=float,
-        default=0.35,
-        help="Delay between network requests in seconds (default: 0.35).",
+        default=0.75,
+        help="Delay between network requests in seconds (default: 0.75).",
     )
     parser.add_argument(
         "--limit",
@@ -57,8 +63,10 @@ def main() -> None:
         help="Optional cap on number of players to fetch (0 = all targets).",
     )
     args = parser.parse_args()
+    family = normalize_position_family(args.family)
+    family_label = EUROPEAN_POSITION_FAMILY_LABELS[family]
 
-    players = pe.build_european_league_midfielders()
+    players = pe.build_european_league_players(family)
     targets = [
         player
         for player in players
@@ -69,7 +77,7 @@ def main() -> None:
 
     total = len(targets)
     print(
-        f"Prefetching Transfermarkt values for {total}/{len(players)} midfielders "
+        f"Prefetching Transfermarkt values for {total}/{len(players)} {family_label} "
         f"(only_missing={args.only_missing}, force={args.force})…",
         flush=True,
     )

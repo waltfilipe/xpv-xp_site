@@ -22,6 +22,7 @@ from services.compare_service import build_compare_payload  # noqa: E402
 from services.filters import (  # noqa: E402
     filter_player_pool,
     filter_players_by_pass_letters,
+    normalize_league_filter_key,
     parse_age_band,
     player_options,
 )
@@ -33,6 +34,7 @@ from services.maps_service import (  # noqa: E402
     get_round_options,
     load_aggregated_maps,
 )
+from services.player_passes_service import passes_by_player_for_ids  # noqa: E402
 from services.profile_service import build_profile_payload  # noqa: E402
 from services.runtime_mode import heavy_maps_enabled, pass_scout_mode  # noqa: E402
 from services.serialization import sanitize_for_json  # noqa: E402
@@ -67,6 +69,9 @@ PLAYER_LIST_FIELDS = (
     "progression_rating", "progression_rating_rank", "progression_rating_total",
     "total_passes", "total_xt", "xt_per_pass", "midfield_origin_profile", "eligible_for_rating",
     "xp_pass_rating", "team",
+  "pass_volume_letter", "pass_efficiency_letter",
+  "pass_buildup_letter", "pass_chance_creation_letter",
+  "defense_letter", "defense_display",
 )
 
 
@@ -139,6 +144,13 @@ def list_players(
         progression = progression_by_id.get(pid, {})
         xp = xp_by_id.get(pid, {}) if isinstance(xp_by_id, dict) else {}
         row = {**rated, **({"xp_pass_rating": xp.get("xp_pass_rating")} if xp else {})}
+        if xp:
+            for key in (
+                "pass_volume_letter", "pass_efficiency_letter", "pass_buildup_letter",
+                "pass_chance_creation_letter", "defense_letter", "defense_display",
+            ):
+                if row.get(key) is None:
+                    row[key] = xp.get(key)
         if progression:
             row["progression_rating"] = progression.get("progression_rating")
             row["progression_rating_rank"] = progression.get("progression_rating_rank")
@@ -146,7 +158,7 @@ def list_players(
         rows.append(_pick_fields(row, PLAYER_LIST_FIELDS))
 
     if league and league != "all":
-        rows = [r for r in rows if str(r.get("league_source", "")).lower() == league.lower()]
+        rows = [r for r in rows if normalize_league_filter_key(r) == league.lower()]
     if position_group:
         rows = [r for r in rows if str(r.get("position_group", "")).lower() == position_group.lower()]
     if search:
@@ -255,12 +267,13 @@ def get_player(
 ) -> dict[str, Any]:
     family = _resolve_position_family(position_family)
     parts = _pool_parts(family)
+    passes_by_player = passes_by_player_for_ids(family, [player_id])
     payload = build_profile_payload(
         player_id,
         players_by_id=parts["players_by_id"],
         progression_by_id=parts["progression_by_id"],
         xp_by_id=parts["xp_by_id"],
-        passes_by_player=parts["passes_by_player"],
+        passes_by_player=passes_by_player,
     )
     if payload is None:
         raise HTTPException(status_code=404, detail="Player not found in this position pool")
@@ -275,12 +288,13 @@ def compare_players(
 ) -> dict[str, Any]:
     family = _resolve_position_family(position_family)
     parts = _pool_parts(family)
+    passes_by_player = passes_by_player_for_ids(family, [player_a, player_b])
     payload = build_compare_payload(
         player_a, player_b,
         players_by_id=parts["players_by_id"],
         progression_by_id=parts["progression_by_id"],
         xp_by_id=parts["xp_by_id"],
-        passes_by_player=parts["passes_by_player"],
+        passes_by_player=passes_by_player,
     )
     if payload is None:
         raise HTTPException(status_code=404, detail="One or both players not found or missing xP data")

@@ -10,7 +10,12 @@ import pandas as pd
 import xp_engine as xe
 import xp_stats_engine as xstats
 import xp_study_engine as xpe
-from passes_maps import draw_action_origin_smooth_heatmap
+from passes_maps import (
+    draw_action_origin_smooth_heatmap,
+    draw_report_progressive_dest_heatmap,
+    draw_report_progressive_links_map,
+    draw_report_progressive_origin_heatmap,
+)
 from position_families import DEFAULT_POSITION_FAMILY, normalize_position_family
 from xp_study_maps import (
     CMAP_XP_GRAY_RED,
@@ -25,6 +30,12 @@ from services.figures import fig_to_b64
 from services.filters import all_position_filters, player_matches_position_filter
 
 APP_LEAGUE = "European leagues"
+
+REPORT_PASS_MAP_KEYS: tuple[str, ...] = (
+    "report_progressive_origin",
+    "report_progressive_dest",
+    "report_progressive_links",
+)
 
 
 @functools.lru_cache(maxsize=8)
@@ -225,6 +236,50 @@ def build_pass_map_images(
         "round_options": [{"key": k, "label": round_labels.get(k, k)} for k in round_options[0]],
         "pass_filter_options": [{"key": k, "label": l} for k, l in xstats.maps_tab_pass_options()],
         "scatter_metric_options": [{"key": k, "label": l} for k, l in xstats.maps_tab_scatter_metric_options()],
+    }
+
+
+def build_report_pass_map_images(
+    player_id: str,
+    player_name: str,
+    *,
+    report_key: str,
+    round_key: str = "all",
+    position_family: str = DEFAULT_POSITION_FAMILY,
+) -> dict[str, Any]:
+    """Portrait report maps for the test-site Reports view."""
+    xp_passes = load_xp_passes_grouped(position_family)
+    raw_passes = xp_passes.get(str(player_id))
+    if raw_passes is None or raw_passes.empty:
+        return {"pass_count": 0, "pass_map_b64": None, "dest_map_b64": None, "caption": ""}
+
+    scoped = xstats.filter_passes_by_map_round(raw_passes, round_key)
+    key = str(report_key or "").strip()
+
+    if key == "report_progressive_origin":
+        passes_df = xstats.filter_passes_for_map(scoped, "progressive")
+        draw_fn = draw_report_progressive_origin_heatmap
+        caption = f"{len(passes_df)} progressive · origin"
+    elif key == "report_progressive_dest":
+        passes_df = xstats.filter_passes_for_map(scoped, "progressive")
+        draw_fn = draw_report_progressive_dest_heatmap
+        caption = f"{len(passes_df)} progressive · destination"
+    elif key == "report_progressive_links":
+        passes_df = xstats.filter_passes_for_map(scoped, "progressive")
+        draw_fn = draw_report_progressive_links_map
+        caption = f"{len(passes_df)} progressive · top links"
+    else:
+        return {"pass_count": 0, "pass_map_b64": None, "dest_map_b64": None, "caption": ""}
+
+    if passes_df is None or passes_df.empty:
+        return {"pass_count": 0, "pass_map_b64": None, "dest_map_b64": None, "caption": ""}
+
+    fig = draw_fn(passes_df)
+    return {
+        "pass_count": len(passes_df),
+        "pass_map_b64": fig_to_b64(fig),
+        "dest_map_b64": None,
+        "caption": caption,
     }
 
 

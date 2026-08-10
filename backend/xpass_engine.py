@@ -280,6 +280,15 @@ def aggregate_player_xpass_metrics(
             attempts["pass_distance"].to_numpy(dtype=float) > xse.XP_DISTANCE_BAND_MAX_SHORT_M
         )
         long_attempts = int(long_mask.sum()) if hasattr(long_mask, "sum") else 0
+        short_mask = ~long_mask
+        short_attempts = int(short_mask.sum()) if hasattr(short_mask, "sum") else 0
+
+        short_coe_pct = None
+        if short_attempts >= XPASS_HARD_COE_MIN_ATTEMPTS:
+            short_won = int(won[short_mask].sum())
+            short_exp = float(xpass[short_mask].sum())
+            short_coe_pct = (short_won / short_attempts) - (short_exp / short_attempts)
+
         long_coe_pct = None
         if long_attempts >= 25:
             long_won = int(won[long_mask].sum())
@@ -304,7 +313,8 @@ def aggregate_player_xpass_metrics(
             "passes_completed": completed,
             "pass_completion_pct": round(actual_pct * 100.0, 2),
             "xpass_expected_pct": round(expected_pct * 100.0, 2),
-            "xpass_coe_pct": round(coe_pct * 100.0, 2),
+            "xpass_coe_pct": round(short_coe_pct * 100.0, 2) if short_coe_pct is not None else None,
+            "xpass_total_coe_pct": round(coe_pct * 100.0, 2),
             "xpass_coe_count": round(coe_count, 1),
             "xpass_residual_total": round(residual_total, 2),
             "xpass_residual_p90": round(_per90(residual_total, minutes) or 0.0, 3),
@@ -332,6 +342,7 @@ def _attach_ranks(players: list[dict]) -> None:
             p[f"{metric}_rank"] = i
 
     _rank("xpass_coe_pct")
+    _rank("xpass_total_coe_pct")
     _rank("xpass_residual_total")
     _rank("xpass_residual_p90")
     _rank("xpass_hard_coe_pct")
@@ -447,6 +458,7 @@ XP_PLAYER_MERGE_KEYS: tuple[str, ...] = (
     "xpass_coe_high_pct",
     "xpass_high_difficulty_p90",
     "xpass_coe_pct",
+    "xpass_total_coe_pct",
     "xpass_long_coe_pct",
     "xpass_expected_pct",
     "pass_attempts",

@@ -13,7 +13,6 @@ export function PassGradePanel({ rating }: Props) {
     return (
       <div className="player-card pass-grade-card">
         <div className="pass-grade-head">
-          <span className="pass-grade-icon"><i className="fa-solid fa-award" /></span>
           <span className="pass-grade-title">Overall Pass Grade</span>
         </div>
         <p className="placeholder-note">Grade unavailable</p>
@@ -30,7 +29,6 @@ export function PassGradePanel({ rating }: Props) {
   const panel = (
     <div className={`player-card pass-grade-card pass-grade-tier-${tierKey}`}>
       <div className="pass-grade-head">
-        <span className="pass-grade-icon"><i className="fa-solid fa-award" /></span>
         <span className="pass-grade-title">Overall Pass Grade</span>
         <span
           className="pass-grade-tier"
@@ -54,10 +52,6 @@ export function PassGradePanel({ rating }: Props) {
               <span className="pass-grade-rest" style={{ left: `${pct}%` }} />
             </span>
             <span className="pass-grade-marker" style={{ left: `${markerPct}%` }} />
-          </div>
-          <div className="pass-grade-axis">
-            <span>4.5</span>
-            <span>9.0</span>
           </div>
         </div>
       </div>

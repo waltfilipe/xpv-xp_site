@@ -19,6 +19,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from position_families import EUROPEAN_POSITION_FAMILY_KEYS, normalize_position_family
+from defensive_engine import attach_defensive_contribution
 from services.player_bundle import load_player_analysis_bundle
 from services.player_pool_service import POOL_CACHE_VERSION, api_pool_path, build_pool_record
 
@@ -54,6 +55,8 @@ def build_family_cache(position_family: str) -> Path:
                 position_family=family,
             )
         )
+
+    attach_defensive_contribution(records)
 
     out_path = api_pool_path(family)
     payload = {

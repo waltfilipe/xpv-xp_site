@@ -6,14 +6,26 @@ from typing import Any
 
 import progression_engine as pge
 from passes_maps import draw_action_origin_smooth_heatmap
+from xp_stats_engine import COE_STRATUM_METRICS, XP_ROUND_SERIES_KEY, _index_tier_from_rank, round_production_series
 
 from services.figures import fig_to_b64
+
+COE_STRATUM_STAR_BY_METRIC = dict(COE_STRATUM_METRICS)
 
 XP_PA_REGULAR_SCORE_SPECS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...] = (
     ("pass_volume_display", "pass_volume_index", "pass_volume_letter", "Volume", ("passes_total", "long_balls")),
     ("pass_efficiency_display", "pass_efficiency_index", "pass_efficiency_letter", "Efficiency", ("xpass_coe_pct", "xpass_long_coe_pct")),
     ("pass_buildup_display", "pass_buildup_index", "pass_buildup_letter", "Build-up", ("progressive_passes", "final_third_passes", "special_line_break_p90")),
     ("pass_chance_creation_display", "pass_chance_creation_index", "pass_chance_creation_letter", "Chance creation", ("key_passes", "passes_to_box", "test_impact_v2_start_final_third_p90")),
+)
+
+DEFENSIVE_INDEX_COMPONENTS: tuple[tuple[str, str], ...] = (
+    ("def_won_tackle_p90", "Won tackles / 90"),
+    ("def_interception_p90", "Interceptions / 90"),
+    ("def_clearance_p90", "Clearances / 90"),
+    ("def_recovery_p90", "Recoveries / 90"),
+    ("def_tackle_won_pct", "Tackle won %"),
+    ("def_aerial_won_pct", "Aerial won %"),
 )
 
 XP_PROFILE_BAR_KEYS = ("xp_activity_display", "xp_efficiency_display", "xp_edge_display")
@@ -29,11 +41,13 @@ def build_pass_score_sections(xp_profile: dict) -> list[dict[str, Any]]:
     for display_key, index_key, letter_key, title, component_keys in XP_PA_REGULAR_SCORE_SPECS:
         components = []
         for ck in component_keys:
+            star_key = COE_STRATUM_STAR_BY_METRIC.get(ck, f"{ck}_stratum_star")
             components.append({
                 "key": ck,
                 "value": xp_profile.get(ck),
                 "rank": xp_profile.get(f"{ck}_rank_in_group"),
                 "rank_pool": xp_profile.get(f"{ck}_rank_pool_in_group"),
+                "stratum_star": bool(xp_profile.get(star_key)),
             })
         sections.append({
             "title": title,
@@ -47,6 +61,83 @@ def build_pass_score_sections(xp_profile: dict) -> list[dict[str, Any]]:
     return sections
 
 
+def build_defensive_index_item(xp_profile: dict) -> dict[str, Any] | None:
+    if xp_profile.get("defense_display") is None and not xp_profile.get("defense_idx_tier"):
+        return None
+    rank = xp_profile.get("defense_index_rank_in_league")
+    pool = xp_profile.get("defense_index_rank_pool_in_league")
+    tier = xp_profile.get("defense_idx_tier")
+    if tier is None and rank is not None and pool is not None:
+        try:
+            tier = _index_tier_from_rank(int(rank), int(pool))
+        except (TypeError, ValueError):
+            tier = None
+    components = []
+    for key, label in DEFENSIVE_INDEX_COMPONENTS:
+        if xp_profile.get(key) is None:
+            continue
+        components.append({
+            "key": key,
+            "label": label,
+            "value": xp_profile.get(key),
+            "rank": xp_profile.get(f"{key}_rank_in_league"),
+            "rank_pool": xp_profile.get(f"{key}_rank_pool_in_league"),
+        })
+    if not tier and not components:
+        return None
+    return {
+        "key": "defense",
+        "label": "Defensive Contribution",
+        "tier": tier,
+        "tier_key": "xp_idx_defense",
+        "value": xp_profile.get("defense_display"),
+        "icon": "fa-shield-halved",
+        "components": components,
+    }
+
+
+def build_xp_indices(xp_profile: dict) -> list[dict[str, Any]]:
+    if not xp_profile:
+        return []
+    indices: list[dict[str, Any]] = [
+        {
+            "key": "consistency",
+            "label": "Consistency",
+            "tier": xp_profile.get("xp_idx_consistency_tier"),
+            "tier_key": "xp_idx_consistency",
+            "value": xp_profile.get("xp_game_consistency_score"),
+            "icon": "fa-wave-square",
+        },
+        {
+            "key": "impact",
+            "label": "Impact",
+            "tier": xp_profile.get("xp_idx_impact_tier"),
+            "tier_key": "xp_idx_impact",
+            "icon": "fa-crosshairs",
+            "components": [
+                {
+                    "key": "xpv_per_pass",
+                    "label": "xPV/Pass",
+                    "value": xp_profile.get("xpv_per_pass"),
+                    "rank": xp_profile.get("xpv_per_pass_rank_in_group"),
+                    "rank_pool": xp_profile.get("xpv_per_pass_rank_pool_in_group"),
+                },
+                {
+                    "key": "xp_residual_mean",
+                    "label": "ΔxP/Pass",
+                    "value": xp_profile.get("xp_residual_mean"),
+                    "rank": xp_profile.get("xp_residual_mean_rank_in_group"),
+                    "rank_pool": xp_profile.get("xp_residual_mean_rank_pool_in_group"),
+                },
+            ],
+        },
+    ]
+    defense = build_defensive_index_item(xp_profile)
+    if defense:
+        indices.append(defense)
+    return indices
+
+
 def build_xp_profile_bars(xp_profile: dict) -> list[dict[str, Any]]:
     bars: list[dict[str, Any]] = []
     for key in XP_PROFILE_BAR_KEYS:
@@ -58,6 +149,44 @@ def build_xp_profile_bars(xp_profile: dict) -> list[dict[str, Any]]:
             "rank_pool": xp_profile.get(f"{key}_rank_pool_in_group"),
         })
     return bars
+
+
+def _prepare_passes_for_round_series(passes_df):
+    if passes_df is None or getattr(passes_df, "empty", True):
+        return None
+    import xpass_engine as xpe
+
+    return xpe.attach_xpass_to_passes(passes_df.copy())
+
+
+def _round_series_source(xp_profile: dict, passes_df) -> list[dict[str, Any]]:
+    prepared = _prepare_passes_for_round_series(passes_df)
+    if prepared is not None:
+        return list(round_production_series(prepared))
+    return list(xp_profile.get(XP_ROUND_SERIES_KEY) or [])
+
+
+def build_round_grade_series(xp_profile: dict, passes_df=None) -> list[dict[str, Any]]:
+    series = _round_series_source(xp_profile, passes_df)
+    grades = xp_profile.get("xp_game_grades") or ()
+    out: list[dict[str, Any]] = []
+    for i, point in enumerate(series):
+        grade = grades[i] if i < len(grades) else None
+        out.append({
+            "round": point.get("round", i + 1),
+            "grade": grade,
+            "opponent": point.get("opponent"),
+            "date": point.get("date"),
+            "xp": point.get("xp"),
+            "impact": point.get("impact"),
+            "passes": point.get("passes"),
+            "event_id": point.get("event_id"),
+            "short_pass_eff_pct": point.get("short_pass_eff_pct"),
+            "long_pass_eff_pct": point.get("long_pass_eff_pct"),
+            "breakline_passes": point.get("breakline_passes"),
+            "key_passes": point.get("key_passes"),
+        })
+    return out
 
 
 def origin_heatmap_b64(player_id: str, passes_by_player: dict, player_name: str) -> str | None:
@@ -102,22 +231,6 @@ def build_profile_payload(
         "xp_pass_rating": xp.get("xp_pass_rating"),
         "xp_game_consistency_score": xp.get("xp_game_consistency_score"),
         "test_impact_v2_p90": xp.get("test_impact_v2_p90"),
-        "xp_indices": [
-            {
-                "key": "consistency",
-                "label": "Consistency",
-                "tier": xp.get("xp_idx_consistency_tier"),
-                "tier_key": "xp_idx_consistency",
-                "value": xp.get("xp_game_consistency_score"),
-                "icon": "fa-wave-square",
-            },
-            {
-                "key": "impact",
-                "label": "Impact",
-                "tier": xp.get("xp_idx_impact_tier"),
-                "tier_key": "xp_idx_impact",
-                "value": xp.get("test_impact_v2_p90"),
-                "icon": "fa-crosshairs",
-            },
-        ] if xp else [],
+        "xp_indices": build_xp_indices(xp) if xp else [],
+        "xp_round_grades": build_round_grade_series(xp, passes_by_player.get(player_id)) if xp else [],
     }

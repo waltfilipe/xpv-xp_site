@@ -37,6 +37,12 @@ export type PlayerSummary = {
   xp_pass_rating?: number | null;
   total_passes?: number | null;
   xt_per_pass?: number | null;
+  pass_volume_letter?: string | null;
+  pass_efficiency_letter?: string | null;
+  pass_buildup_letter?: string | null;
+  pass_chance_creation_letter?: string | null;
+  defense_letter?: string | null;
+  defense_display?: number | null;
 };
 
 export type PlayerOption = {
@@ -52,7 +58,7 @@ export type PassScoreSection = {
   letter?: string | null;
   rank?: number | null;
   rank_pool?: number | null;
-  components: { key: string; value: unknown; rank?: number | null; rank_pool?: number | null }[];
+  components: { key: string; value: unknown; rank?: number | null; rank_pool?: number | null; stratum_star?: boolean }[];
 };
 
 export type XpBar = { key: string; label: string; value?: number | null; rank?: number | null };
@@ -64,6 +70,28 @@ export type XpIndexItem = {
   tier_key?: string | null;
   value?: number | null;
   icon?: string;
+  components?: {
+    key: string;
+    label: string;
+    value?: number | null;
+    rank?: number | null;
+    rank_pool?: number | null;
+  }[];
+};
+
+export type XpRoundGrade = {
+  round: number;
+  grade?: number | null;
+  opponent?: string | null;
+  date?: string | null;
+  xp?: number | null;
+  impact?: number | null;
+  passes?: number | null;
+  event_id?: string | null;
+  short_pass_eff_pct?: number | null;
+  long_pass_eff_pct?: number | null;
+  breakline_passes?: number | null;
+  key_passes?: number | null;
 };
 
 export type PlayerProfile = {
@@ -79,6 +107,7 @@ export type PlayerProfile = {
   xp_game_consistency_score?: number | null;
   test_impact_v2_p90?: number | null;
   xp_indices?: XpIndexItem[];
+  xp_round_grades?: XpRoundGrade[];
 };
 
 export type CompareMetric = {
@@ -88,7 +117,15 @@ export type CompareMetric = {
   value_b?: number | null;
   letter_a?: string | null;
   letter_b?: string | null;
+  score_a?: number | null;
+  score_b?: number | null;
   winner: "a" | "b" | "tie";
+  components?: {
+    key: string;
+    value_a?: number | null;
+    value_b?: number | null;
+    winner?: "a" | "b" | "tie";
+  }[];
 };
 
 export type ComparePayload = {

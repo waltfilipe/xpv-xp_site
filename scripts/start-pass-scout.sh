@@ -31,6 +31,19 @@ stop_if_running() {
       rm -f "$pid_file"
     fi
   done
+  # npm start spawns next-server as a child; kill anything still bound to our ports.
+  for port in 3000 8000; do
+    if command -v fuser >/dev/null 2>&1; then
+      fuser -k "${port}/tcp" >/dev/null 2>&1 || true
+    elif command -v lsof >/dev/null 2>&1; then
+      local pids
+      pids="$(lsof -ti "tcp:${port}" -sTCP:LISTEN 2>/dev/null || true)"
+      if [[ -n "$pids" ]]; then
+        echo "Stopping stale listener(s) on port ${port}: ${pids}"
+        kill $pids 2>/dev/null || true
+      fi
+    fi
+  done
 }
 
 backend_python_ok() {
@@ -79,10 +92,20 @@ if [[ "${1:-}" == "daemon" ]]; then
     echo "Backend failed. Log:"; tail -20 "$BACKEND_LOG"; exit 1
   }
   echo "==> Starting frontend (daemon)…"
+  for port in 3000; do
+    if command -v fuser >/dev/null 2>&1; then
+      fuser -k "${port}/tcp" >/dev/null 2>&1 || true
+    elif command -v lsof >/dev/null 2>&1; then
+      pids="$(lsof -ti "tcp:${port}" -sTCP:LISTEN 2>/dev/null || true)"
+      if [[ -n "$pids" ]]; then kill $pids 2>/dev/null || true; fi
+    fi
+  done
+  sleep 1
   (
     cd "$ROOT/frontend"
     [[ -d node_modules ]] || npm install
     if [[ "${PASS_SCOUT_PRODUCTION:-0}" == "1" ]]; then
+      rm -rf .next
       npm run build
       nohup env BACKEND_URL="$BACKEND_URL" npm run start -- -H 127.0.0.1 -p 3000 >"$FRONTEND_LOG" 2>&1 &
     else
@@ -90,9 +113,24 @@ if [[ "${1:-}" == "daemon" ]]; then
     fi
     echo $! >"$FRONTEND_PID_FILE"
   )
+  echo "    Waiting for frontend + CSS…"
+  for _ in $(seq 1 60); do
+    if curl -fsS http://127.0.0.1:3000 >/dev/null 2>&1; then
+      css_path="$(curl -fsS http://127.0.0.1:3000/ | sed -n 's/.*href="\(\/_next\/static\/css\/[^"]*\.css\)".*/\1/p' | head -1)"
+      if [[ -n "$css_path" ]] && curl -fsS "http://127.0.0.1:3000${css_path}" >/dev/null 2>&1; then
+        break
+      fi
+    fi
+    sleep 1
+  done
+  css_path="$(curl -fsS http://127.0.0.1:3000/ 2>/dev/null | sed -n 's/.*href="\(\/_next\/static\/css\/[^"]*\.css\)".*/\1/p' | head -1)"
+  if [[ -z "$css_path" ]] || ! curl -fsS "http://127.0.0.1:3000${css_path}" >/dev/null 2>&1; then
+    echo "Frontend CSS health check failed. Log:"; tail -30 "$FRONTEND_LOG"; exit 1
+  fi
   trap - EXIT INT TERM
   echo "Pass Scout running in background."
   echo "  App:  http://localhost:3000"
+  echo "  CSS:  http://127.0.0.1:3000${css_path}"
   echo "  Logs: $BACKEND_LOG , $FRONTEND_LOG"
   echo "  Stop: ./scripts/start-pass-scout.sh stop"
   exit 0

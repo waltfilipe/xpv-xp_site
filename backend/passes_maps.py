@@ -10,7 +10,7 @@ import numpy as np
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.lines import Line2D
 from matplotlib.patches import FancyArrowPatch, Rectangle
-from mplsoccer import Pitch
+from mplsoccer import Pitch, VerticalPitch
 
 from passes_engine import filter_live_ball_passes
 
@@ -827,3 +827,227 @@ def draw_xt_surface_heatmap(
     plt.setp(cbar.ax.axes.get_yticklabels(), color="#ffffff")
     _attack_arrow(fig, fig_w=fig_w, has_cbar=True)
     return fig
+
+
+# Report maps — large vertical progressive trio.
+REPORT_PORTRAIT_FIG_W = 3.5
+REPORT_PORTRAIT_FIG_H = 5.0
+REPORT_PORTRAIT_DPI = 240
+REPORT_PITCH_PAD_BOTTOM = 8.0
+REPORT_PROGRESSIVE_GRID_COLS = 48
+REPORT_PROGRESSIVE_GRID_ROWS = 32
+REPORT_PROGRESSIVE_SMOOTH_SIGMA = 1.85
+REPORT_LINK_ZONE_COLS = 5
+REPORT_LINK_ZONE_ROWS = 5
+REPORT_LINK_TOP_N = 5
+REPORT_LINK_ARROW_COLOR = "#38bdf8"
+REPORT_LINK_ARROW_ALPHA = 0.82
+
+
+def _base_vertical_pitch(
+    *,
+    figsize: tuple[float, float],
+    dpi: int,
+    bg: str = "#1a1a2e",
+    pad_bottom: float | None = None,
+):
+    pitch_kwargs = dict(
+        pitch_type="statsbomb", pitch_color=bg, line_color="#ffffff", line_alpha=0.95
+    )
+    if pad_bottom is not None:
+        pitch_kwargs["pad_bottom"] = pad_bottom
+    pitch = VerticalPitch(**pitch_kwargs)
+    fig, ax = pitch.draw(figsize=figsize)
+    fig.set_facecolor(bg)
+    fig.set_dpi(dpi)
+    return fig, ax, pitch
+
+
+def _report_vertical_attack_arrow(fig, ax) -> None:
+    """Direction-of-attack arrow pointing upward below a vertical pitch."""
+    fig.canvas.draw()
+    trans = ax.transData + fig.transFigure.inverted()
+    center_x = float(trans.transform((FIELD_Y * 0.5, 0.0))[0])
+    bottom_frac = float(trans.transform((FIELD_Y * 0.5, 0.0))[1])
+    arrow_y0 = bottom_frac * 0.72
+    arrow_y1 = bottom_frac * 0.92
+    label_y = bottom_frac * 0.58
+
+    fig.patches.append(
+        FancyArrowPatch(
+            (center_x, arrow_y0),
+            (center_x, arrow_y1),
+            transform=fig.transFigure,
+            arrowstyle="-|>",
+            mutation_scale=PROFILE_ATTACK_MUTATION,
+            linewidth=PROFILE_ATTACK_LW,
+            color=PROFILE_ATTACK_ARROW_COLOR,
+            alpha=0.95,
+            clip_on=False,
+            zorder=6,
+        )
+    )
+    fig.text(
+        center_x,
+        label_y,
+        "Direction of Attack",
+        ha="center",
+        va="center",
+        transform=fig.transFigure,
+        fontsize=PROFILE_ATTACK_LABEL_FONT,
+        color=PROFILE_ATTACK_LABEL_COLOR,
+        alpha=0.98,
+        fontweight=500,
+        zorder=6,
+    )
+
+
+def _report_vertical_soft_grid_heatmap(
+    passes,
+    *,
+    x_col: str,
+    y_col: str,
+) -> plt.Figure:
+    """Fine binned heatmap with soft blending — no hard white cell borders."""
+    from scipy.ndimage import gaussian_filter
+
+    figsize = (REPORT_PORTRAIT_FIG_W, REPORT_PORTRAIT_FIG_H)
+    fig, ax, pitch = _base_vertical_pitch(
+        figsize=figsize,
+        dpi=REPORT_PORTRAIT_DPI,
+        pad_bottom=REPORT_PITCH_PAD_BOTTOM,
+    )
+
+    work = filter_live_ball_passes(passes)
+    if work is not None and not work.empty:
+        if "has_end" in work.columns and x_col.endswith("_end"):
+            work = work[work["has_end"].astype(bool)]
+
+    pitch.draw(ax=ax)
+    if work is not None and not work.empty and x_col in work.columns and y_col in work.columns:
+        x_bins = np.linspace(0.0, FIELD_X, REPORT_PROGRESSIVE_GRID_COLS + 1)
+        y_bins = np.linspace(0.0, FIELD_Y, REPORT_PROGRESSIVE_GRID_ROWS + 1)
+        hist, _, _ = np.histogram2d(
+            work[y_col].to_numpy(),
+            work[x_col].to_numpy(),
+            bins=[y_bins, x_bins],
+        )
+        density = gaussian_filter(hist.astype(float), sigma=REPORT_PROGRESSIVE_SMOOTH_SIGMA)
+        if density.max() > 0:
+            density = density / max(float(density.max()), 1e-9)
+            ax.imshow(
+                density.T,
+                origin="lower",
+                extent=[0.0, FIELD_Y, 0.0, FIELD_X],
+                cmap=CMAP_PASS_DEST,
+                alpha=0.88,
+                aspect="auto",
+                zorder=1,
+                vmin=0.0,
+                vmax=1.0,
+                interpolation="bilinear",
+            )
+            pitch.draw(ax=ax)
+
+    ax.set_title("")
+    _report_vertical_attack_arrow(fig, ax)
+    ax.set_axis_off()
+    return fig
+
+
+def _zone_centroid(
+    row_idx: int,
+    col_idx: int,
+    x_bins: np.ndarray,
+    y_bins: np.ndarray,
+) -> tuple[float, float]:
+    x0, x1 = float(x_bins[row_idx]), float(x_bins[row_idx + 1])
+    y0, y1 = float(y_bins[col_idx]), float(y_bins[col_idx + 1])
+    return (x0 + x1) * 0.5, (y0 + y1) * 0.5
+
+
+def _digitize_zone(values: np.ndarray, bins: np.ndarray, max_idx: int) -> np.ndarray:
+    return np.clip(np.digitize(values, bins, right=True) - 1, 0, max_idx)
+
+
+def draw_report_progressive_links_map(passes) -> plt.Figure:
+    """Top 5 destination regions linked by progressive passes (vertical pitch)."""
+    figsize = (REPORT_PORTRAIT_FIG_W, REPORT_PORTRAIT_FIG_H)
+    fig, ax, pitch = _base_vertical_pitch(
+        figsize=figsize,
+        dpi=REPORT_PORTRAIT_DPI,
+        pad_bottom=REPORT_PITCH_PAD_BOTTOM,
+    )
+
+    work = filter_live_ball_passes(passes)
+    if work is not None and not work.empty and "has_end" in work.columns:
+        work = work[work["has_end"].astype(bool)].copy()
+
+    pitch.draw(ax=ax)
+
+    if work is not None and not work.empty:
+        x_bins = np.linspace(0.0, FIELD_X, REPORT_LINK_ZONE_ROWS + 1)
+        y_bins = np.linspace(0.0, FIELD_Y, REPORT_LINK_ZONE_COLS + 1)
+        max_row = REPORT_LINK_ZONE_ROWS - 1
+        max_col = REPORT_LINK_ZONE_COLS - 1
+
+        d_rows = _digitize_zone(work["x_end"].to_numpy(dtype=float), x_bins, max_row)
+        d_cols = _digitize_zone(work["y_end"].to_numpy(dtype=float), y_bins, max_col)
+
+        from collections import defaultdict
+
+        zone_origins: dict[tuple[int, int], list[tuple[float, float]]] = defaultdict(list)
+        zone_counts: dict[tuple[int, int], int] = defaultdict(int)
+        for row in work.itertuples(index=False):
+            drow = int(_digitize_zone(np.array([row.x_end]), x_bins, max_row)[0])
+            dcol = int(_digitize_zone(np.array([row.y_end]), y_bins, max_col)[0])
+            zone_origins[(drow, dcol)].append((float(row.x_start), float(row.y_start)))
+            zone_counts[(drow, dcol)] += 1
+
+        top_zones = sorted(zone_counts.items(), key=lambda item: item[1], reverse=True)[:REPORT_LINK_TOP_N]
+        if top_zones:
+            max_count = max(count for _, count in top_zones)
+            scale = REPORT_PORTRAIT_FIG_W / MAP_REF_WIDTH
+            for rank, ((drow, dcol), count) in enumerate(top_zones):
+                origins = zone_origins[(drow, dcol)]
+                x0 = float(np.mean([o[0] for o in origins]))
+                y0 = float(np.mean([o[1] for o in origins]))
+                x1, y1 = _zone_centroid(drow, dcol, x_bins, y_bins)
+                width = (0.65 + 1.75 * (count / max_count)) * scale
+                alpha = REPORT_LINK_ARROW_ALPHA - rank * 0.05
+                pitch.arrows(
+                    x0,
+                    y0,
+                    x1,
+                    y1,
+                    width=width,
+                    headwidth=1.1 * width,
+                    headlength=1.1 * width,
+                    color=REPORT_LINK_ARROW_COLOR,
+                    alpha=max(alpha, 0.5),
+                    ax=ax,
+                    zorder=3 + rank,
+                )
+
+    ax.set_title("")
+    _report_vertical_attack_arrow(fig, ax)
+    ax.set_axis_off()
+    return fig
+
+
+def draw_report_progressive_origin_heatmap(passes) -> plt.Figure:
+    """Portrait progressive-pass origin heatmap."""
+    return _report_vertical_soft_grid_heatmap(
+        passes,
+        x_col="x_start",
+        y_col="y_start",
+    )
+
+
+def draw_report_progressive_dest_heatmap(passes) -> plt.Figure:
+    """Portrait progressive-pass destination heatmap."""
+    return _report_vertical_soft_grid_heatmap(
+        passes,
+        x_col="x_end",
+        y_col="y_end",
+    )

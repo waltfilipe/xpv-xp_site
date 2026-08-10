@@ -1,7 +1,7 @@
 import { Suspense } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { PageHero } from "@/components/PageHero";
+import { PlayersTable } from "@/components/PlayersTable";
 import { POSITION_FAMILIES } from "@/lib/positionFamilies";
 import { getMeta, getPlayers } from "@/lib/api";
 import { PlayersFilters } from "./PlayersFilters";
@@ -15,18 +15,13 @@ type PageProps = {
   }>;
 };
 
-function formatRating(value: number | null | undefined): string {
-  if (value == null) return "—";
-  return value.toFixed(1);
-}
-
 export default async function PlayersPage({ searchParams }: PageProps) {
   const params = await searchParams;
   let data = { total: 0, players: [] as Awaited<ReturnType<typeof getPlayers>>["players"] };
   let filters = { leagues: [] as string[], position_groups: [] as string[] };
   let error: string | null = null;
 
-  let positionFamilies = [...POSITION_FAMILIES];
+  let positionFamilies: { key: string; label: string }[] = [...POSITION_FAMILIES];
 
   const family = params.position_family ?? "midfielders";
 
@@ -54,7 +49,7 @@ export default async function PlayersPage({ searchParams }: PageProps) {
     <div className="container">
       <PageHero
         title="Players"
-        subtitle="Jogadores das 5 grandes ligas europeias com ratings de passe e progressão por pool de posição."
+        subtitle="Jogadores das 5 grandes ligas europeias com ratings de passe e pilares por pool de posição."
         icon="fa-table-list"
       />
 
@@ -76,75 +71,22 @@ export default async function PlayersPage({ searchParams }: PageProps) {
         {data.total} jogador{data.total !== 1 ? "es" : ""} encontrado{data.total !== 1 ? "s" : ""}
       </p>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Jogador</th>
-              <th>Liga</th>
-              <th>Posição</th>
-              <th>Idade</th>
-              <th>Pass Rating</th>
-              <th>Progressão</th>
-              <th>Passes</th>
-              <th>xT/Pass</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.players.map((player) => (
-              <tr key={player.player_id}>
-                <td>
-                  <div className="player-cell">
-                    {player.photo_url ? (
-                      <Image
-                        src={player.photo_url}
-                        alt=""
-                        width={36}
-                        height={36}
-                        className="player-avatar"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="player-avatar" />
-                    )}
-                    <div>
-                      <Link href={`/profile?player=${player.player_id}&position_family=${family}`}>{player.player_name}</Link>
-                      <div className="muted" style={{ fontSize: "0.8rem" }}>
-                        {player.nationality ?? "—"}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <span className="badge">{player.league_source ?? player.league ?? "—"}</span>
-                </td>
-                <td>{player.position_group ?? player.position ?? "—"}</td>
-                <td>{player.age ?? "—"}</td>
-                <td>
-                  <span className="rating">{formatRating(player.pass_rating)}</span>
-                  {player.pass_rating_rank != null && (
-                    <span className="muted" style={{ fontSize: "0.75rem", marginLeft: "0.35rem" }}>
-                      #{player.pass_rating_rank}
-                    </span>
-                  )}
-                </td>
-                <td>
-                  <span className="rating">{formatRating(player.progression_rating)}</span>
-                </td>
-                <td>{player.total_passes?.toLocaleString() ?? "—"}</td>
-                <td>{player.xt_per_pass != null ? player.xt_per_pass.toFixed(4) : "—"}</td>
-              </tr>
-            ))}
-            {data.players.length === 0 && !error && (
-              <tr>
-                <td colSpan={8} className="muted" style={{ textAlign: "center", padding: "2rem" }}>
-                  Nenhum jogador encontrado.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Link href="/reports" className="reports-promo-card report-screen-only">
+        <span className="reports-promo-icon">
+          <i className="fa-solid fa-file-lines" />
+        </span>
+        <span className="reports-promo-text">
+          <strong>Reports</strong>
+          <span className="muted">
+            Relatórios PDF-ready — U23 Breakout, Blue Collar 24–30 e Experience 30+
+          </span>
+        </span>
+        <span className="reports-promo-cta">
+          Ver relatórios <i className="fa-solid fa-arrow-right" />
+        </span>
+      </Link>
+
+      <PlayersTable players={data.players} positionFamily={family} />
     </div>
   );
 }

@@ -32,11 +32,7 @@ export function MetricGradientBar({ score, letter, displayScore }: Props) {
         {score != null && (
           <span
             className="metric-gradient-bar-marker"
-            style={{
-              left: `${pos}%`,
-              background: metricColor,
-              boxShadow: `0 0 10px ${metricColor}66`,
-            }}
+            style={{ left: `${pos}%` }}
           />
         )}
       </div>

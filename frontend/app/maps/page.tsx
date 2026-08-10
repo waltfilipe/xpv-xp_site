@@ -5,11 +5,9 @@ import { Suspense, useEffect, useState } from "react";
 import { LoadingState } from "@/components/LoadingState";
 import { PageHero } from "@/components/PageHero";
 import { ScatterChart } from "@/components/ScatterChart";
-import { POSITION_FAMILIES } from "@/lib/positionFamilies";
 import {
   getAggregatedMaps,
   getMapsOptions,
-  getMeta,
   getPassMap,
   getPlayerOptions,
   getScatter,
@@ -19,8 +17,7 @@ import {
 
 function MapsContent() {
   const searchParams = useSearchParams();
-  const [positionFamily, setPositionFamily] = useState("midfielders");
-  const [positionFamilies, setPositionFamilies] = useState(POSITION_FAMILIES);
+  const positionFamily = "midfielders";
   const [options, setOptions] = useState<PlayerOption[]>([]);
   const [mapOpts, setMapOpts] = useState<{ scatter_metrics: { key: string; label: string }[]; pass_filters: { key: string; label: string }[] } | null>(null);
   const [playerId, setPlayerId] = useState(searchParams.get("player") ?? "");
@@ -33,14 +30,6 @@ function MapsContent() {
   const [aggregated, setAggregated] = useState<{ common_map_b64?: string | null; rare_map_b64?: string | null; quadrant_stats: { quadrant: string; passes: number; share_pct: number }[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    getMeta()
-      .then((meta) => {
-        if (meta.position_families?.length) setPositionFamilies(meta.position_families);
-      })
-      .catch(() => { /* keep defaults */ });
-  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -81,20 +70,12 @@ function MapsContent() {
 
   return (
     <div className="container">
-      <PageHero title="Maps" subtitle="Scatter e mapas de passes por pool de posição." icon="fa-map-location-dot" />
+      <PageHero title="Maps" subtitle="Scatter e mapas de passes — meio-campistas." icon="fa-map-location-dot" />
 
       {error && <div className="error-box">{error}</div>}
 
       <div className="filter-card">
         <div className="filters" style={{ marginBottom: 0 }}>
-          <label className="filter-field">
-            <span className="filter-label">Posição</span>
-            <select value={positionFamily} onChange={(e) => setPositionFamily(e.target.value)}>
-              {positionFamilies.map((family) => (
-                <option key={family.key} value={family.key}>{family.label}</option>
-              ))}
-            </select>
-          </label>
           <select value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
             {options.map((o) => <option key={o.player_id} value={o.player_id}>{o.label}</option>)}
           </select>

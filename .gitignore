@@ -4,6 +4,7 @@ __pycache__/
 venv/
 .env
 .env.local
+pass-scout.env
 node_modules/
 .next/
 out/

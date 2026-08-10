@@ -28,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               Pass<span>Scout</span>
             </Link>
             <nav className="nav">
+              <Link href="/reports">Reports</Link>
               <Link href="/profile">Profile</Link>
               <Link href="/compare">Compare</Link>
               <Link href="/maps">Maps</Link>

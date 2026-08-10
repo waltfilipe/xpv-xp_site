@@ -66,14 +66,6 @@ export function PlayersFilters({
         ))}
       </select>
       <select
-        name="position_family"
-        defaultValue={currentPositionFamily ?? searchParams.get("position_family") ?? "midfielders"}
-      >
-        {positionFamilies.map((family) => (
-          <option key={family.key} value={family.key}>{family.label}</option>
-        ))}
-      </select>
-      <select
         name="position_group"
         defaultValue={currentPositionGroup ?? searchParams.get("position_group") ?? ""}
       >

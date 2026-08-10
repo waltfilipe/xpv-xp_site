@@ -559,6 +559,11 @@ def filter_passes_for_map(passes: pd.DataFrame, filter_key: str) -> pd.DataFrame
         x_end = work["x_end"].to_numpy(dtype=float)
         y_end = work["y_end"].to_numpy(dtype=float)
         return work.loc[_in_penalty_box(x_end, y_end)].copy()
+    if key == "long_passes":
+        if "distance_band" not in work.columns:
+            work = work.copy()
+            work["distance_band"] = xse._distance_band_series(work["pass_distance"])
+        return work[work["distance_band"].astype(str) == "long"].copy()
     return filter_passes_by_special_type(work, key)
 
 
@@ -680,10 +685,66 @@ def _opponent_array(scored: pd.DataFrame) -> np.ndarray:
     return np.where(team == home, away, home)
 
 
-def round_production_series(scored: pd.DataFrame) -> tuple[dict[str, float | int | str], ...]:
-    """Per-match xP and I.P. production ordered by match date, for the profile chart."""
-    if scored is None or scored.empty or "event_id" not in scored.columns:
+def _event_pass_eff_pct(attempts: pd.DataFrame, *, long_only: bool | None = None) -> float | None:
+    """Completion-over-expected (p.p.) for one match's pass attempts."""
+    import xpass_engine as xpe
+
+    if attempts is None or attempts.empty or xpe.XPASS_COL not in attempts.columns:
+        return None
+    work = attempts[attempts[xpe.XPASS_COL].notna()].copy()
+    if work.empty:
+        return None
+    if long_only is not None:
+        if "distance_band" in work.columns:
+            long_mask = work["distance_band"].astype(str) == "long"
+        elif "pass_distance" in work.columns:
+            long_mask = work["pass_distance"].to_numpy(dtype=float) > XP_DISTANCE_BAND_MAX_SHORT_M
+        else:
+            return None
+        work = work[long_mask if long_only else ~long_mask]
+        if work.empty:
+            return None
+    won = work["is_won"].astype(int).to_numpy()
+    xpass = work[xpe.XPASS_COL].to_numpy(dtype=float)
+    n = len(work)
+    coe = (float(won.sum()) / n) - (float(xpass.sum()) / n)
+    return round(coe * 100.0, 1)
+
+
+def _event_pass_eff_by_id(grp: pd.DataFrame) -> tuple[dict[str, float | None], dict[str, float | None]]:
+    import xpass_engine as xpe
+
+    short_by_event: dict[str, float | None] = {}
+    long_by_event: dict[str, float | None] = {}
+    if grp is None or grp.empty or xpe.XPASS_COL not in grp.columns:
+        return short_by_event, long_by_event
+    attempts = grp[grp[xpe.XPASS_COL].notna()].copy()
+    if attempts.empty:
+        return short_by_event, long_by_event
+    if "distance_band" not in attempts.columns and "pass_distance" in attempts.columns:
+        attempts["distance_band"] = xse._distance_band_series(attempts["pass_distance"])
+    for event_id, sub in attempts.groupby("event_id", sort=False):
+        eid = str(event_id)
+        short_by_event[eid] = _event_pass_eff_pct(sub, long_only=False)
+        long_by_event[eid] = _event_pass_eff_pct(sub, long_only=True)
+    return short_by_event, long_by_event
+
+
+def round_production_series(grp: pd.DataFrame) -> tuple[dict[str, float | int | str | None], ...]:
+    """Per-match xP and pass stats ordered by match date, for the profile chart."""
+    if grp is None or grp.empty or "event_id" not in grp.columns:
         return ()
+    scored = grp[grp["is_won"] & grp["has_end"]].copy()
+    if scored.empty or XP_COL not in scored.columns:
+        return ()
+
+    masks = compute_special_pass_masks(scored)
+    line_break = masks["line_break"]
+    key_pass = (
+        scored["is_key_pass"].astype(bool).to_numpy()
+        if "is_key_pass" in scored.columns
+        else np.zeros(len(scored), dtype=bool)
+    )
     work = pd.DataFrame({
         "event_id": scored["event_id"].astype(str).to_numpy(),
         "xp": scored[XP_COL].to_numpy(dtype=float),
@@ -692,6 +753,8 @@ def round_production_series(scored: pd.DataFrame) -> tuple[dict[str, float | int
             if THREAT_COL in scored.columns
             else np.zeros(len(scored), dtype=bool)
         ),
+        "line_break": line_break,
+        "key_pass": key_pass,
         "date": (
             scored["match_date"].astype(str).to_numpy()
             if "match_date" in scored.columns
@@ -705,19 +768,27 @@ def round_production_series(scored: pd.DataFrame) -> tuple[dict[str, float | int
             xp=("xp", "sum"),
             impact=("impact", "sum"),
             passes=("xp", "size"),
+            breakline_passes=("line_break", "sum"),
+            key_passes=("key_pass", "sum"),
             date=("date", "first"),
             opponent=("opponent", "first"),
         )
         .sort_values(["date", "event_id"], kind="stable")
     )
+    short_eff_by_event, long_eff_by_event = _event_pass_eff_by_id(grp)
     return tuple(
         {
             "round": index,
+            "event_id": str(row.Index),
             "date": str(row.date),
             "opponent": str(row.opponent),
             "xp": round(float(row.xp), 3),
             "impact": int(row.impact),
             "passes": int(row.passes),
+            "short_pass_eff_pct": short_eff_by_event.get(str(row.Index)),
+            "long_pass_eff_pct": long_eff_by_event.get(str(row.Index)),
+            "breakline_passes": int(row.breakline_passes),
+            "key_passes": int(row.key_passes),
         }
         for index, row in enumerate(grouped.itertuples(), start=1)
     )
@@ -823,7 +894,7 @@ def compute_extended_xp_stats(
         out["xp_game_std"] = float(game_xp.std()) if len(game_xp) > 1 else 0.0
         med = float(game_xp.median()) if len(game_xp) else 0.0
         out["xp_games_above_median_pct"] = float((game_xp > med).mean()) if len(game_xp) else 0.0
-        out[XP_ROUND_SERIES_KEY] = round_production_series(scored)
+        out[XP_ROUND_SERIES_KEY] = round_production_series(grp)
     else:
         out["xp_game_mean"] = 0.0
         out["xp_game_std"] = 0.0
@@ -1043,7 +1114,7 @@ XP_PROFILE_BAR_ICONS: dict[str, str] = {
 
 XP_PROFILE_BAR_METRICS: dict[str, tuple[str, ...]] = {
     "xp_activity_display": ("xp_per_90",),
-    "xp_edge_display": ("xpv_per_pass", "test_impact_v2_p90"),
+    "xp_edge_display": ("xpv_per_pass", "test_impact_v2_p90", "threat_pass_pct"),
     "xp_efficiency_display": ("xpass_residual_p90",),
     "xp_quality_display": ("xp_residual_median",),
     "xp_consistency_display": ("xp_game_consistency_score",),
@@ -1059,14 +1130,17 @@ XP_PROFILE_SUBMETRICS: tuple[str, ...] = (
     "xp_residual_median",
 )
 
-# Shared composite for Lethality pillar and the xP Impact index.
-LETHALITY_METRICS: tuple[str, ...] = ("xpv_per_pass", "test_impact_v2_p90")
+# Lethality pillar (xP Profile bar) — mean z of xPV/pass, ImpV2 p90, and impact rate.
+LETHALITY_METRICS: tuple[str, ...] = ("xpv_per_pass", "test_impact_v2_p90", "threat_pass_pct")
+
+# xP Impact index — destination value + mean residual vs. geometric model per pass.
+IMPACT_INDEX_METRICS: tuple[str, ...] = ("xpv_per_pass", "xp_residual_mean")
 
 # (index_key, label, metrics, invert_metrics)
 XP_INDEX_ELITE_TOP_N = 10
 XP_INDEX_SPECS: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
     ("xp_idx_consistency", "Consistency", ("xp_game_consistency_score",), ()),
-    ("xp_idx_impact", "Impact", LETHALITY_METRICS, ()),
+    ("xp_idx_impact", "Impact", IMPACT_INDEX_METRICS, ()),
 )
 
 XP_INDEX_TIER_LABELS: dict[str, str] = {
@@ -1083,8 +1157,8 @@ XP_INDEX_TOOLTIPS: dict[str, str] = {
         "(median absolute deviation), which is robust to outlier games."
     ),
     "xp_idx_impact": (
-        "50% xPV per completed pass and 50% Pass Impact v2 per game — "
-        "destination value plus selective high-progression deliveries."
+        "50% xPV per completed pass and 50% mean (xP − xP expected) per pass — "
+        "destination value plus how much the player beats the geometric model on average."
     ),
 }
 
@@ -1120,8 +1194,8 @@ XP_COMPARE_COLUMN_TOOLTIPS: dict[str, str] = {
         "produces per game."
     ),
     "xp_edge_display": (
-        "50% xPV per completed pass and 50% Pass Impact v2 per game — "
-        "destination value plus high-progression, difficult deliveries."
+        "Mean z-score of xPV per completed pass, Pass Impact v2 per game, and impact-pass "
+        "rate (33/33/33) within the position group."
     ),
     "passes_total": "Passes attempted per game (p90).",
 }
@@ -1142,11 +1216,12 @@ XP_COMPARE_METRIC_TOOLTIPS: dict[str, str] = {
 XP_PROFILE_BAR_TOOLTIPS: dict[str, str] = {
     "xp_activity_display": "How much xPV the player generates per game — passing volume times destination value.",
     "xp_edge_display": (
-        "Blend of xPV per completed pass and Pass Impact v2 per game (50/50) — "
-        "quality of each delivery plus selective high-impact progression."
+        "Mean z-score of xPV per completed pass, Pass Impact v2 per game, and impact-pass "
+        "rate (33/33/33) within the position group."
     ),
     "xp_efficiency_display": (
-        "Sum of (pass completed − xP probability) per 90 minutes — execution above the geometric model."
+        "75% xPass residual per 90 minutes and 25% COE stratum (short + total passes) vs. "
+        "peers in the same pass-volume quartile."
     ),
     "xp_quality_display": "Median xP above the model's expectation — value that comes from surprise.",
     "xp_consistency_display": "How stable game-to-game delivery grades are (low MAD of per-match scores).",
@@ -1219,6 +1294,14 @@ XP_PROFILE_ARCHETYPE_FILTER_ALL = ""
 ACTIVITY_METRICS: tuple[str, ...] = ("xp_per_90",)
 EDGE_METRICS: tuple[str, ...] = LETHALITY_METRICS
 EFFICIENCY_METRICS: tuple[str, ...] = ("xpass_residual_p90",)
+
+PRECISION_BASE_BLEND_WEIGHT = 0.75
+PRECISION_STRATUM_BLEND_WEIGHT = 0.25
+COE_STRATUM_STAR_TOP_FRAC = 0.25
+COE_STRATUM_METRICS: tuple[tuple[str, str], ...] = (
+    ("xpass_coe_pct", "xpass_coe_stratum_star"),
+    ("xpass_long_coe_pct", "xpass_long_coe_stratum_star"),
+)
 
 # Grade = weighted mean of three pillars (z-scores within position group).
 XP_PASS_RATING_FEATURE_WEIGHTS: dict[str, float] = {
@@ -1293,7 +1376,6 @@ CONSISTENCY_INVERT_METRICS: tuple[str, ...] = ()
 
 XP_PROFILE_BAR_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("xp_activity_index", "xp_activity_display", ACTIVITY_METRICS),
-    ("xp_edge_index", "xp_edge_display", EDGE_METRICS),
     ("xp_efficiency_index", "xp_efficiency_display", EFFICIENCY_METRICS),
     ("xp_quality_index", "xp_quality_display", QUALITY_METRICS),
     ("xp_consistency_index", "xp_consistency_display", CONSISTENCY_METRICS),
@@ -1342,7 +1424,7 @@ XP_STATS_LABELS: dict[str, str] = {
     "xp_m4_per_pass": "xP/Pass",
     "xpv_per_pass": "xPV/Pass",
     "test_impact_v2_p90": "Pass Impact v2 / game",
-    "test_impact_v2_start_final_third_p90": "Impact v2 — origem terço final / game",
+    "test_impact_v2_start_final_third_p90": "Impact Passes / game",
     "xp_m4_per_threat_pass": f"xP/{IMPACT_PASS_ABBR}",
     "xp_m4_threat_rate": f"% {IMPACT_PASS_ABBR}",
     "xp_m4_per_pass_short": "xP/Pass",
@@ -1411,7 +1493,7 @@ XP_PA_LABELS: dict[str, str] = {
     "xp_m4_per_pass": "xP / pass",
     "xpv_per_pass": "xPV / pass",
     "test_impact_v2_p90": "Pass Impact v2 / game",
-    "test_impact_v2_start_final_third_p90": "Impact v2 — origem terço final / game",
+    "test_impact_v2_start_final_third_p90": "Impact Passes / game",
     "xp_m4_per_threat_pass": f"xP / {IMPACT_PASS_ABBR}",
     "xp_m4_threat_rate": f"% {IMPACT_PASS_ABBR}",
     "xp_residual_median": "Median residual",
@@ -1619,6 +1701,7 @@ XP_PLAYER_ANALYSIS_RANK_METRICS: tuple[str, ...] = tuple(
 )
 
 XP_REGULAR_STAT_RANK_KEYS: tuple[str, ...] = (
+    "xp_residual_mean",
     "passes_total",
     "pass_completion_pct",
     "long_balls",
@@ -1698,11 +1781,11 @@ PASS_SCORE_TOOLTIPS: dict[str, str] = {
         "Within-position composite of passes and long passes per game."
     ),
     "pass_efficiency_index": (
-        "Within-position composite of COE (completion over expected) on all passes "
+        "Within-position composite of COE (completion over expected) on short passes "
         "and long passes."
     ),
     "pass_efficiency_display": (
-        "Within-position composite of COE (completion over expected) on all passes "
+        "Within-position composite of COE (completion over expected) on short passes "
         "and long passes."
     ),
     "pass_buildup_index": (
@@ -1979,6 +2062,164 @@ def _attach_index_display_scores(
         row[f"{raw_key}_rank_in_group"] = rank
         row[f"{raw_key}_rank_pool_in_group"] = pool_size
         row[display_key] = float(pe.rank_to_display_score(rank, pool_size))
+
+
+def _coe_stratum_z_by_volume_quartile(
+    passes: pd.Series,
+    coe: pd.Series,
+) -> pd.Series:
+    """Z-score of COE within quartiles of passes per game."""
+    out = pd.Series(np.nan, index=passes.index, dtype=float)
+    work = pd.DataFrame({"passes": passes.astype(float), "coe": pd.to_numeric(coe, errors="coerce")})
+    valid = work["passes"].notna() & (work["passes"] > 0) & work["coe"].notna()
+    if int(valid.sum()) < 8:
+        return out
+    try:
+        work.loc[valid, "vol_q"] = pd.qcut(
+            work.loc[valid, "passes"],
+            4,
+            labels=False,
+            duplicates="drop",
+        )
+    except ValueError:
+        return out
+    for _, sub in work.loc[valid].groupby("vol_q", sort=False):
+        vals = sub["coe"].astype(float)
+        mean = float(vals.mean())
+        std = float(vals.std())
+        if std == 0.0 or np.isnan(std):
+            out.loc[sub.index] = 0.0
+        else:
+            out.loc[sub.index] = (vals - mean) / std
+    return out
+
+
+def _attach_coe_stratum_stars(rows: list[dict]) -> None:
+    """Flag players in the top quartile of COE z within their pass-volume stratum."""
+    if not rows:
+        return
+    for _metric, star_key in COE_STRATUM_METRICS:
+        for row in rows:
+            row[star_key] = False
+
+    df = pd.DataFrame(rows)
+    if "passes_total" not in df.columns:
+        return
+    passes = pd.to_numeric(df["passes_total"], errors="coerce")
+
+    for metric, star_key in COE_STRATUM_METRICS:
+        if metric not in df.columns:
+            continue
+        z = _coe_stratum_z_by_volume_quartile(passes, df[metric])
+        valid = z.notna()
+        if not bool(valid.any()):
+            continue
+        try:
+            vol_q = pd.Series(np.nan, index=df.index, dtype=float)
+            vol_q.loc[passes[valid].index] = pd.qcut(
+                passes[valid],
+                4,
+                labels=False,
+                duplicates="drop",
+            )
+        except ValueError:
+            continue
+        for q in sorted(vol_q.dropna().unique()):
+            q_mask = valid & (vol_q == q)
+            if int(q_mask.sum()) < 4:
+                continue
+            q_z = z[q_mask]
+            threshold = float(q_z.quantile(1.0 - COE_STRATUM_STAR_TOP_FRAC))
+            for idx in q_z.index[q_z >= threshold]:
+                rows[int(idx)][star_key] = True
+
+
+def _ensure_xpass_total_coe_pct(rows: list[dict]) -> None:
+    """Backfill total-pass COE when only completion vs. expected % is available."""
+    for row in rows:
+        if row.get("xpass_total_coe_pct") is not None:
+            continue
+        completion = row.get("pass_completion_pct")
+        expected = row.get("xpass_expected_pct")
+        if completion is None or expected is None:
+            continue
+        row["xpass_total_coe_pct"] = round(float(completion) - float(expected), 2)
+
+
+def _coe_stratum_z_blend(
+    passes: pd.Series,
+    df: pd.DataFrame,
+    coe_cols: tuple[str, ...],
+) -> pd.Series:
+    """Average COE stratum z-scores across short and total (or other) COE columns."""
+    parts: list[pd.Series] = []
+    for col in coe_cols:
+        if col not in df.columns:
+            continue
+        parts.append(_coe_stratum_z_by_volume_quartile(passes, df[col]))
+    if not parts:
+        return pd.Series(np.nan, index=df.index, dtype=float)
+    return pd.concat(parts, axis=1).mean(axis=1, skipna=True)
+
+
+def _blend_precision_with_stratum(eligible_rows: list[dict]) -> None:
+    """Precision display = 75% residual rank score + 25% COE stratum (short + total)."""
+    import passes_engine as pe
+
+    if not eligible_rows:
+        return
+    df = pd.DataFrame(eligible_rows)
+    if "xp_efficiency_display" not in df.columns:
+        return
+
+    base_display = pd.to_numeric(df["xp_efficiency_display"], errors="coerce")
+    passes = pd.to_numeric(df.get("passes_total"), errors="coerce")
+    if not bool(base_display.notna().any()):
+        return
+
+    z_stratum = _coe_stratum_z_blend(
+        passes,
+        df,
+        ("xpass_coe_pct", "xpass_total_coe_pct"),
+    )
+    pool_size = len(eligible_rows)
+    stratum_display = pd.Series(np.nan, index=df.index, dtype=float)
+    valid_z = z_stratum.notna()
+    if bool(valid_z.any()):
+        z_ranks = z_stratum[valid_z].rank(method="min", ascending=False)
+        for idx, rank_val in z_ranks.items():
+            stratum_display.loc[idx] = float(pe.rank_to_display_score(int(rank_val), pool_size))
+
+    blended: list[float | None] = []
+    for i, row in enumerate(eligible_rows):
+        base = base_display.iloc[i]
+        strat = stratum_display.iloc[i]
+        if pd.isna(base):
+            blended.append(None)
+            continue
+        if pd.isna(strat):
+            blended.append(float(base))
+            continue
+        value = (
+            PRECISION_BASE_BLEND_WEIGHT * float(base)
+            + PRECISION_STRATUM_BLEND_WEIGHT * float(strat)
+        )
+        blended.append(round(value, 4))
+        row["xp_efficiency_display_base"] = float(base)
+
+    composite = pd.Series(
+        [float(v) if v is not None else np.nan for v in blended],
+        dtype=float,
+    )
+    _attach_index_display_scores(
+        eligible_rows,
+        "xp_efficiency_index",
+        "xp_efficiency_display",
+        composite,
+    )
+    for row, value in zip(eligible_rows, blended):
+        if value is not None:
+            row["xp_efficiency_display"] = value
 
 
 def _attach_median_rank_display_scores(
@@ -2302,8 +2543,19 @@ def attach_composite_indices(players: list[dict]) -> None:
         for raw_key, composite in composites.items():
             _attach_index_display_scores(rows, raw_key, display_map[raw_key], composite)
 
+        _attach_coe_stratum_stars(rows)
+
         # Profile bars: rank only among eligible peers (base filters, or top 250 by passes).
         if eligible_rows:
+            _ensure_xpass_total_coe_pct(eligible_rows)
+            eligible_df = pd.DataFrame(eligible_rows)
+            lethality_composite = _mean_z_columns(eligible_df, LETHALITY_METRICS)
+            _attach_index_display_scores(
+                eligible_rows,
+                "xp_edge_index",
+                "xp_edge_display",
+                lethality_composite,
+            )
             for raw_key, display_key, metric_cols in XP_PROFILE_BAR_SPECS:
                 _attach_median_rank_display_scores(
                     eligible_rows,
@@ -2318,6 +2570,7 @@ def attach_composite_indices(players: list[dict]) -> None:
                     f"{metric}_sub_index",
                     f"{metric}_sub_display",
                 )
+            _blend_precision_with_stratum(eligible_rows)
             _attach_secondary_indices(eligible_rows)
             _attach_xp_profile_archetypes(eligible_rows)
         for row in rows:
