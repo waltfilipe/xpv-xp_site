@@ -278,7 +278,7 @@ def build_report_pass_map_images(
     fig = draw_fn(passes_df)
     payload: dict[str, Any] = {
         "pass_count": len(passes_df),
-        "pass_map_b64": fig_to_b64(fig),
+        "pass_map_b64": fig_to_b64(fig, pad_inches=0.02),
         "dest_map_b64": None,
         "caption": caption,
     }
