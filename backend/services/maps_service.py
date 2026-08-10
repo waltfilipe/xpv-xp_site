@@ -274,7 +274,10 @@ def build_report_pass_map_images(
     if passes_df is None or passes_df.empty:
         return {"pass_count": 0, "pass_map_b64": None, "dest_map_b64": None, "caption": ""}
 
-    fig = draw_fn(passes_df)
+    if key == "report_impact_passes":
+        fig = draw_report_impact_passes_map(passes_df, all_passes=scoped)
+    else:
+        fig = draw_fn(passes_df)
     return {
         "pass_count": len(passes_df),
         "pass_map_b64": fig_to_b64(fig),
