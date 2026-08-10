@@ -829,20 +829,19 @@ def draw_xt_surface_heatmap(
     return fig
 
 
-# Report maps — portrait progressive grids + landscape impact map.
-REPORT_PORTRAIT_FIG_W = 2.85
-REPORT_PORTRAIT_FIG_H = 3.85
-REPORT_PORTRAIT_DPI = 220
-REPORT_PROGRESSIVE_GRID_COLS = 10
-REPORT_PROGRESSIVE_GRID_ROWS = 8
-REPORT_IMPACT_FIG_W = 7.2
-REPORT_IMPACT_FIG_H = 4.35
-REPORT_IMPACT_DPI = 220
-REPORT_IMPACT_COLOR = "#ef4444"
-REPORT_IMPACT_ORIGIN_MARKER_SIZE = 5.5
-REPORT_IMPACT_DEST_MARKER_SIZE = 7.5
-REPORT_IMPACT_LINE_ALPHA = 0.32
-REPORT_IMPACT_LINE_WIDTH = 0.5
+# Report maps — large vertical progressive trio.
+REPORT_PORTRAIT_FIG_W = 3.35
+REPORT_PORTRAIT_FIG_H = 4.75
+REPORT_PORTRAIT_DPI = 240
+REPORT_PITCH_PAD_BOTTOM = 8.0
+REPORT_PROGRESSIVE_GRID_COLS = 24
+REPORT_PROGRESSIVE_GRID_ROWS = 18
+REPORT_PROGRESSIVE_SMOOTH_SIGMA = 0.95
+REPORT_LINK_ZONE_COLS = 5
+REPORT_LINK_ZONE_ROWS = 5
+REPORT_LINK_TOP_N = 5
+REPORT_LINK_ARROW_COLOR = "#38bdf8"
+REPORT_LINK_ARROW_ALPHA = 0.82
 
 
 def _base_vertical_pitch(
@@ -903,18 +902,20 @@ def _report_vertical_attack_arrow(fig, ax) -> None:
     )
 
 
-def _report_vertical_grid_heatmap(
+def _report_vertical_soft_grid_heatmap(
     passes,
     *,
     x_col: str,
     y_col: str,
 ) -> plt.Figure:
-    """Binned cell heatmap on a vertical pitch (visible squares, not profile-smooth)."""
+    """Fine binned heatmap with soft blending — no hard white cell borders."""
+    from scipy.ndimage import gaussian_filter
+
     figsize = (REPORT_PORTRAIT_FIG_W, REPORT_PORTRAIT_FIG_H)
     fig, ax, pitch = _base_vertical_pitch(
         figsize=figsize,
         dpi=REPORT_PORTRAIT_DPI,
-        pad_bottom=PROFILE_PITCH_PAD_BOTTOM,
+        pad_bottom=REPORT_PITCH_PAD_BOTTOM,
     )
 
     work = filter_live_ball_passes(passes)
@@ -924,22 +925,29 @@ def _report_vertical_grid_heatmap(
 
     pitch.draw(ax=ax)
     if work is not None and not work.empty and x_col in work.columns and y_col in work.columns:
-        bs = pitch.bin_statistic(
-            work[x_col].to_numpy(),
+        x_bins = np.linspace(0.0, FIELD_X, REPORT_PROGRESSIVE_GRID_COLS + 1)
+        y_bins = np.linspace(0.0, FIELD_Y, REPORT_PROGRESSIVE_GRID_ROWS + 1)
+        hist, _, _ = np.histogram2d(
             work[y_col].to_numpy(),
-            statistic="count",
-            bins=(REPORT_PROGRESSIVE_GRID_COLS, REPORT_PROGRESSIVE_GRID_ROWS),
+            work[x_col].to_numpy(),
+            bins=[y_bins, x_bins],
         )
-        pitch.heatmap(
-            bs,
-            ax=ax,
-            cmap=CMAP_PASS_DEST,
-            edgecolors=(1.0, 1.0, 1.0, 0.18),
-            linewidth=0.35,
-            alpha=0.94,
-            zorder=1,
-        )
-        pitch.draw(ax=ax)
+        density = gaussian_filter(hist.astype(float), sigma=REPORT_PROGRESSIVE_SMOOTH_SIGMA)
+        if density.max() > 0:
+            density = density / max(float(density.max()), 1e-9)
+            ax.imshow(
+                density.T,
+                origin="lower",
+                extent=[0.0, FIELD_Y, 0.0, FIELD_X],
+                cmap=CMAP_PASS_DEST,
+                alpha=0.92,
+                aspect="auto",
+                zorder=1,
+                vmin=0.0,
+                vmax=1.0,
+                interpolation="nearest",
+            )
+            pitch.draw(ax=ax)
 
     ax.set_title("")
     _report_vertical_attack_arrow(fig, ax)
@@ -947,70 +955,89 @@ def _report_vertical_grid_heatmap(
     return fig
 
 
-def _report_impact_stats(impact_passes, all_passes) -> dict[str, float | int]:
-    import passes_engine as pe
-
-    impact = filter_live_ball_passes(impact_passes)
-    if impact is None:
-        impact = impact_passes
-    impact = impact[impact["has_end"].astype(bool)].copy() if (
-        impact is not None and not impact.empty and "has_end" in impact.columns
-    ) else (impact if impact is not None else impact_passes)
-
-    n_impact = int(len(impact)) if impact is not None and not impact.empty else 0
-    pool = filter_live_ball_passes(all_passes) if all_passes is not None else None
-    if pool is not None and not pool.empty and "is_won" in pool.columns:
-        pool = pool[pool["is_won"].astype(bool)]
-    total_completed = int(len(pool)) if pool is not None and not pool.empty else 0
-
-    final_third_pct = 0.0
-    if n_impact and "x_end" in impact.columns:
-        final_third_pct = float((impact["x_end"].astype(float) >= pe.FINAL_THIRD_LINE_X).mean() * 100.0)
-
-    impact_rate_pct = (n_impact / total_completed * 100.0) if total_completed > 0 else 0.0
-
-    xpv_total = 0.0
-    if n_impact and "xp_m4" in impact.columns:
-        xpv_total = float(impact["xp_m4"].astype(float).sum())
-
-    return {
-        "impact_count": n_impact,
-        "final_third_pct": final_third_pct,
-        "impact_rate_pct": impact_rate_pct,
-        "xpv_total": xpv_total,
-    }
+def _zone_centroid(
+    row_idx: int,
+    col_idx: int,
+    x_bins: np.ndarray,
+    y_bins: np.ndarray,
+) -> tuple[float, float]:
+    x0, x1 = float(x_bins[row_idx]), float(x_bins[row_idx + 1])
+    y0, y1 = float(y_bins[col_idx]), float(y_bins[col_idx + 1])
+    return (x0 + x1) * 0.5, (y0 + y1) * 0.5
 
 
-def _report_impact_legend(fig, stats: dict[str, float | int]) -> None:
-    lines = [
-        f"Impact passes: {int(stats['impact_count'])}",
-        f"Final third: {float(stats['final_third_pct']):.1f}%",
-        f"Impact rate: {float(stats['impact_rate_pct']):.1f}%",
-        f"xPV total: {float(stats['xpv_total']):.2f}",
-    ]
-    fig.text(
-        0.98,
-        0.04,
-        "\n".join(lines),
-        ha="right",
-        va="bottom",
-        transform=fig.transFigure,
-        fontsize=7.2,
-        color="#e2e8f0",
-        linespacing=1.35,
-        bbox={
-            "boxstyle": "round,pad=0.35",
-            "facecolor": "#1a1a2e",
-            "edgecolor": "#475569",
-            "alpha": 0.92,
-        },
-        zorder=8,
+def _digitize_zone(values: np.ndarray, bins: np.ndarray, max_idx: int) -> np.ndarray:
+    return np.clip(np.digitize(values, bins, right=True) - 1, 0, max_idx)
+
+
+def draw_report_progressive_links_map(passes) -> plt.Figure:
+    """Top 5 destination regions linked by progressive passes (vertical pitch)."""
+    figsize = (REPORT_PORTRAIT_FIG_W, REPORT_PORTRAIT_FIG_H)
+    fig, ax, pitch = _base_vertical_pitch(
+        figsize=figsize,
+        dpi=REPORT_PORTRAIT_DPI,
+        pad_bottom=REPORT_PITCH_PAD_BOTTOM,
     )
+
+    work = filter_live_ball_passes(passes)
+    if work is not None and not work.empty and "has_end" in work.columns:
+        work = work[work["has_end"].astype(bool)].copy()
+
+    pitch.draw(ax=ax)
+
+    if work is not None and not work.empty:
+        x_bins = np.linspace(0.0, FIELD_X, REPORT_LINK_ZONE_ROWS + 1)
+        y_bins = np.linspace(0.0, FIELD_Y, REPORT_LINK_ZONE_COLS + 1)
+        max_row = REPORT_LINK_ZONE_ROWS - 1
+        max_col = REPORT_LINK_ZONE_COLS - 1
+
+        d_rows = _digitize_zone(work["x_end"].to_numpy(dtype=float), x_bins, max_row)
+        d_cols = _digitize_zone(work["y_end"].to_numpy(dtype=float), y_bins, max_col)
+
+        from collections import defaultdict
+
+        zone_origins: dict[tuple[int, int], list[tuple[float, float]]] = defaultdict(list)
+        zone_counts: dict[tuple[int, int], int] = defaultdict(int)
+        for row in work.itertuples(index=False):
+            drow = int(_digitize_zone(np.array([row.x_end]), x_bins, max_row)[0])
+            dcol = int(_digitize_zone(np.array([row.y_end]), y_bins, max_col)[0])
+            zone_origins[(drow, dcol)].append((float(row.x_start), float(row.y_start)))
+            zone_counts[(drow, dcol)] += 1
+
+        top_zones = sorted(zone_counts.items(), key=lambda item: item[1], reverse=True)[:REPORT_LINK_TOP_N]
+        if top_zones:
+            max_count = max(count for _, count in top_zones)
+            scale = REPORT_PORTRAIT_FIG_W / MAP_REF_WIDTH
+            for rank, ((drow, dcol), count) in enumerate(top_zones):
+                origins = zone_origins[(drow, dcol)]
+                x0 = float(np.mean([o[0] for o in origins]))
+                y0 = float(np.mean([o[1] for o in origins]))
+                x1, y1 = _zone_centroid(drow, dcol, x_bins, y_bins)
+                width = (0.65 + 1.75 * (count / max_count)) * scale
+                alpha = REPORT_LINK_ARROW_ALPHA - rank * 0.05
+                pitch.arrows(
+                    x0,
+                    y0,
+                    x1,
+                    y1,
+                    width=width,
+                    headwidth=1.1 * width,
+                    headlength=1.1 * width,
+                    color=REPORT_LINK_ARROW_COLOR,
+                    alpha=max(alpha, 0.5),
+                    ax=ax,
+                    zorder=3 + rank,
+                )
+
+    ax.set_title("")
+    _report_vertical_attack_arrow(fig, ax)
+    ax.set_axis_off()
+    return fig
 
 
 def draw_report_progressive_origin_heatmap(passes) -> plt.Figure:
-    """Portrait origin grid heatmap for progressive passes."""
-    return _report_vertical_grid_heatmap(
+    """Portrait progressive-pass origin heatmap."""
+    return _report_vertical_soft_grid_heatmap(
         passes,
         x_col="x_start",
         y_col="y_start",
@@ -1018,68 +1045,9 @@ def draw_report_progressive_origin_heatmap(passes) -> plt.Figure:
 
 
 def draw_report_progressive_dest_heatmap(passes) -> plt.Figure:
-    """Portrait destination grid heatmap for progressive passes."""
-    return _report_vertical_grid_heatmap(
+    """Portrait progressive-pass destination heatmap."""
+    return _report_vertical_soft_grid_heatmap(
         passes,
         x_col="x_end",
         y_col="y_end",
     )
-
-
-def draw_report_impact_passes_map(
-    passes,
-    *,
-    all_passes=None,
-) -> plt.Figure:
-    """Landscape impact-pass map — all red with summary legend."""
-    figsize = (REPORT_IMPACT_FIG_W, REPORT_IMPACT_FIG_H)
-    fig, ax, pitch = _base_pitch(figsize=figsize, dpi=REPORT_IMPACT_DPI)
-
-    work = filter_live_ball_passes(passes)
-    if work is not None and not work.empty and "has_end" in work.columns:
-        work = work[work["has_end"].astype(bool)].copy()
-
-    stats = _report_impact_stats(work if work is not None else passes, all_passes)
-    pitch.draw(ax=ax)
-
-    if work is not None and not work.empty:
-        for row in work.itertuples(index=False):
-            pitch.plot(
-                [row.x_start, row.x_end],
-                [row.y_start, row.y_end],
-                color=REPORT_IMPACT_COLOR,
-                linewidth=REPORT_IMPACT_LINE_WIDTH,
-                alpha=REPORT_IMPACT_LINE_ALPHA,
-                zorder=2,
-                ax=ax,
-            )
-            pitch.scatter(
-                row.x_start,
-                row.y_start,
-                s=REPORT_IMPACT_ORIGIN_MARKER_SIZE,
-                marker="o",
-                color=REPORT_IMPACT_COLOR,
-                edgecolors=(1, 1, 1, 0.35),
-                linewidths=0.2,
-                ax=ax,
-                zorder=4,
-                alpha=0.85,
-            )
-            pitch.scatter(
-                row.x_end,
-                row.y_end,
-                s=REPORT_IMPACT_DEST_MARKER_SIZE,
-                marker="s",
-                color=REPORT_IMPACT_COLOR,
-                edgecolors=(1, 1, 1, 0.4),
-                linewidths=0.25,
-                ax=ax,
-                zorder=5,
-                alpha=0.9,
-            )
-
-    ax.set_title("")
-    _attack_arrow(fig, fig_w=REPORT_IMPACT_FIG_W)
-    _report_impact_legend(fig, stats)
-    ax.set_axis_off()
-    return fig

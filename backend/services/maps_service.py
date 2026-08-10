@@ -12,8 +12,8 @@ import xp_stats_engine as xstats
 import xp_study_engine as xpe
 from passes_maps import (
     draw_action_origin_smooth_heatmap,
-    draw_report_impact_passes_map,
     draw_report_progressive_dest_heatmap,
+    draw_report_progressive_links_map,
     draw_report_progressive_origin_heatmap,
 )
 from position_families import DEFAULT_POSITION_FAMILY, normalize_position_family
@@ -34,7 +34,7 @@ APP_LEAGUE = "European leagues"
 REPORT_PASS_MAP_KEYS: tuple[str, ...] = (
     "report_progressive_origin",
     "report_progressive_dest",
-    "report_impact_passes",
+    "report_progressive_links",
 )
 
 
@@ -264,20 +264,17 @@ def build_report_pass_map_images(
         passes_df = xstats.filter_passes_for_map(scoped, "progressive")
         draw_fn = draw_report_progressive_dest_heatmap
         caption = f"{len(passes_df)} progressive · destination"
-    elif key == "report_impact_passes":
-        passes_df = xstats.filter_passes_for_map(scoped, "test_impact_v2")
-        draw_fn = draw_report_impact_passes_map
-        caption = f"{len(passes_df)} impact passes"
+    elif key == "report_progressive_links":
+        passes_df = xstats.filter_passes_for_map(scoped, "progressive")
+        draw_fn = draw_report_progressive_links_map
+        caption = f"{len(passes_df)} progressive · top links"
     else:
         return {"pass_count": 0, "pass_map_b64": None, "dest_map_b64": None, "caption": ""}
 
     if passes_df is None or passes_df.empty:
         return {"pass_count": 0, "pass_map_b64": None, "dest_map_b64": None, "caption": ""}
 
-    if key == "report_impact_passes":
-        fig = draw_report_impact_passes_map(passes_df, all_passes=scoped)
-    else:
-        fig = draw_fn(passes_df)
+    fig = draw_fn(passes_df)
     return {
         "pass_count": len(passes_df),
         "pass_map_b64": fig_to_b64(fig),
