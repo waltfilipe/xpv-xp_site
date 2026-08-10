@@ -10,7 +10,7 @@ import numpy as np
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.lines import Line2D
 from matplotlib.patches import FancyArrowPatch, Rectangle
-from mplsoccer import Pitch
+from mplsoccer import Pitch, VerticalPitch
 
 from passes_engine import filter_live_ball_passes
 
@@ -839,21 +839,80 @@ REPORT_IMPACT_LINE_ALPHA = 0.28
 REPORT_IMPACT_LINE_WIDTH = 0.45
 
 
-def _draw_report_portrait_smooth_heatmap(
+def _base_vertical_pitch(
+    *,
+    figsize: tuple[float, float],
+    dpi: int,
+    bg: str = "#1a1a2e",
+    pad_bottom: float | None = None,
+):
+    pitch_kwargs = dict(
+        pitch_type="statsbomb", pitch_color=bg, line_color="#ffffff", line_alpha=0.95
+    )
+    if pad_bottom is not None:
+        pitch_kwargs["pad_bottom"] = pad_bottom
+    pitch = VerticalPitch(**pitch_kwargs)
+    fig, ax = pitch.draw(figsize=figsize)
+    fig.set_facecolor(bg)
+    fig.set_dpi(dpi)
+    return fig, ax, pitch
+
+
+def _report_vertical_attack_arrow(fig, ax) -> None:
+    """Direction-of-attack arrow pointing upward below a vertical pitch."""
+    fig.canvas.draw()
+    trans = ax.transData + fig.transFigure.inverted()
+    center_x = float(trans.transform((FIELD_Y * 0.5, 0.0))[0])
+    bottom_frac = float(trans.transform((FIELD_Y * 0.5, 0.0))[1])
+    arrow_y0 = bottom_frac * 0.72
+    arrow_y1 = bottom_frac * 0.92
+    label_y = bottom_frac * 0.58
+
+    fig.patches.append(
+        FancyArrowPatch(
+            (center_x, arrow_y0),
+            (center_x, arrow_y1),
+            transform=fig.transFigure,
+            arrowstyle="-|>",
+            mutation_scale=PROFILE_ATTACK_MUTATION,
+            linewidth=PROFILE_ATTACK_LW,
+            color=PROFILE_ATTACK_ARROW_COLOR,
+            alpha=0.95,
+            clip_on=False,
+            zorder=6,
+        )
+    )
+    fig.text(
+        center_x,
+        label_y,
+        "Direction of Attack",
+        ha="center",
+        va="center",
+        transform=fig.transFigure,
+        fontsize=PROFILE_ATTACK_LABEL_FONT,
+        color=PROFILE_ATTACK_LABEL_COLOR,
+        alpha=0.98,
+        fontweight=500,
+        zorder=6,
+    )
+
+
+def _report_vertical_smooth_heatmap(
     passes,
     *,
     x_col: str,
     y_col: str,
 ) -> plt.Figure:
-    """Smooth density heatmap in portrait layout (profile-style, no title)."""
+    """Smooth density heatmap on a vertical (standing) pitch."""
     from scipy.ndimage import gaussian_filter
 
     figsize = (REPORT_PORTRAIT_FIG_W, REPORT_PORTRAIT_FIG_H)
-    fig, ax, pitch = _base_pitch(
+    fig, ax, pitch = _base_vertical_pitch(
         figsize=figsize,
         dpi=REPORT_PORTRAIT_DPI,
         pad_bottom=PROFILE_PITCH_PAD_BOTTOM,
     )
+
     grid_x = 96
     grid_y = 64
     x_bins = np.linspace(0.0, FIELD_X, grid_x + 1)
@@ -879,9 +938,9 @@ def _draw_report_portrait_smooth_heatmap(
     pitch.draw(ax=ax)
     if density.max() > 0:
         ax.imshow(
-            density,
+            density.T,
             origin="lower",
-            extent=[0.0, FIELD_X, 0.0, FIELD_Y],
+            extent=[0.0, FIELD_Y, 0.0, FIELD_X],
             cmap=CMAP_PASS_DEST,
             alpha=0.72,
             aspect="auto",
@@ -890,16 +949,17 @@ def _draw_report_portrait_smooth_heatmap(
             vmax=1.0,
             interpolation="bilinear",
         )
+        pitch.draw(ax=ax)
 
     ax.set_title("")
-    _profile_attack_arrow(fig, ax)
+    _report_vertical_attack_arrow(fig, ax)
     ax.set_axis_off()
     return fig
 
 
 def draw_report_progressive_origin_heatmap(passes) -> plt.Figure:
     """Portrait origin heatmap for progressive passes."""
-    return _draw_report_portrait_smooth_heatmap(
+    return _report_vertical_smooth_heatmap(
         passes,
         x_col="x_start",
         y_col="y_start",
@@ -908,7 +968,7 @@ def draw_report_progressive_origin_heatmap(passes) -> plt.Figure:
 
 def draw_report_progressive_dest_heatmap(passes) -> plt.Figure:
     """Portrait destination heatmap for progressive passes."""
-    return _draw_report_portrait_smooth_heatmap(
+    return _report_vertical_smooth_heatmap(
         passes,
         x_col="x_end",
         y_col="y_end",
@@ -918,7 +978,7 @@ def draw_report_progressive_dest_heatmap(passes) -> plt.Figure:
 def draw_report_impact_passes_map(passes) -> plt.Figure:
     """Portrait impact-pass map — delicate circle origin, small square destination."""
     figsize = (REPORT_PORTRAIT_FIG_W, REPORT_PORTRAIT_FIG_H)
-    fig, ax, pitch = _base_pitch(
+    fig, ax, pitch = _base_vertical_pitch(
         figsize=figsize,
         dpi=REPORT_PORTRAIT_DPI,
         pad_bottom=PROFILE_PITCH_PAD_BOTTOM,
@@ -978,6 +1038,6 @@ def draw_report_impact_passes_map(passes) -> plt.Figure:
             )
 
     ax.set_title("")
-    _profile_attack_arrow(fig, ax)
+    _report_vertical_attack_arrow(fig, ax)
     ax.set_axis_off()
     return fig
