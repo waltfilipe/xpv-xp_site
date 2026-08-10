@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import LinearSegmentedColormap, Normalize
+from matplotlib.colors import LinearSegmentedColormap, Normalize, PowerNorm
 from matplotlib.lines import Line2D
 from matplotlib.patches import FancyArrowPatch, Rectangle
 from mplsoccer import Pitch, VerticalPitch
@@ -37,6 +37,10 @@ COLOR_PROGRESSIVE = "#22c55e"
 COLOR_HIGHLY_PROGRESSIVE = "#4ade80"
 CMAP_PASS_DEST = LinearSegmentedColormap.from_list(
     "pass_dest", ["#1a1a2e", "#1e3a8a", "#3b82f6", "#fbbf24", "#ef4444"]
+)
+CMAP_REPORT_PROGRESSIVE = LinearSegmentedColormap.from_list(
+    "report_prog",
+    ["#14101c", "#450a0a", "#991b1b", "#ea580c", "#fbbf24", "#fff7ed"],
 )
 CMAP_XT_GRID = LinearSegmentedColormap.from_list(
     "xt_grid", ["#1a1a2e", "#3b82f6", "#fbbf24", "#ef4444"]
@@ -830,13 +834,15 @@ def draw_xt_surface_heatmap(
 
 
 # Report maps — large vertical progressive trio.
-REPORT_PORTRAIT_FIG_W = 3.5
-REPORT_PORTRAIT_FIG_H = 5.0
-REPORT_PORTRAIT_DPI = 240
-REPORT_PITCH_PAD_BOTTOM = 8.0
-REPORT_PROGRESSIVE_GRID_COLS = 48
-REPORT_PROGRESSIVE_GRID_ROWS = 32
-REPORT_PROGRESSIVE_SMOOTH_SIGMA = 1.85
+REPORT_PORTRAIT_FIG_W = 6.12
+REPORT_PORTRAIT_FIG_H = 9.0
+REPORT_PORTRAIT_DPI = 320
+REPORT_PITCH_PAD_BOTTOM = 2.5
+REPORT_PROGRESSIVE_GRID_COLS = 36
+REPORT_PROGRESSIVE_GRID_ROWS = 54
+REPORT_PROGRESSIVE_CELL_GAP = 0.05
+REPORT_PROGRESSIVE_SMOOTH_SIGMA = 0.95
+REPORT_PROGRESSIVE_GAMMA = 0.72
 REPORT_LINK_ZONE_COLS = 5
 REPORT_LINK_ZONE_ROWS = 5
 REPORT_LINK_TOP_N = 5
@@ -902,13 +908,13 @@ def _report_vertical_attack_arrow(fig, ax) -> None:
     )
 
 
-def _report_vertical_soft_grid_heatmap(
+def _report_vertical_binned_grid_heatmap(
     passes,
     *,
     x_col: str,
     y_col: str,
 ) -> plt.Figure:
-    """Fine binned heatmap with soft blending — no hard white cell borders."""
+    """Dense portrait heatmap — fine grid cells with warm elegant palette."""
     from scipy.ndimage import gaussian_filter
 
     figsize = (REPORT_PORTRAIT_FIG_W, REPORT_PORTRAIT_FIG_H)
@@ -925,34 +931,77 @@ def _report_vertical_soft_grid_heatmap(
 
     pitch.draw(ax=ax)
     if work is not None and not work.empty and x_col in work.columns and y_col in work.columns:
-        x_bins = np.linspace(0.0, FIELD_X, REPORT_PROGRESSIVE_GRID_COLS + 1)
-        y_bins = np.linspace(0.0, FIELD_Y, REPORT_PROGRESSIVE_GRID_ROWS + 1)
-        hist, _, _ = np.histogram2d(
-            work[y_col].to_numpy(),
-            work[x_col].to_numpy(),
-            bins=[y_bins, x_bins],
-        )
-        density = gaussian_filter(hist.astype(float), sigma=REPORT_PROGRESSIVE_SMOOTH_SIGMA)
-        if density.max() > 0:
-            density = density / max(float(density.max()), 1e-9)
-            ax.imshow(
-                density.T,
-                origin="lower",
-                extent=[0.0, FIELD_Y, 0.0, FIELD_X],
-                cmap=CMAP_PASS_DEST,
-                alpha=0.88,
-                aspect="auto",
-                zorder=1,
-                vmin=0.0,
-                vmax=1.0,
-                interpolation="bilinear",
-            )
-            pitch.draw(ax=ax)
+        x_bins = np.linspace(0.0, FIELD_X, REPORT_PROGRESSIVE_GRID_ROWS + 1)
+        y_bins = np.linspace(0.0, FIELD_Y, REPORT_PROGRESSIVE_GRID_COLS + 1)
+        grid = np.zeros((REPORT_PROGRESSIVE_GRID_ROWS, REPORT_PROGRESSIVE_GRID_COLS), dtype=float)
 
+        x_idx = np.clip(
+            np.digitize(work[x_col].to_numpy(), x_bins, right=True) - 1,
+            0,
+            REPORT_PROGRESSIVE_GRID_ROWS - 1,
+        )
+        y_idx = np.clip(
+            np.digitize(work[y_col].to_numpy(), y_bins, right=True) - 1,
+            0,
+            REPORT_PROGRESSIVE_GRID_COLS - 1,
+        )
+        for ix, iy in zip(x_idx, y_idx):
+            grid[ix, iy] += 1.0
+
+        display_grid = (
+            gaussian_filter(grid, sigma=REPORT_PROGRESSIVE_SMOOTH_SIGMA)
+            if float(grid.max()) > 0
+            else grid
+        )
+        vmax = max(float(display_grid.max()), 1.0)
+        norm = PowerNorm(gamma=REPORT_PROGRESSIVE_GAMMA, vmin=0.0, vmax=vmax)
+        gap = REPORT_PROGRESSIVE_CELL_GAP
+        empty_color = "#14101c"
+        render_threshold = vmax * 0.06
+
+        for ix in range(REPORT_PROGRESSIVE_GRID_ROWS):
+            for iy in range(REPORT_PROGRESSIVE_GRID_COLS):
+                raw = float(grid[ix, iy])
+                value = float(display_grid[ix, iy])
+                if raw <= 0 and value < render_threshold:
+                    continue
+                x0, x1 = float(x_bins[ix]), float(x_bins[ix + 1])
+                y0, y1 = float(y_bins[iy]), float(y_bins[iy + 1])
+                face = CMAP_REPORT_PROGRESSIVE(norm(value)) if value > 0 else empty_color
+                ax.add_patch(
+                    Rectangle(
+                        (y0 + gap, x0 + gap),
+                        max((y1 - y0) - 2 * gap, 0.05),
+                        max((x1 - x0) - 2 * gap, 0.05),
+                        facecolor=face,
+                        edgecolor=(0.0, 0.0, 0.0, 0.18 if raw <= 0 else 0.34),
+                        linewidth=0.16 if raw <= 0 else 0.22,
+                        alpha=0.98 if raw > 0 else min(0.82, 0.42 + 0.56 * (value / vmax)),
+                        zorder=2,
+                    )
+                )
+
+        pitch.draw(ax=ax)
+
+    fig.subplots_adjust(left=0.005, right=0.995, top=0.995, bottom=0.04)
     ax.set_title("")
     _report_vertical_attack_arrow(fig, ax)
     ax.set_axis_off()
     return fig
+
+
+def _report_vertical_soft_grid_heatmap(
+    passes,
+    *,
+    x_col: str,
+    y_col: str,
+) -> plt.Figure:
+    """Portrait report heatmap — dense binned cells."""
+    return _report_vertical_binned_grid_heatmap(
+        passes,
+        x_col=x_col,
+        y_col=y_col,
+    )
 
 
 def _zone_centroid(
@@ -1057,7 +1106,7 @@ def draw_report_progressive_links_map(passes) -> plt.Figure:
                 ax=ax,
                 ha="center",
                 va="center",
-                fontsize=7.2,
+                fontsize=8.4 * scale,
                 color="#f8fafc",
                 fontweight="bold",
                 bbox=dict(
@@ -1069,6 +1118,7 @@ def draw_report_progressive_links_map(passes) -> plt.Figure:
                 zorder=12 + rank,
             )
 
+    fig.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.05)
     ax.set_title("")
     _report_vertical_attack_arrow(fig, ax)
     ax.set_axis_off()
@@ -1077,7 +1127,7 @@ def draw_report_progressive_links_map(passes) -> plt.Figure:
 
 def draw_report_progressive_origin_heatmap(passes) -> plt.Figure:
     """Portrait progressive-pass origin heatmap."""
-    return _report_vertical_soft_grid_heatmap(
+    return _report_vertical_binned_grid_heatmap(
         passes,
         x_col="x_start",
         y_col="y_start",
@@ -1086,8 +1136,32 @@ def draw_report_progressive_origin_heatmap(passes) -> plt.Figure:
 
 def draw_report_progressive_dest_heatmap(passes) -> plt.Figure:
     """Portrait progressive-pass destination heatmap."""
-    return _report_vertical_soft_grid_heatmap(
+    return _report_vertical_binned_grid_heatmap(
         passes,
         x_col="x_end",
         y_col="y_end",
+    )
+
+
+def _filter_report_impact_final_third_passes(passes):
+    """Impact v2 passes that originate in the attacking third."""
+    import xp_engine as xe_mod
+    from xp_stats_engine import FINAL_X_MIN
+
+    work = filter_live_ball_passes(passes)
+    if work is None or work.empty:
+        return work
+    impact = xe_mod.filter_test_impact_v2_passes(work)
+    if impact is None or impact.empty:
+        return impact
+    return impact.loc[impact["x_start"].astype(float) >= FINAL_X_MIN].copy()
+
+
+def draw_report_impact_final_third_heatmap(passes) -> plt.Figure:
+    """Portrait heatmap of Impact v2 passes originating in the final third."""
+    subset = _filter_report_impact_final_third_passes(passes)
+    return _report_vertical_binned_grid_heatmap(
+        subset,
+        x_col="x_start",
+        y_col="y_start",
     )

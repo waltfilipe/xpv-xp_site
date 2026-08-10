@@ -221,6 +221,11 @@ def main() -> None:
     })
     print(f"\nDone — {len(profiles)} profiles in {OUTPUT_DIR}")
 
+    organizer_script = Path("/agent/repos/test-site-xpxpv/scripts/build_organizer_data.py")
+    if organizer_script.exists():
+        import subprocess
+        subprocess.run([sys.executable, str(organizer_script)], check=True)
+
 
 if __name__ == "__main__":
     main()
