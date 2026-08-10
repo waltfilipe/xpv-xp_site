@@ -12,6 +12,7 @@ import xp_stats_engine as xstats
 import xp_study_engine as xpe
 from passes_maps import (
     draw_action_origin_smooth_heatmap,
+    compute_report_progressive_links,
     draw_report_progressive_dest_heatmap,
     draw_report_progressive_links_map,
     draw_report_progressive_origin_heatmap,
@@ -275,12 +276,18 @@ def build_report_pass_map_images(
         return {"pass_count": 0, "pass_map_b64": None, "dest_map_b64": None, "caption": ""}
 
     fig = draw_fn(passes_df)
-    return {
+    payload: dict[str, Any] = {
         "pass_count": len(passes_df),
         "pass_map_b64": fig_to_b64(fig),
         "dest_map_b64": None,
         "caption": caption,
     }
+    if key == "report_progressive_links":
+        payload["links"] = [
+            {"rank": int(link["rank"]), "count": int(link["count"])}
+            for link in compute_report_progressive_links(passes_df)
+        ]
+    return payload
 
 
 def get_round_options(

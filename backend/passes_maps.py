@@ -970,6 +970,51 @@ def _digitize_zone(values: np.ndarray, bins: np.ndarray, max_idx: int) -> np.nda
     return np.clip(np.digitize(values, bins, right=True) - 1, 0, max_idx)
 
 
+def compute_report_progressive_links(passes) -> list[dict[str, float | int]]:
+    """Top destination zones ranked by progressive-pass volume."""
+    from collections import defaultdict
+
+    work = filter_live_ball_passes(passes)
+    if work is None or work.empty:
+        return []
+    if "has_end" in work.columns:
+        work = work[work["has_end"].astype(bool)].copy()
+    if work.empty:
+        return []
+
+    x_bins = np.linspace(0.0, FIELD_X, REPORT_LINK_ZONE_ROWS + 1)
+    y_bins = np.linspace(0.0, FIELD_Y, REPORT_LINK_ZONE_COLS + 1)
+    max_row = REPORT_LINK_ZONE_ROWS - 1
+    max_col = REPORT_LINK_ZONE_COLS - 1
+
+    zone_origins: dict[tuple[int, int], list[tuple[float, float]]] = defaultdict(list)
+    zone_counts: dict[tuple[int, int], int] = defaultdict(int)
+    for row in work.itertuples(index=False):
+        drow = int(_digitize_zone(np.array([row.x_end]), x_bins, max_row)[0])
+        dcol = int(_digitize_zone(np.array([row.y_end]), y_bins, max_col)[0])
+        zone_origins[(drow, dcol)].append((float(row.x_start), float(row.y_start)))
+        zone_counts[(drow, dcol)] += 1
+
+    top_zones = sorted(zone_counts.items(), key=lambda item: item[1], reverse=True)[:REPORT_LINK_TOP_N]
+    links: list[dict[str, float | int]] = []
+    for rank, ((drow, dcol), count) in enumerate(top_zones, start=1):
+        origins = zone_origins[(drow, dcol)]
+        x0 = float(np.mean([o[0] for o in origins]))
+        y0 = float(np.mean([o[1] for o in origins]))
+        x1, y1 = _zone_centroid(drow, dcol, x_bins, y_bins)
+        links.append(
+            {
+                "rank": rank,
+                "count": int(count),
+                "origin_x": x0,
+                "origin_y": y0,
+                "dest_x": x1,
+                "dest_y": y1,
+            }
+        )
+    return links
+
+
 def draw_report_progressive_links_map(passes) -> plt.Figure:
     """Top 5 destination regions linked by progressive passes (vertical pitch)."""
     figsize = (REPORT_PORTRAIT_FIG_W, REPORT_PORTRAIT_FIG_H)
@@ -979,55 +1024,50 @@ def draw_report_progressive_links_map(passes) -> plt.Figure:
         pad_bottom=REPORT_PITCH_PAD_BOTTOM,
     )
 
-    work = filter_live_ball_passes(passes)
-    if work is not None and not work.empty and "has_end" in work.columns:
-        work = work[work["has_end"].astype(bool)].copy()
-
     pitch.draw(ax=ax)
-
-    if work is not None and not work.empty:
-        x_bins = np.linspace(0.0, FIELD_X, REPORT_LINK_ZONE_ROWS + 1)
-        y_bins = np.linspace(0.0, FIELD_Y, REPORT_LINK_ZONE_COLS + 1)
-        max_row = REPORT_LINK_ZONE_ROWS - 1
-        max_col = REPORT_LINK_ZONE_COLS - 1
-
-        d_rows = _digitize_zone(work["x_end"].to_numpy(dtype=float), x_bins, max_row)
-        d_cols = _digitize_zone(work["y_end"].to_numpy(dtype=float), y_bins, max_col)
-
-        from collections import defaultdict
-
-        zone_origins: dict[tuple[int, int], list[tuple[float, float]]] = defaultdict(list)
-        zone_counts: dict[tuple[int, int], int] = defaultdict(int)
-        for row in work.itertuples(index=False):
-            drow = int(_digitize_zone(np.array([row.x_end]), x_bins, max_row)[0])
-            dcol = int(_digitize_zone(np.array([row.y_end]), y_bins, max_col)[0])
-            zone_origins[(drow, dcol)].append((float(row.x_start), float(row.y_start)))
-            zone_counts[(drow, dcol)] += 1
-
-        top_zones = sorted(zone_counts.items(), key=lambda item: item[1], reverse=True)[:REPORT_LINK_TOP_N]
-        if top_zones:
-            max_count = max(count for _, count in top_zones)
-            scale = REPORT_PORTRAIT_FIG_W / MAP_REF_WIDTH
-            for rank, ((drow, dcol), count) in enumerate(top_zones):
-                origins = zone_origins[(drow, dcol)]
-                x0 = float(np.mean([o[0] for o in origins]))
-                y0 = float(np.mean([o[1] for o in origins]))
-                x1, y1 = _zone_centroid(drow, dcol, x_bins, y_bins)
-                width = (0.65 + 1.75 * (count / max_count)) * scale
-                alpha = REPORT_LINK_ARROW_ALPHA - rank * 0.05
-                pitch.arrows(
-                    x0,
-                    y0,
-                    x1,
-                    y1,
-                    width=width,
-                    headwidth=1.1 * width,
-                    headlength=1.1 * width,
-                    color=REPORT_LINK_ARROW_COLOR,
-                    alpha=max(alpha, 0.5),
-                    ax=ax,
-                    zorder=3 + rank,
-                )
+    links = compute_report_progressive_links(passes)
+    if links:
+        max_count = max(int(link["count"]) for link in links)
+        scale = REPORT_PORTRAIT_FIG_W / MAP_REF_WIDTH
+        for link in links:
+            rank = int(link["rank"])
+            count = int(link["count"])
+            x0 = float(link["origin_x"])
+            y0 = float(link["origin_y"])
+            x1 = float(link["dest_x"])
+            y1 = float(link["dest_y"])
+            width = (0.65 + 1.75 * (count / max_count)) * scale
+            alpha = REPORT_LINK_ARROW_ALPHA - (rank - 1) * 0.05
+            pitch.arrows(
+                x0,
+                y0,
+                x1,
+                y1,
+                width=width,
+                headwidth=1.1 * width,
+                headlength=1.1 * width,
+                color=REPORT_LINK_ARROW_COLOR,
+                alpha=max(alpha, 0.5),
+                ax=ax,
+                zorder=2 + rank,
+            )
+            pitch.annotate(
+                str(rank),
+                xy=(x1, y1),
+                ax=ax,
+                ha="center",
+                va="center",
+                fontsize=7.2,
+                color="#f8fafc",
+                fontweight="bold",
+                bbox=dict(
+                    boxstyle="circle,pad=0.22",
+                    facecolor="#0284c7",
+                    edgecolor="#e2e8f0",
+                    linewidth=0.7,
+                ),
+                zorder=12 + rank,
+            )
 
     ax.set_title("")
     _report_vertical_attack_arrow(fig, ax)
