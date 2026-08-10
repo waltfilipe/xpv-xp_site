@@ -834,13 +834,14 @@ def draw_xt_surface_heatmap(
 
 
 # Report maps — large vertical progressive trio.
-REPORT_PORTRAIT_FIG_W = 6.8
-REPORT_PORTRAIT_FIG_H = 10.0
+REPORT_PORTRAIT_FIG_W = 6.12
+REPORT_PORTRAIT_FIG_H = 9.0
 REPORT_PORTRAIT_DPI = 320
 REPORT_PITCH_PAD_BOTTOM = 2.5
 REPORT_PROGRESSIVE_GRID_COLS = 36
 REPORT_PROGRESSIVE_GRID_ROWS = 54
-REPORT_PROGRESSIVE_CELL_GAP = 0.14
+REPORT_PROGRESSIVE_CELL_GAP = 0.05
+REPORT_PROGRESSIVE_SMOOTH_SIGMA = 0.95
 REPORT_PROGRESSIVE_GAMMA = 0.72
 REPORT_LINK_ZONE_COLS = 5
 REPORT_LINK_ZONE_ROWS = 5
@@ -914,6 +915,8 @@ def _report_vertical_binned_grid_heatmap(
     y_col: str,
 ) -> plt.Figure:
     """Dense portrait heatmap — fine grid cells with warm elegant palette."""
+    from scipy.ndimage import gaussian_filter
+
     figsize = (REPORT_PORTRAIT_FIG_W, REPORT_PORTRAIT_FIG_H)
     fig, ax, pitch = _base_vertical_pitch(
         figsize=figsize,
@@ -945,14 +948,23 @@ def _report_vertical_binned_grid_heatmap(
         for ix, iy in zip(x_idx, y_idx):
             grid[ix, iy] += 1.0
 
-        vmax = max(float(grid.max()), 1.0)
+        display_grid = (
+            gaussian_filter(grid, sigma=REPORT_PROGRESSIVE_SMOOTH_SIGMA)
+            if float(grid.max()) > 0
+            else grid
+        )
+        vmax = max(float(display_grid.max()), 1.0)
         norm = PowerNorm(gamma=REPORT_PROGRESSIVE_GAMMA, vmin=0.0, vmax=vmax)
         gap = REPORT_PROGRESSIVE_CELL_GAP
         empty_color = "#14101c"
+        render_threshold = vmax * 0.06
 
         for ix in range(REPORT_PROGRESSIVE_GRID_ROWS):
             for iy in range(REPORT_PROGRESSIVE_GRID_COLS):
-                value = float(grid[ix, iy])
+                raw = float(grid[ix, iy])
+                value = float(display_grid[ix, iy])
+                if raw <= 0 and value < render_threshold:
+                    continue
                 x0, x1 = float(x_bins[ix]), float(x_bins[ix + 1])
                 y0, y1 = float(y_bins[iy]), float(y_bins[iy + 1])
                 face = CMAP_REPORT_PROGRESSIVE(norm(value)) if value > 0 else empty_color
@@ -962,9 +974,9 @@ def _report_vertical_binned_grid_heatmap(
                         max((y1 - y0) - 2 * gap, 0.05),
                         max((x1 - x0) - 2 * gap, 0.05),
                         facecolor=face,
-                        edgecolor=(0.0, 0.0, 0.0, 0.42),
-                        linewidth=0.22,
-                        alpha=0.98 if value > 0 else 0.55,
+                        edgecolor=(0.0, 0.0, 0.0, 0.18 if raw <= 0 else 0.34),
+                        linewidth=0.16 if raw <= 0 else 0.22,
+                        alpha=0.98 if raw > 0 else min(0.82, 0.42 + 0.56 * (value / vmax)),
                         zorder=2,
                     )
                 )
@@ -1128,4 +1140,28 @@ def draw_report_progressive_dest_heatmap(passes) -> plt.Figure:
         passes,
         x_col="x_end",
         y_col="y_end",
+    )
+
+
+def _filter_report_impact_final_third_passes(passes):
+    """Impact v2 passes that originate in the attacking third."""
+    import xp_engine as xe_mod
+    from xp_stats_engine import FINAL_X_MIN
+
+    work = filter_live_ball_passes(passes)
+    if work is None or work.empty:
+        return work
+    impact = xe_mod.filter_test_impact_v2_passes(work)
+    if impact is None or impact.empty:
+        return impact
+    return impact.loc[impact["x_start"].astype(float) >= FINAL_X_MIN].copy()
+
+
+def draw_report_impact_final_third_heatmap(passes) -> plt.Figure:
+    """Portrait heatmap of Impact v2 passes originating in the final third."""
+    subset = _filter_report_impact_final_third_passes(passes)
+    return _report_vertical_binned_grid_heatmap(
+        subset,
+        x_col="x_start",
+        y_col="y_start",
     )
