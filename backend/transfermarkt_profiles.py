@@ -1,20 +1,37 @@
-"""Transfermarkt market-value enrichment via transfermarkt-wrapper (offline prefetch only)."""
+"""Transfermarkt enrichment via transfermarkt-wrapper (offline prefetch only).
+
+Fetches market value, contract, photo, and player profile fields (age, DOB,
+height, foot, nationality). Uses the alpha API when accessible; falls back to
+the public profile HTML page when player detail endpoints return 403.
+"""
 
 from __future__ import annotations
 
 import asyncio
+import re
+import unicodedata
+import urllib.error
+import urllib.request
+from datetime import datetime, timezone
 from typing import Any
 
 from player_profiles import (
+    MIN_PLAYER_AGE,
+    MAX_PLAYER_AGE,
+    USER_AGENT,
+    _age_from_birthdate,
+    _birthdate_iso,
     _name_match_score,
     _normalize_name,
     _normalize_team,
     _team_match_score,
+    format_height_display,
     read_cached_profile,
     update_player_profile_cache,
 )
 
 TRANSFERMARKT_FETCH_STATUS_KEY = "transfermarkt_fetch_status"
+TRANSFERMARKT_PROFILE_FETCH_STATUS_KEY = "transfermarkt_profile_fetch_status"
 TRANSFERMARKT_ID_KEY = "transfermarkt_id"
 TRANSFERMARKT_PHOTO_URL_KEY = "transfermarkt_photo_url"
 CONTRACT_UNTIL_KEY = "contract_until"
@@ -23,6 +40,7 @@ MARKET_VALUE_DISPLAY_KEY = "market_value_display"
 MARKET_VALUE_UPDATED_KEY = "market_value_updated"
 TMKT_MAX_RETRIES = 4
 TMKT_RETRY_BACKOFF_SEC = 1.5
+TM_PROFILE_BASE_URL = "https://www.transfermarkt.co.uk"
 
 
 async def _tmkt_call_with_retry(coro_factory, *, label: str):
@@ -71,7 +89,168 @@ def _pick_tmkt_search_result(
     return best_row if best_score >= 0.45 else None
 
 
-def _transfermarkt_fields_from_player_payload(payload: dict[str, Any]) -> dict[str, Any]:
+def transfermarkt_profile_slug(player_name: str) -> str:
+    text = unicodedata.normalize("NFKD", str(player_name or ""))
+    text = text.encode("ascii", "ignore").decode("ascii")
+    text = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+    return text or "player"
+
+
+def parse_transfermarkt_birth_text(value: str | None) -> tuple[str | None, int | None]:
+    """Parse Transfermarkt birth labels into ISO date and age."""
+    if not value:
+        return None, None
+    text = re.sub(r"\s+", " ", str(value).strip())
+    if not text:
+        return None, None
+
+    age_match = re.search(r"\((\d{1,2})\)\s*$", text)
+    inline_age = int(age_match.group(1)) if age_match else None
+    date_text = re.sub(r"\s*\(\d{1,2}\)\s*$", "", text).strip()
+
+    dob_iso: str | None = None
+    for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d.%m.%Y", "%b %d, %Y", "%d %b %Y"):
+        try:
+            dob_iso = datetime.strptime(date_text[:30], fmt).date().isoformat()
+            break
+        except ValueError:
+            continue
+    if dob_iso is None:
+        dob_iso = _birthdate_iso(date_text)
+
+    age = _age_from_birthdate(dob_iso) if dob_iso else None
+    if age is None and inline_age is not None:
+        if MIN_PLAYER_AGE <= inline_age <= MAX_PLAYER_AGE:
+            age = inline_age
+    return dob_iso, age
+
+
+def _normalize_foot_label(value: str | None) -> str | None:
+    if not value:
+        return None
+    text = str(value).strip().lower()
+    mapping = {
+        "left": "Left",
+        "right": "Right",
+        "both": "Both",
+        "ambidextrous": "Both",
+    }
+    return mapping.get(text, str(value).strip().title() or None)
+
+
+def _height_from_transfermarkt_value(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        meters = float(value)
+        if meters > 3:
+            meters /= 100.0
+        if 1.40 <= meters <= 2.20:
+            return format_height_display(f"{meters:.2f} m")
+        return None
+    text = str(value).strip()
+    return format_height_display(text) or text or None
+
+
+def _profile_fields_from_attributes(attributes: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(attributes, dict):
+        return {}
+
+    dob_raw = (
+        attributes.get("dateOfBirth")
+        or attributes.get("date_of_birth")
+        or attributes.get("birthDate")
+    )
+    dob_iso, parsed_age = parse_transfermarkt_birth_text(
+        str(dob_raw) if dob_raw is not None else None
+    )
+    age = attributes.get("age")
+    try:
+        age_value = int(age) if age is not None else parsed_age
+    except (TypeError, ValueError):
+        age_value = parsed_age
+    if age_value is not None and not (MIN_PLAYER_AGE <= age_value <= MAX_PLAYER_AGE):
+        age_value = parsed_age
+
+    nationality = (
+        attributes.get("citizenship")
+        or attributes.get("nationality")
+        or attributes.get("country")
+    )
+    return {
+        "date_of_birth": dob_iso,
+        "age": age_value,
+        "height": _height_from_transfermarkt_value(
+            attributes.get("height") or attributes.get("heightMeters")
+        ),
+        "dominant_foot": _normalize_foot_label(
+            attributes.get("foot") or attributes.get("preferredFoot")
+        ),
+        "nationality": str(nationality).strip() if nationality else None,
+    }
+
+
+def transfermarkt_fields_from_html(html: str) -> dict[str, Any]:
+    """Extract profile fields from a Transfermarkt player profile HTML page."""
+    fields: dict[str, Any] = {}
+
+    birth_match = re.search(
+        r'itemprop="birthDate"[^>]*>\s*([^<]+)\s*</span>',
+        html,
+        flags=re.IGNORECASE,
+    )
+    if birth_match:
+        dob_iso, age = parse_transfermarkt_birth_text(birth_match.group(1))
+        if dob_iso:
+            fields["date_of_birth"] = dob_iso
+        if age is not None:
+            fields["age"] = age
+
+    height_match = re.search(
+        r'itemprop="height"[^>]*>\s*([^<]+)\s*</span>',
+        html,
+        flags=re.IGNORECASE,
+    )
+    if height_match:
+        height = _height_from_transfermarkt_value(height_match.group(1))
+        if height:
+            fields["height"] = height
+
+    nationality_match = re.search(
+        r'itemprop="nationality"[^>]*>\s*(?:<img[^>]*>\s*)?([^<]+?)\s*</span>',
+        html,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if nationality_match:
+        nationality = re.sub(r"\s+", " ", nationality_match.group(1)).strip()
+        if nationality:
+            fields["nationality"] = nationality
+
+    foot_match = re.search(
+        r"Foot:</span>\s*<span[^>]*>\s*([^<]+)\s*</span>",
+        html,
+        flags=re.IGNORECASE,
+    )
+    if foot_match:
+        foot = _normalize_foot_label(foot_match.group(1))
+        if foot:
+            fields["dominant_foot"] = foot
+
+    return fields
+
+
+def _fetch_transfermarkt_profile_html(transfermarkt_id: str, player_name: str) -> str | None:
+    slug = transfermarkt_profile_slug(player_name)
+    url = f"{TM_PROFILE_BASE_URL}/{slug}/profil/spieler/{transfermarkt_id}"
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            return resp.read().decode("utf-8", errors="ignore")
+    except (urllib.error.URLError, TimeoutError, ValueError):
+        return None
+
+
+def transfermarkt_fields_from_player_payload(payload: dict[str, Any]) -> dict[str, Any]:
     data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
     current = (data.get("marketValueDetails") or {}).get("current") or {}
     value_eur = current.get("value")
@@ -86,14 +265,21 @@ def _transfermarkt_fields_from_player_payload(payload: dict[str, Any]) -> dict[s
     elif value_eur is not None:
         display = format_market_value_eur(int(value_eur))
     portrait = data.get("portraitUrl")
-    contract_until = (data.get("attributes") or {}).get("contractUntil")
+    attributes = data.get("attributes") or {}
+    contract_until = attributes.get("contractUntil")
+    profile_fields = _profile_fields_from_attributes(attributes)
     return {
         MARKET_VALUE_EUR_KEY: int(value_eur) if value_eur is not None else None,
         MARKET_VALUE_DISPLAY_KEY: display,
         MARKET_VALUE_UPDATED_KEY: current.get("determined"),
         TRANSFERMARKT_PHOTO_URL_KEY: str(portrait) if portrait else None,
         CONTRACT_UNTIL_KEY: str(contract_until)[:10] if contract_until else None,
+        **profile_fields,
     }
+
+
+def _transfermarkt_fields_from_player_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    return transfermarkt_fields_from_player_payload(payload)
 
 
 def _market_value_from_player_payload(payload: dict[str, Any]) -> dict[str, Any]:
@@ -155,6 +341,15 @@ def read_cached_contract_until(player_id: str) -> str | None:
     return _read(player_id)
 
 
+def transfermarkt_age_cache_is_fresh(player_id: str, *, force: bool = False) -> bool:
+    if force:
+        return False
+    profile = read_cached_profile(player_id)
+    if not profile:
+        return False
+    return profile.get("age") is not None or bool(profile.get("date_of_birth"))
+
+
 def transfermarkt_cache_is_fresh(player_id: str, *, force: bool = False) -> bool:
     if force:
         return False
@@ -166,10 +361,7 @@ def transfermarkt_cache_is_fresh(player_id: str, *, force: bool = False) -> bool
     return profile.get(TRANSFERMARKT_FETCH_STATUS_KEY) == "not_found"
 
 
-async def fetch_transfermarkt_market_value_async(
-    player_name: str,
-    team: str,
-) -> dict[str, Any]:
+async def _search_transfermarkt_player(player_name: str, team: str) -> dict | None:
     from tmkt import TMKT
 
     queries = [player_name]
@@ -206,27 +398,99 @@ async def fetch_transfermarkt_market_value_async(
             if score > best_score:
                 best_row = picked
                 best_score = score
+    return best_row
 
-        if not best_row:
-            return {TRANSFERMARKT_FETCH_STATUS_KEY: "not_found"}
 
-        player_id = int(best_row["id"])
-        payload = await _tmkt_call_with_retry(
-            lambda pid=player_id: tmkt.get_player(pid),
-            label=f"player:{player_id}",
+async def fetch_transfermarkt_player_async(
+    player_name: str,
+    team: str,
+    *,
+    include_market_value: bool = True,
+    include_profile: bool = True,
+) -> dict[str, Any]:
+    """Search Transfermarkt and return cached enrichment fields for a player."""
+    from tmkt import TMKT
+
+    best_row = await _search_transfermarkt_player(player_name, team)
+    if not best_row:
+        out: dict[str, Any] = {TRANSFERMARKT_FETCH_STATUS_KEY: "not_found"}
+        if include_profile:
+            out[TRANSFERMARKT_PROFILE_FETCH_STATUS_KEY] = "not_found"
+        return out
+
+    transfermarkt_id = str(best_row["id"])
+    picked_name = _tmkt_row_name(best_row)
+    out: dict[str, Any] = {TRANSFERMARKT_ID_KEY: transfermarkt_id}
+
+    api_fields: dict[str, Any] = {}
+    api_error: str | None = None
+    try:
+        async with TMKT() as tmkt:
+            payload = await _tmkt_call_with_retry(
+                lambda pid=int(transfermarkt_id): tmkt.get_player(pid),
+                label=f"player:{transfermarkt_id}",
+            )
+        api_fields = transfermarkt_fields_from_player_payload(
+            payload if isinstance(payload, dict) else {}
         )
-        fields = _transfermarkt_fields_from_player_payload(payload if isinstance(payload, dict) else {})
-        status = "ok" if fields.get(MARKET_VALUE_EUR_KEY) is not None else "not_found"
-        return {
-            TRANSFERMARKT_ID_KEY: str(player_id),
-            TRANSFERMARKT_FETCH_STATUS_KEY: status,
-            **fields,
-        }
+    except Exception as exc:  # noqa: BLE001 - fall back to HTML profile page
+        api_error = str(exc)
+
+    if include_profile and (not api_fields.get("age") and not api_fields.get("date_of_birth")):
+        html = await asyncio.to_thread(
+            _fetch_transfermarkt_profile_html,
+            transfermarkt_id,
+            picked_name or player_name,
+        )
+        if html:
+            html_fields = transfermarkt_fields_from_html(html)
+            for key, value in html_fields.items():
+                if api_fields.get(key) is None and value is not None:
+                    api_fields[key] = value
+
+    out.update(api_fields)
+
+    if include_market_value:
+        if out.get(MARKET_VALUE_EUR_KEY) is not None or out.get(MARKET_VALUE_DISPLAY_KEY):
+            out[TRANSFERMARKT_FETCH_STATUS_KEY] = "ok"
+        else:
+            out[TRANSFERMARKT_FETCH_STATUS_KEY] = "not_found" if api_error else "not_found"
+    if include_profile:
+        if out.get("age") is not None or out.get("date_of_birth"):
+            out[TRANSFERMARKT_PROFILE_FETCH_STATUS_KEY] = "ok"
+            out["source"] = "transfermarkt"
+        else:
+            out[TRANSFERMARKT_PROFILE_FETCH_STATUS_KEY] = "not_found"
+    return out
+
+
+async def fetch_transfermarkt_market_value_async(
+    player_name: str,
+    team: str,
+) -> dict[str, Any]:
+    return await fetch_transfermarkt_player_async(
+        player_name,
+        team,
+        include_market_value=True,
+        include_profile=True,
+    )
 
 
 def fetch_transfermarkt_market_value(player_name: str, team: str) -> dict[str, Any]:
     """Network fetch for offline prefetch scripts. Do not call from Streamlit hot path."""
     return asyncio.run(fetch_transfermarkt_market_value_async(player_name, team))
+
+
+def fetch_transfermarkt_age(player_name: str, team: str) -> dict[str, Any]:
+    """Fetch age/profile fields from Transfermarkt with HTML fallback."""
+    return asyncio.run(
+        fetch_transfermarkt_player_async(
+            player_name,
+            team,
+            include_market_value=False,
+            include_profile=True,
+        )
+    )
 
 
 def prefetch_transfermarkt_for_player(
@@ -240,6 +504,21 @@ def prefetch_transfermarkt_for_player(
     if transfermarkt_cache_is_fresh(pid, force=force):
         return read_cached_profile(pid)
     fetched = fetch_transfermarkt_market_value(player_name, team)
+    return update_player_profile_cache(pid, fetched)
+
+
+def prefetch_transfermarkt_age_for_player(
+    player_id: str,
+    player_name: str,
+    team: str,
+    *,
+    force: bool = False,
+) -> dict[str, Any]:
+    """Fetch and cache age/profile fields from Transfermarkt when missing."""
+    pid = str(player_id or "").strip()
+    if transfermarkt_age_cache_is_fresh(pid, force=force):
+        return read_cached_profile(pid)
+    fetched = fetch_transfermarkt_age(player_name, team)
     return update_player_profile_cache(pid, fetched)
 
 
@@ -272,3 +551,63 @@ def prefetch_transfermarkt_photo_for_player(
         return profile
     fetched = asyncio.run(fetch_transfermarkt_photo_by_id_async(str(transfermarkt_id)))
     return update_player_profile_cache(pid, fetched)
+
+
+async def prefetch_transfermarkt_ages_batch_async(
+    players: list[dict],
+    *,
+    concurrency: int = 12,
+    only_missing: bool = True,
+) -> dict[str, int]:
+    """Fetch Transfermarkt ages concurrently for a list of players."""
+    sem = asyncio.Semaphore(max(1, concurrency))
+    stats = {"resolved": 0, "not_found": 0, "skipped": 0, "errors": 0}
+    total = len(players)
+
+    async def one(index: int, player: dict) -> None:
+        pid = str(player.get("player_id", ""))
+        name = str(player.get("player_name", ""))
+        team = str(player.get("team", ""))
+        if only_missing and transfermarkt_age_cache_is_fresh(pid):
+            stats["skipped"] += 1
+            return
+        async with sem:
+            try:
+                fetched = await fetch_transfermarkt_player_async(
+                    name,
+                    team,
+                    include_market_value=False,
+                    include_profile=True,
+                )
+                update_player_profile_cache(pid, fetched)
+                if read_cached_profile(pid).get("age") is not None:
+                    stats["resolved"] += 1
+                elif fetched.get(TRANSFERMARKT_PROFILE_FETCH_STATUS_KEY) == "not_found":
+                    stats["not_found"] += 1
+            except Exception:
+                stats["errors"] += 1
+        if index % 50 == 0 or index == total:
+            print(
+                f"  {index}/{total} · resolved: {stats['resolved']} · "
+                f"not found: {stats['not_found']} · skipped: {stats['skipped']} · "
+                f"errors: {stats['errors']}",
+                flush=True,
+            )
+
+    await asyncio.gather(*(one(i, player) for i, player in enumerate(players, start=1)))
+    return stats
+
+
+def prefetch_transfermarkt_ages_batch(
+    players: list[dict],
+    *,
+    concurrency: int = 12,
+    only_missing: bool = True,
+) -> dict[str, int]:
+    return asyncio.run(
+        prefetch_transfermarkt_ages_batch_async(
+            players,
+            concurrency=concurrency,
+            only_missing=only_missing,
+        )
+    )

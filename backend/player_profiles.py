@@ -515,6 +515,26 @@ def get_player_profile(
         if profile.get("age") is None:
             wikidata = _fetch_profile_from_wikidata(player_name, team)
             profile = _merge_profiles(profile, wikidata)
+        if profile.get("age") is None:
+            try:
+                import transfermarkt_profiles as tm
+
+                tm_profile = tm.prefetch_transfermarkt_age_for_player(
+                    pid,
+                    player_name,
+                    team,
+                )
+                for key in ("date_of_birth", "age", "height", "dominant_foot", "nationality"):
+                    if profile.get(key) is None and tm_profile.get(key) is not None:
+                        profile[key] = tm_profile[key]
+                if profile.get("age") is not None:
+                    if profile.get("source"):
+                        if "transfermarkt" not in str(profile["source"]):
+                            profile["source"] = f"{profile['source']}+transfermarkt"
+                    else:
+                        profile["source"] = "transfermarkt"
+            except Exception:
+                pass
 
     if _profile_has_data(profile):
         profile["fetch_status"] = "ok"
