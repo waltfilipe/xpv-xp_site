@@ -1,7 +1,10 @@
-"""Rank nontop CM midfielders by xp_pass_rating within editorial age bands.
+"""Rank nontop midfielders by xp_pass_rating within editorial age bands.
 
 Uses the full xP pipeline (extended stats, per-90, xPass residuals) before
 attach_xp_pass_ratings — the same path as build_european_league_xp_analytics.
+
+Eligibility matches xpv-xp_site: all midfielder positions (CM, CDM, CAM, …)
+with eligible_for_rating (minutes >= P20 and passes >= P20 per position group).
 """
 
 from __future__ import annotations
@@ -35,14 +38,12 @@ LEAGUE_LABELS = {
 }
 
 
-def load_nontop_pass_frame(*, position: str | None = "CM") -> pd.DataFrame:
+def load_nontop_pass_frame() -> pd.DataFrame:
     frames: list[pd.DataFrame] = []
     for csv_path in sorted(NONTOP_ROOT.glob("*_passes.csv")):
         league_source = csv_path.stem.replace("_passes", "")
         frame = pd.read_csv(csv_path, low_memory=False)
         frame = frame[frame["category"].astype(str).str.lower() == "passes"]
-        if position:
-            frame = frame[frame["position"].astype(str).str.upper() == position.upper()]
         if frame.empty:
             continue
         frame = pe.resolve_positions_in_csv_frame(frame)
@@ -51,7 +52,8 @@ def load_nontop_pass_frame(*, position: str | None = "CM") -> pd.DataFrame:
         frames.append(work)
     if not frames:
         return pd.DataFrame()
-    return pd.concat(frames, ignore_index=True)
+    combined = pd.concat(frames, ignore_index=True)
+    return pe._filter_pass_frame_by_position_family(combined, "midfielders")
 
 
 def load_ages() -> dict[str, int]:
@@ -75,7 +77,7 @@ def age_band(age: int) -> str | None:
     return None
 
 
-def build_nontop_cm_players(
+def build_nontop_midfielder_players(
     frame: pd.DataFrame,
     season: pd.DataFrame,
     *,
@@ -119,6 +121,7 @@ def build_nontop_cm_players(
             "player_name": player["name"],
             "position": player.get("position", "CM"),
             "position_group": pe.rating_position_group(player.get("position")),
+            "position_family": "midfielders",
             "team": mins.get("team", "—"),
             "minutes": mins.get("minutes"),
             "minutes_pct": mins.get("minutes_pct"),
@@ -134,7 +137,11 @@ def build_nontop_cm_players(
     xstats.attach_regular_pass_scores(players)
     xstats.attach_composite_indices(players)
     xstats.attach_xp_pass_ratings(players)
-    return players
+    return pe.enrich_player_eligibility(players)
+
+
+def filter_eligible_for_rating(players: list[dict]) -> list[dict]:
+    return [player for player in players if player.get("eligible_for_rating")]
 
 
 def rank_by_age_bands(players: list[dict], ages: dict[str, int], *, top_n: int = 15) -> dict:
@@ -169,10 +176,13 @@ def rank_by_age_bands(players: list[dict], ages: dict[str, int], *, top_n: int =
                 "rank": i,
                 "player_id": p["player_id"],
                 "player_name": p["player_name"],
+                "position": p.get("position"),
+                "position_group": p.get("position_group"),
                 "age": p["age"],
                 "team": p.get("team"),
                 "league": p.get("league"),
                 "passes_completed": p.get("passes_completed"),
+                "minutes_pct": p.get("minutes_pct"),
                 "xp_pass_rating": p.get("xp_pass_rating"),
                 "xp_pass_rating_composite_z": p.get("xp_pass_rating_composite_z"),
                 "xp_per_90": p.get("xp_per_90"),
@@ -184,16 +194,22 @@ def rank_by_age_bands(players: list[dict], ages: dict[str, int], *, top_n: int =
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Rank nontop CM by xp_pass_rating and age band.")
+    parser = argparse.ArgumentParser(
+        description="Rank nontop midfielders by xp_pass_rating and age band.",
+    )
     parser.add_argument("--min-passes", type=int, default=100)
     parser.add_argument("--top-n", type=int, default=15)
-    parser.add_argument("--output", type=Path, default=NONTOP_ROOT / "cm_rankings_by_age.json")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=NONTOP_ROOT / "midfielder_rankings_by_age.json",
+    )
     args = parser.parse_args()
 
-    print("Loading nontop CM pass frame...")
-    frame = load_nontop_pass_frame(position="CM")
+    print("Loading nontop midfielder pass frame...")
+    frame = load_nontop_pass_frame()
     if frame.empty:
-        raise SystemExit("No CM pass data found.")
+        raise SystemExit("No midfielder pass data found.")
 
     print(f"Scoring {len(frame):,} pass events across {frame['player_id'].nunique()} players...")
     season = xe._build_season_passes_from_frame(frame, blend_league_reference=True)
@@ -201,29 +217,28 @@ def main() -> None:
         raise SystemExit("Season scoring produced no rows.")
 
     print(f"Building player metrics for {season['player_id'].nunique()} scored players...")
-    players = build_nontop_cm_players(frame, season, min_passes=args.min_passes)
+    all_players = build_nontop_midfielder_players(frame, season, min_passes=args.min_passes)
+    players = filter_eligible_for_rating(all_players)
     ages = load_ages()
 
-    # Sanity: ratings should vary
     ratings = [float(p.get("xp_pass_rating") or 0.0) for p in players]
     z_scores = [float(p.get("xp_pass_rating_composite_z") or 0.0) for p in players]
     print(
-        f"Players with >= {args.min_passes} passes: {len(players)} | "
+        f"Players with >= {args.min_passes} passes: {len(all_players)} | "
+        f"eligible_for_rating: {len(players)} | "
         f"rating range {min(ratings):.4f}–{max(ratings):.4f} | "
         f"z range {min(z_scores):.4f}–{max(z_scores):.4f}"
     )
 
-    top_names = sorted(players, key=lambda p: p["player_name"].lower())[:5]
-    top_rated = sorted(players, key=lambda p: float(p.get("xp_pass_rating") or 0), reverse=True)[:5]
-    print("Alphabetical first 5:", [p["player_name"] for p in top_names])
-    print("Top rated 5:", [(p["player_name"], p.get("xp_pass_rating")) for p in top_rated])
-
     results = rank_by_age_bands(players, ages, top_n=args.top_n)
     payload = {
         "generated_at": pd.Timestamp.utcnow().isoformat(),
+        "position_family": "midfielders",
         "min_passes": args.min_passes,
+        "eligibility": "eligible_for_rating (minutes >= P20 and passes >= P20 per position group)",
         "top_n": args.top_n,
-        "players_scored": len(players),
+        "players_scored": len(all_players),
+        "players_eligible": len(players),
         "bands": results,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -235,7 +250,7 @@ def main() -> None:
         print(f"\n=== {band['title']} (pool {band['pool_size']}) ===")
         for row in band["players"]:
             print(
-                f"{row['rank']:2d}. {row['player_name']} ({row['age']}) — "
+                f"{row['rank']:2d}. {row['player_name']} ({row['position']}, {row['age']}) — "
                 f"{row['team']} | rating {row['xp_pass_rating']:.4f} | "
                 f"{row['passes_completed']} passes"
             )
