@@ -847,10 +847,8 @@ REPORT_PROGRESSIVE_GRID_ROWS = 54
 REPORT_PROGRESSIVE_CELL_GAP = 0.05
 REPORT_PROGRESSIVE_SMOOTH_SIGMA = 0.95
 REPORT_PROGRESSIVE_GAMMA = 0.72
-REPORT_IMPACT_ARROW_WIDTH_MIN = 1.55
-REPORT_IMPACT_ARROW_WIDTH_MAX = 2.85
-REPORT_IMPACT_MARKER_SIZE_MIN = 8.0
-REPORT_IMPACT_MARKER_SIZE_MAX = 14.0
+REPORT_IMPACT_ORIGIN_MARKER_SIZE = 12.0
+REPORT_IMPACT_DEST_MARKER_SIZE = 15.0
 REPORT_LINK_ZONE_COLS = 5
 REPORT_LINK_ZONE_ROWS = 5
 REPORT_LINK_TOP_N = 5
@@ -1165,34 +1163,6 @@ def _filter_report_impact_final_third_passes(passes):
     return impact.loc[impact["x_start"].astype(float) >= FINAL_X_MIN].copy()
 
 
-def _report_impact_pass_arrows(
-    pitch,
-    ax,
-    x1,
-    y1,
-    x2,
-    y2,
-    color,
-    scale: float,
-    *,
-    alpha: float,
-    width_scale: float,
-) -> None:
-    pitch.arrows(
-        x1,
-        y1,
-        x2,
-        y2,
-        color=color,
-        width=ARROW_WIDTH * scale * width_scale,
-        headwidth=ARROW_HEADWIDTH * scale * width_scale,
-        headlength=ARROW_HEADLENGTH * scale * width_scale,
-        ax=ax,
-        zorder=3,
-        alpha=alpha,
-    )
-
-
 def draw_report_impact_final_third_heatmap(passes) -> plt.Figure:
     """Portrait arrow map of Impact v2 passes originating in the final third."""
     figsize = (REPORT_PORTRAIT_FIG_W, REPORT_PORTRAIT_FIG_H)
@@ -1232,14 +1202,8 @@ def draw_report_impact_final_third_heatmap(passes) -> plt.Figure:
                 else:
                     color = "#ef4444"
                     t = 0.65
-                width_scale = REPORT_IMPACT_ARROW_WIDTH_MIN + (
-                    REPORT_IMPACT_ARROW_WIDTH_MAX - REPORT_IMPACT_ARROW_WIDTH_MIN
-                ) * t
-                marker_size = REPORT_IMPACT_MARKER_SIZE_MIN + (
-                    REPORT_IMPACT_MARKER_SIZE_MAX - REPORT_IMPACT_MARKER_SIZE_MIN
-                ) * t
                 alpha = 0.78 + 0.2 * t
-                _report_impact_pass_arrows(
+                _delicate_arrows(
                     pitch,
                     ax,
                     float(row.x_start),
@@ -1249,18 +1213,29 @@ def draw_report_impact_final_third_heatmap(passes) -> plt.Figure:
                     color,
                     scale,
                     alpha=alpha,
-                    width_scale=width_scale,
                 )
                 pitch.scatter(
                     float(row.x_start),
                     float(row.y_start),
-                    s=marker_size,
+                    s=REPORT_IMPACT_ORIGIN_MARKER_SIZE,
                     marker="o",
                     color=color,
                     edgecolors="white",
-                    linewidths=0.35,
+                    linewidths=0.4,
                     ax=ax,
                     zorder=6,
+                    alpha=alpha,
+                )
+                pitch.scatter(
+                    float(row.x_end),
+                    float(row.y_end),
+                    s=REPORT_IMPACT_DEST_MARKER_SIZE,
+                    marker="s",
+                    color=color,
+                    edgecolors="white",
+                    linewidths=0.4,
+                    ax=ax,
+                    zorder=7,
                     alpha=alpha,
                 )
 
