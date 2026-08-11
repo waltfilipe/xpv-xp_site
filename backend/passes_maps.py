@@ -42,6 +42,10 @@ CMAP_REPORT_PROGRESSIVE = LinearSegmentedColormap.from_list(
     "report_prog",
     ["#14101c", "#450a0a", "#991b1b", "#ea580c", "#fbbf24", "#fff7ed"],
 )
+CMAP_REPORT_XPV_RED = LinearSegmentedColormap.from_list(
+    "report_xpv_red",
+    ["#3f0d12", "#7f1d1d", "#b91c1c", "#ef4444", "#f87171", "#fecaca"],
+)
 CMAP_XT_GRID = LinearSegmentedColormap.from_list(
     "xt_grid", ["#1a1a2e", "#3b82f6", "#fbbf24", "#ef4444"]
 )
@@ -843,6 +847,10 @@ REPORT_PROGRESSIVE_GRID_ROWS = 54
 REPORT_PROGRESSIVE_CELL_GAP = 0.05
 REPORT_PROGRESSIVE_SMOOTH_SIGMA = 0.95
 REPORT_PROGRESSIVE_GAMMA = 0.72
+REPORT_IMPACT_ARROW_WIDTH_MIN = 1.55
+REPORT_IMPACT_ARROW_WIDTH_MAX = 2.85
+REPORT_IMPACT_MARKER_SIZE_MIN = 8.0
+REPORT_IMPACT_MARKER_SIZE_MAX = 14.0
 REPORT_LINK_ZONE_COLS = 5
 REPORT_LINK_ZONE_ROWS = 5
 REPORT_LINK_TOP_N = 5
@@ -1157,6 +1165,34 @@ def _filter_report_impact_final_third_passes(passes):
     return impact.loc[impact["x_start"].astype(float) >= FINAL_X_MIN].copy()
 
 
+def _report_impact_pass_arrows(
+    pitch,
+    ax,
+    x1,
+    y1,
+    x2,
+    y2,
+    color,
+    scale: float,
+    *,
+    alpha: float,
+    width_scale: float,
+) -> None:
+    pitch.arrows(
+        x1,
+        y1,
+        x2,
+        y2,
+        color=color,
+        width=ARROW_WIDTH * scale * width_scale,
+        headwidth=ARROW_HEADWIDTH * scale * width_scale,
+        headlength=ARROW_HEADLENGTH * scale * width_scale,
+        ax=ax,
+        zorder=3,
+        alpha=alpha,
+    )
+
+
 def draw_report_impact_final_third_heatmap(passes) -> plt.Figure:
     """Portrait arrow map of Impact v2 passes originating in the final third."""
     figsize = (REPORT_PORTRAIT_FIG_W, REPORT_PORTRAIT_FIG_H)
@@ -1173,37 +1209,67 @@ def draw_report_impact_final_third_heatmap(passes) -> plt.Figure:
     if subset is not None and not subset.empty:
         work = subset
         if "has_end" in work.columns:
-            work = work[work["has_end"].astype(bool)]
-        for row in work.itertuples(index=False):
-            is_high = bool(getattr(row, "high_impact_success", False))
-            color, alpha = (
-                (COLOR_HIGHLY_PROGRESSIVE, ARROW_ALPHA_EMPH)
-                if is_high
-                else (COLOR_PROGRESSIVE, ARROW_ALPHA_EMPH)
-            )
-            _delicate_arrows(
-                pitch,
-                ax,
-                row.x_start,
-                row.y_start,
-                row.x_end,
-                row.y_end,
-                color,
-                scale,
-                alpha=alpha,
-            )
-            pitch.scatter(
-                row.x_start,
-                row.y_start,
-                s=PASS_START_MARKER_SIZE,
-                marker="o",
-                color=color,
-                edgecolors="white",
-                linewidths=0.3,
-                ax=ax,
-                zorder=6,
-                alpha=alpha,
-            )
+            work = work[work["has_end"].astype(bool)].copy()
+        if not work.empty:
+            xp_col = "xp_m4" if "xp_m4" in work.columns else None
+            if xp_col:
+                xp_values = work[xp_col].astype(float).to_numpy()
+                positive = xp_values[xp_values > 0]
+                vmax = max(float(np.percentile(positive, 92)) if len(positive) else 0.0, 0.05)
+                norm = PowerNorm(gamma=0.78, vmin=0.0, vmax=vmax)
+            else:
+                xp_values = np.ones(len(work), dtype=float)
+                norm = None
+                vmax = 1.0
+
+            order = np.argsort(xp_values)
+            for idx in order:
+                row = work.iloc[int(idx)]
+                xp_val = float(xp_values[int(idx)])
+                if norm is not None:
+                    color = CMAP_REPORT_XPV_RED(norm(max(xp_val, 0.0)))
+                    t = min(max(xp_val / vmax, 0.0), 1.0)
+                else:
+                    color = "#ef4444"
+                    t = 0.65
+                width_scale = REPORT_IMPACT_ARROW_WIDTH_MIN + (
+                    REPORT_IMPACT_ARROW_WIDTH_MAX - REPORT_IMPACT_ARROW_WIDTH_MIN
+                ) * t
+                marker_size = REPORT_IMPACT_MARKER_SIZE_MIN + (
+                    REPORT_IMPACT_MARKER_SIZE_MAX - REPORT_IMPACT_MARKER_SIZE_MIN
+                ) * t
+                alpha = 0.78 + 0.2 * t
+                _report_impact_pass_arrows(
+                    pitch,
+                    ax,
+                    float(row.x_start),
+                    float(row.y_start),
+                    float(row.x_end),
+                    float(row.y_end),
+                    color,
+                    scale,
+                    alpha=alpha,
+                    width_scale=width_scale,
+                )
+                pitch.scatter(
+                    float(row.x_start),
+                    float(row.y_start),
+                    s=marker_size,
+                    marker="o",
+                    color=color,
+                    edgecolors="white",
+                    linewidths=0.35,
+                    ax=ax,
+                    zorder=6,
+                    alpha=alpha,
+                )
+
+            if norm is not None and vmax > 0:
+                sm = plt.cm.ScalarMappable(cmap=CMAP_REPORT_XPV_RED, norm=norm)
+                cbar = fig.colorbar(sm, ax=ax, fraction=0.02, pad=0.015, shrink=0.42)
+                cbar.ax.yaxis.set_tick_params(color="#ffffff", labelsize=5.5)
+                plt.setp(cbar.ax.axes.get_yticklabels(), color="#ffffff")
+                cbar.set_label("xPV", color="#e2e8f0", fontsize=6)
 
     fig.subplots_adjust(left=0.005, right=0.995, top=0.995, bottom=0.04)
     ax.set_title("")
