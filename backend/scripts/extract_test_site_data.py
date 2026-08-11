@@ -125,10 +125,7 @@ def main() -> None:
         "position_families": [{"key": POSITION_FAMILY, "label": "Meio-campistas"}],
         "nationalities": sorted({str(r.get("nationality")) for r in rows if r.get("nationality")}),
         "filter_options": filter_options_meta(POSITION_FAMILY),
-        "description": (
-            "Pass Scout demo — 45 curated midfielders. Scores and ranks are computed within "
-            "the full European midfielder pool, identical to the main Pass Scout site."
-        ),
+        "description": "",
     }
     _write_json(OUTPUT_DIR / "meta.json", meta)
     _write_json(OUTPUT_DIR / "players.json", {
