@@ -982,7 +982,12 @@ def compute_extended_xp_stats(
         out["xp_game_std"] = float(game_xp.std()) if len(game_xp) > 1 else 0.0
         med = float(game_xp.median()) if len(game_xp) else 0.0
         out["xp_games_above_median_pct"] = float((game_xp > med).mean()) if len(game_xp) else 0.0
-        out[XP_ROUND_SERIES_KEY] = round_production_series(grp)
+        import xpass_engine as xpe
+
+        series_grp = grp
+        if xpe.XPASS_COL not in grp.columns:
+            series_grp = xpe.attach_xpass_to_passes(grp.copy())
+        out[XP_ROUND_SERIES_KEY] = round_production_series(series_grp)
     else:
         out["xp_game_mean"] = 0.0
         out["xp_game_std"] = 0.0
