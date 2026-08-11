@@ -1158,10 +1158,55 @@ def _filter_report_impact_final_third_passes(passes):
 
 
 def draw_report_impact_final_third_heatmap(passes) -> plt.Figure:
-    """Portrait heatmap of Impact v2 passes originating in the final third."""
-    subset = _filter_report_impact_final_third_passes(passes)
-    return _report_vertical_binned_grid_heatmap(
-        subset,
-        x_col="x_start",
-        y_col="y_start",
+    """Portrait arrow map of Impact v2 passes originating in the final third."""
+    figsize = (REPORT_PORTRAIT_FIG_W, REPORT_PORTRAIT_FIG_H)
+    fig, ax, pitch = _base_vertical_pitch(
+        figsize=figsize,
+        dpi=REPORT_PORTRAIT_DPI,
+        pad_bottom=REPORT_PITCH_PAD_BOTTOM,
     )
+
+    pitch.draw(ax=ax)
+    subset = _filter_report_impact_final_third_passes(passes)
+    scale = REPORT_PORTRAIT_FIG_W / MAP_REF_WIDTH
+
+    if subset is not None and not subset.empty:
+        work = subset
+        if "has_end" in work.columns:
+            work = work[work["has_end"].astype(bool)]
+        for row in work.itertuples(index=False):
+            is_high = bool(getattr(row, "high_impact_success", False))
+            color, alpha = (
+                (COLOR_HIGHLY_PROGRESSIVE, ARROW_ALPHA_EMPH)
+                if is_high
+                else (COLOR_PROGRESSIVE, ARROW_ALPHA_EMPH)
+            )
+            _delicate_arrows(
+                pitch,
+                ax,
+                row.x_start,
+                row.y_start,
+                row.x_end,
+                row.y_end,
+                color,
+                scale,
+                alpha=alpha,
+            )
+            pitch.scatter(
+                row.x_start,
+                row.y_start,
+                s=PASS_START_MARKER_SIZE,
+                marker="o",
+                color=color,
+                edgecolors="white",
+                linewidths=0.3,
+                ax=ax,
+                zorder=6,
+                alpha=alpha,
+            )
+
+    fig.subplots_adjust(left=0.005, right=0.995, top=0.995, bottom=0.04)
+    ax.set_title("")
+    _report_vertical_attack_arrow(fig, ax)
+    ax.set_axis_off()
+    return fig
