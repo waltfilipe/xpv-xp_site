@@ -1455,7 +1455,7 @@ XP_PASS_RATING_CONFIDENCE_PASS_WEIGHT = 0.5
 XP_PASS_RATING_CONFIDENCE_MINUTES_WEIGHT = 0.5
 
 # v2 overall pass grade — three pillars (Productivity / Precision / Lethality).
-XP_PASS_RATING_MODEL_VERSION = "v2_pillars_cdf7"
+XP_PASS_RATING_MODEL_VERSION = "v2_pillars_norm85"
 XP_PASS_RATING_V2_PILLAR_WEIGHTS: dict[str, float] = {
     "productivity": 0.35,
     "precision": 0.35,
@@ -1468,10 +1468,10 @@ XP_PASS_RATING_V2_LETHALITY_METRICS: tuple[str, ...] = (
     "test_impact_v2_p90",
     "threat_pass_pct",
 )
-XP_PASS_RATING_V2_GRADE_FLOOR = 5.0
-XP_PASS_RATING_V2_GRADE_SPAN = 4.75
-XP_PASS_RATING_V2_CDF_SCALE = 0.78
-XP_PASS_RATING_V2_DISPLAY_MID = 7.0
+XP_PASS_RATING_V2_GRADE_FLOOR = 4.875
+XP_PASS_RATING_V2_GRADE_SPAN = 3.625
+XP_PASS_RATING_V2_CDF_SCALE = 0.84
+XP_PASS_RATING_V2_DISPLAY_MID = 6.75
 XP_PASS_RATING_V2_CONFIDENCE_WEIGHT = 0.22
 EUROPEAN_TEAM_XP_CACHE = (
     __import__("pathlib").Path(__file__).resolve().parent / "data" / "european_team_xp_per_game.json"
@@ -2061,10 +2061,12 @@ def display_score_letter_grade(display_score: float | int | None) -> str:
 
 
 def display_score_pass_grade_pct(display_score: float | int | None) -> float:
-    """Map display score onto the Overall Pass Grade gradient (5→0%, 10→100%)."""
+    """Map display score onto the Overall Pass Grade gradient (4.875→0%, 8.5→100%)."""
     if display_score is None:
         return 0.0
-    return max(0.0, min(100.0, (float(display_score) - 5.0) / 5.0 * 100.0))
+    floor = XP_PASS_RATING_V2_GRADE_FLOOR
+    span = XP_PASS_RATING_V2_GRADE_SPAN
+    return max(0.0, min(100.0, (float(display_score) - floor) / span * 100.0))
 
 
 def _zscore(series: pd.Series) -> pd.Series:
@@ -3054,10 +3056,15 @@ def _coe_stratum_z_for_rows(rows: list[dict]) -> list[float]:
 
 
 def xp_pass_rating_v2_display(composite_z: float) -> float:
-    """Map composite z to 5–10 via normal CDF (mean ≈ 7 on a standard pool)."""
+    """Map composite z to ~4.9–8.5 via normal CDF on the European pool.
+
+    Calibrated so median players sit ~6.5–7, strong seasons ~8–8.5, and scores
+  above 8.5 or below 5 require exceptional composite z (rare tails).
+    """
     pct = norm.cdf(float(composite_z) * XP_PASS_RATING_V2_CDF_SCALE)
     raw = XP_PASS_RATING_V2_GRADE_FLOOR + XP_PASS_RATING_V2_GRADE_SPAN * pct
-    return float(min(10.0, max(XP_PASS_RATING_V2_GRADE_FLOOR, raw)))
+    grade_cap = XP_PASS_RATING_V2_GRADE_FLOOR + XP_PASS_RATING_V2_GRADE_SPAN
+    return float(min(grade_cap, max(XP_PASS_RATING_V2_GRADE_FLOOR, raw)))
 
 
 def xp_pass_rating_blended_display(rank: int, pool_size: int, composite_z: float) -> float:
@@ -3124,7 +3131,7 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
     Precision    35% — 0.7·z(xpass_residual_p90) + 0.3·z(COE stratum)
     Lethality    30% — mean z(xpv_per_pass, test_impact_v2_p90, threat_pass_pct)
 
-    Display: 5–10 via normal CDF on composite z (pool mean ≈ 7); confidence pull to 7.0.
+    Display: normal CDF on composite z (~6.5–7 median, ~8–8.5 elite); confidence pull to 6.75.
     """
     if not players:
         return
