@@ -232,6 +232,14 @@ def main() -> int:
     blend_out.to_csv(blend_csv, index=False)
     print(f"Wrote {blend_csv}")
 
+    hybrid_csv = ROOT / "data" / "productivity_hybrid_65_20_15_45.csv"
+    blend_hybrid = 0.65 * z_current + 0.20 * z_ra + 0.15 * z_rd
+    hybrid_out = blend_out.copy()
+    hybrid_out["blend_hybrid_65_20_15"] = blend_hybrid.round(4)
+    hybrid_out["display_hybrid_65_20_15"] = merit(blend_hybrid).round(3)
+    hybrid_out.to_csv(hybrid_csv, index=False)
+    print(f"Wrote {hybrid_csv}")
+
     print(f"\nWrote {OUTPUT_CSV} ({len(df)} rows)")
     show_cols = [
         "player_name",
