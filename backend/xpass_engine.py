@@ -23,7 +23,7 @@ import passes_engine as pe
 import xp_engine as xe
 import xp_study_engine as xse
 
-XPASS_MODEL_VERSION = "xpass_logistic_od12x8_dist_prog_lat_v3"
+XPASS_MODEL_VERSION = "xpass_logistic_od12x8_dist_prog_lat_v4_calib10"
 XPASS_HARD_COE_THRESHOLD = 0.65
 XPASS_COE_HIGH_THRESHOLD = 0.60
 XPASS_HIGH_DIFFICULTY_THRESHOLD = 0.50
@@ -353,18 +353,37 @@ def _attach_ranks(players: list[dict]) -> None:
     _rank("xpv_per_pass_p90")
 
 
+def load_xpass_training_passes(position_family: str = "midfielders") -> pd.DataFrame:
+    """Live-ball passes from top-five + calibration leagues for xPass training."""
+    from position_families import normalize_position_family
+
+    family = normalize_position_family(position_family)
+    frame = pe._filter_pass_frame_by_position_family(
+        pe._load_xpass_training_pass_frame(),
+        family,
+    )
+    if frame.empty:
+        return pd.DataFrame()
+    enriched = xse._enrich_match_passes(frame)
+    return pe.filter_live_ball_passes(enriched)
+
+
 def build_and_save_european_xpass(
     *,
     refit: bool = True,
     c: float = 0.08,
 ) -> dict:
-    """Train xPass on European season, score passes, persist model + player JSON."""
+    """Train xPass on 10 European leagues; score and export top-five league players."""
+    training = load_xpass_training_passes()
+    if training.empty:
+        raise RuntimeError("xPass training pass frame is empty.")
+
     season = xe.load_european_league_season_passes()
     if season.empty:
         raise RuntimeError("European season parquet is empty.")
 
-    cv_metrics = _match_level_cv_metrics(season, c=c)
-    model = fit_xpass_model(season, c=c) if refit else joblib.load(XPASS_MODEL_PATH)
+    cv_metrics = _match_level_cv_metrics(training, c=c)
+    model = fit_xpass_model(training, c=c) if refit else joblib.load(XPASS_MODEL_PATH)
     if refit:
         MODELS_DIR.mkdir(parents=True, exist_ok=True)
         joblib.dump(model, XPASS_MODEL_PATH)
@@ -390,8 +409,21 @@ def build_and_save_european_xpass(
         "model_type": "logistic_l2",
         "c": c,
         "grid": GRID.key,
+        "n_passes_training": int(len(_prepare_passes(training))),
         "n_passes_scored": int(len(train)),
         "n_players": len(players),
+        "training_leagues": [
+            "premier_league",
+            "italia_seriea",
+            "laliga",
+            "bundesliga",
+            "ligue1",
+            "belgian_pro_league",
+            "greek_super_league",
+            "eredivisie",
+            "portugal_primeira",
+            "turkey_super_league",
+        ],
         "cv_match_metrics": cv_metrics,
         "full_sample_metrics": full_metrics,
         "min_player_passes": MIN_PLAYER_PASSES,

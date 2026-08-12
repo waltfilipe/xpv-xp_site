@@ -61,6 +61,11 @@ SEASON_ALL_ITALIA_SERIEA_CSV_PATH = Path(__file__).resolve().parent / "season_al
 SEASON_ALL_LALIGA_CSV_PATH = Path(__file__).resolve().parent / "season_all_laligapasses.csv"
 SEASON_ALL_BUNDESLIGA_CSV_PATH = Path(__file__).resolve().parent / "bundesliga_passes.csv"
 SEASON_ALL_LIGUE1_CSV_PATH = Path(__file__).resolve().parent / "ligue1_passes.csv"
+SEASON_ALL_BELGIAN_CSV_PATH = Path(__file__).resolve().parent / "belgian_passes.csv"
+SEASON_ALL_GREEK_CSV_PATH = Path(__file__).resolve().parent / "greek_passes.csv"
+SEASON_ALL_EREDIVISIE_CSV_PATH = Path(__file__).resolve().parent / "eredivise_passes.csv"
+SEASON_ALL_PORTUGAL_CSV_PATH = Path(__file__).resolve().parent / "portugal_passes.csv"
+SEASON_ALL_TURKEY_CSV_PATH = Path(__file__).resolve().parent / "turkey_passes.csv"
 PLAYER_MATCH_STATS_PATH = Path(__file__).resolve().parent / "player_match_stats.csv"
 DATA_CACHE_VERSION = 68
 
@@ -826,13 +831,66 @@ def _load_ligue1_pass_frame() -> pd.DataFrame:
     return resolve_positions_in_csv_frame(frame)
 
 
+def _load_belgian_pass_frame() -> pd.DataFrame:
+    if not SEASON_ALL_BELGIAN_CSV_PATH.exists():
+        return pd.DataFrame()
+    frame = pd.read_csv(SEASON_ALL_BELGIAN_CSV_PATH, low_memory=False)
+    frame = frame[frame["category"].astype(str).str.lower() == "passes"]
+    return resolve_positions_in_csv_frame(frame)
+
+
+def _load_greek_pass_frame() -> pd.DataFrame:
+    if not SEASON_ALL_GREEK_CSV_PATH.exists():
+        return pd.DataFrame()
+    frame = pd.read_csv(SEASON_ALL_GREEK_CSV_PATH, low_memory=False)
+    frame = frame[frame["category"].astype(str).str.lower() == "passes"]
+    return resolve_positions_in_csv_frame(frame)
+
+
+def _load_eredivise_pass_frame() -> pd.DataFrame:
+    if not SEASON_ALL_EREDIVISIE_CSV_PATH.exists():
+        return pd.DataFrame()
+    frame = pd.read_csv(SEASON_ALL_EREDIVISIE_CSV_PATH, low_memory=False)
+    frame = frame[frame["category"].astype(str).str.lower() == "passes"]
+    return resolve_positions_in_csv_frame(frame)
+
+
+def _load_portugal_pass_frame() -> pd.DataFrame:
+    if not SEASON_ALL_PORTUGAL_CSV_PATH.exists():
+        return pd.DataFrame()
+    frame = pd.read_csv(SEASON_ALL_PORTUGAL_CSV_PATH, low_memory=False)
+    frame = frame[frame["category"].astype(str).str.lower() == "passes"]
+    return resolve_positions_in_csv_frame(frame)
+
+
+def _load_turkey_pass_frame() -> pd.DataFrame:
+    if not SEASON_ALL_TURKEY_CSV_PATH.exists():
+        return pd.DataFrame()
+    frame = pd.read_csv(SEASON_ALL_TURKEY_CSV_PATH, low_memory=False)
+    frame = frame[frame["category"].astype(str).str.lower() == "passes"]
+    return resolve_positions_in_csv_frame(frame)
+
+
 EUROPEAN_LEAGUE_LABELS: dict[str, str] = {
     "premier_league": "Premier League",
     "italia_seriea": "Serie A",
     "laliga": "La Liga",
     "bundesliga": "Bundesliga",
     "ligue1": "Ligue 1",
+    "belgian_pro_league": "Belgian Pro League",
+    "greek_super_league": "Greek Super League",
+    "eredivisie": "Eredivisie",
+    "portugal_primeira": "Primeira Liga",
+    "turkey_super_league": "Turkish Super Lig",
 }
+
+XPASS_CALIBRATION_LEAGUE_SOURCES: tuple[tuple[str, object], ...] = (
+    ("belgian_pro_league", _load_belgian_pass_frame),
+    ("greek_super_league", _load_greek_pass_frame),
+    ("eredivisie", _load_eredivise_pass_frame),
+    ("portugal_primeira", _load_portugal_pass_frame),
+    ("turkey_super_league", _load_turkey_pass_frame),
+)
 
 
 def _load_european_league_pass_frame() -> pd.DataFrame:
@@ -851,6 +909,35 @@ def _load_european_league_pass_frame() -> pd.DataFrame:
         work = frame.copy()
         work["league_source"] = source
         frames.append(work)
+    if not frames:
+        return pd.DataFrame()
+    return pd.concat(frames, ignore_index=True)
+
+
+def _load_xpass_calibration_league_pass_frame() -> pd.DataFrame:
+    """Belgium, Greece, Eredivisie, Portugal and Turkey — xPass calibration leagues."""
+    frames: list[pd.DataFrame] = []
+    for source, loader in XPASS_CALIBRATION_LEAGUE_SOURCES:
+        frame = loader()
+        if frame.empty:
+            continue
+        work = frame.copy()
+        work["league_source"] = source
+        frames.append(work)
+    if not frames:
+        return pd.DataFrame()
+    return pd.concat(frames, ignore_index=True)
+
+
+def _load_xpass_training_pass_frame() -> pd.DataFrame:
+    """Top-five European leagues plus calibration leagues for xPass model training."""
+    frames: list[pd.DataFrame] = []
+    top_five = _load_european_league_pass_frame()
+    if not top_five.empty:
+        frames.append(top_five)
+    calibration = _load_xpass_calibration_league_pass_frame()
+    if not calibration.empty:
+        frames.append(calibration)
     if not frames:
         return pd.DataFrame()
     return pd.concat(frames, ignore_index=True)
