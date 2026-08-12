@@ -208,6 +208,30 @@ def main() -> int:
     OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(OUTPUT_CSV, index=False)
 
+    # --- Blend simulation: 0.65 z(xp_per_90) + 0.35 z(relative) ---
+    blend_csv = ROOT / "data" / "productivity_blend_65_35_45.csv"
+    z_current = (df["model_current_xp_per_90"] - df["model_current_xp_per_90"].mean()) / df[
+        "model_current_xp_per_90"
+    ].std()
+    z_ra = (df["model_R_A_share_xp_pct"] - df["model_R_A_share_xp_pct"].mean()) / df[
+        "model_R_A_share_xp_pct"
+    ].std()
+    z_rd = (df["model_R_D_ratio"] - df["model_R_D_ratio"].mean()) / df["model_R_D_ratio"].std()
+    blend_ra = 0.65 * z_current + 0.35 * z_ra
+    blend_rd = 0.65 * z_current + 0.35 * z_rd
+    merit = lambda z: 6.0 + 2.45 * np.tanh(z)
+    blend_out = df.copy()
+    blend_out["z_current"] = z_current.round(4)
+    blend_out["z_R_A"] = z_ra.round(4)
+    blend_out["z_R_D"] = z_rd.round(4)
+    blend_out["blend_65_35_R_A"] = blend_ra.round(4)
+    blend_out["blend_65_35_R_D"] = blend_rd.round(4)
+    blend_out["display_current"] = merit(z_current).round(3)
+    blend_out["display_blend_R_A"] = merit(blend_ra).round(3)
+    blend_out["display_blend_R_D"] = merit(blend_rd).round(3)
+    blend_out.to_csv(blend_csv, index=False)
+    print(f"Wrote {blend_csv}")
+
     print(f"\nWrote {OUTPUT_CSV} ({len(df)} rows)")
     show_cols = [
         "player_name",
