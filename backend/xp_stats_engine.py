@@ -672,7 +672,14 @@ def _sum_xp(mask: np.ndarray, xp: np.ndarray) -> float:
 
 XP_ROUND_SERIES_KEY = "xp_round_series"
 
-# Per-match composite grade: weighted z-scores within the position game pool.
+# Per-match pass grade features (mirrors season xp_pass_rating pillars).
+GAME_PASS_RATING_FEATURE_WEIGHTS: dict[str, float] = {
+    "xpv": 0.35,
+    "pass_eff_pct": 0.35,
+    "xpv_per_pass": 0.15,
+    "impact_rate": 0.15,
+}
+# Legacy composite weights (offline scripts).
 GAME_GRADE_METRIC_WEIGHTS: dict[str, float] = {
     "xpv": 0.40,
     "xpv_per_pass": 0.15,
@@ -682,6 +689,8 @@ GAME_GRADE_METRIC_WEIGHTS: dict[str, float] = {
 GAME_GRADE_DISPLAY_MIN = 4.0
 GAME_GRADE_DISPLAY_MAX = 10.0
 GAME_GRADE_IDEAL_BOOST = 1.10
+GAME_PASS_RATING_PSEUDO_MINUTES_PER_PASS = 3.0
+GAME_PASS_RATING_FULL_GAME_PSEUDO_MINUTES = 90.0
 
 
 def _round_pass_eff_pct(point: dict) -> float | None:
@@ -2353,60 +2362,174 @@ def _attach_game_std_adjusted(rows: list[dict]) -> None:
         row["xp_game_std_adj_score"] = float(-val)
 
 
+def _game_pass_rating_shrink_sample(feature_key: str, passes: int) -> float:
+    if feature_key in ("xpv", "pass_eff_pct"):
+        return float(passes) * GAME_PASS_RATING_PSEUDO_MINUTES_PER_PASS
+    return float(passes)
+
+
+def _game_pass_rating_shrink_k(feature_key: str) -> float:
+    import passes_engine as pe
+
+    if feature_key in ("xpv", "pass_eff_pct"):
+        return float(pe.SHRINKAGE_MINUTES_K)
+    return float(pe.SHRINKAGE_PASS_K)
+
+
+def _game_pass_rating_shrink_value(
+    feature_key: str,
+    raw: float | None,
+    passes: int,
+    pool_values: list[float],
+) -> float:
+    clean = [float(v) for v in pool_values if v is not None and np.isfinite(float(v))]
+    prior = float(np.mean(clean)) if clean else 0.0
+    if raw is None or passes <= 0:
+        return prior
+    sample = _game_pass_rating_shrink_sample(feature_key, passes)
+    k = _game_pass_rating_shrink_k(feature_key)
+    weight = sample / (sample + k)
+    return weight * float(raw) + (1.0 - weight) * prior
+
+
+def _game_pass_rating_confidence(passes: int, p25_passes: float) -> float:
+    pass_ref = max(float(p25_passes), 1.0)
+    conf_passes = min(1.0, float(passes) / pass_ref)
+    conf_minutes = min(
+        1.0,
+        float(passes) * GAME_PASS_RATING_PSEUDO_MINUTES_PER_PASS
+        / GAME_PASS_RATING_FULL_GAME_PSEUDO_MINUTES,
+    )
+    return (
+        XP_PASS_RATING_CONFIDENCE_PASS_WEIGHT * conf_passes
+        + XP_PASS_RATING_CONFIDENCE_MINUTES_WEIGHT * conf_minutes
+    )
+
+
+def _game_pass_rating_grade(
+    composite_z: float,
+    rank: int,
+    pool_size: int,
+    passes: int,
+    p25_passes: float,
+) -> float:
+    """Overall pass grade for one match (xp_pass_rating blend + confidence pull)."""
+    blend = xp_pass_rating_blended_display(rank, pool_size, composite_z)
+    confidence = _game_pass_rating_confidence(passes, p25_passes)
+    adjusted, _ = _apply_xp_pass_rating_confidence(blend, confidence)
+    return round(float(adjusted), 2)
+
+
 def _attach_game_grade_consistency(rows: list[dict]) -> None:
-    """Per-match composite grades (4–10) from position game pool; consistency = low MAD."""
+    """Per-match overall pass grades (xp style + confidence); consistency = low MAD."""
     if not rows:
         return
 
-    pool_metrics: dict[str, dict[str, list[float]]] = {}
+    groups: dict[str, list[dict]] = {}
     for row in rows:
         group = _metric_rank_pool_key(row)
-        series = row.get(XP_ROUND_SERIES_KEY) or ()
-        bucket = pool_metrics.setdefault(
-            group,
-            {key: [] for key in GAME_GRADE_METRIC_WEIGHTS},
-        )
-        for point in series:
-            values = _round_game_metric_values(point)
-            for key, val in values.items():
+        for point in row.get(XP_ROUND_SERIES_KEY) or ():
+            passes = int(point.get("passes") or 0)
+            groups.setdefault(group, []).append(
+                {
+                    "row": row,
+                    "point": point,
+                    "passes": passes,
+                    "values": _round_game_metric_values(point),
+                }
+            )
+
+    grade_by_player_event: dict[tuple[str, str], float] = {}
+
+    for group, entries in groups.items():
+        if len(entries) < 10:
+            continue
+
+        metric_lists: dict[str, list[float]] = {
+            key: [] for key in GAME_PASS_RATING_FEATURE_WEIGHTS
+        }
+        for entry in entries:
+            if entry["passes"] <= 0:
+                continue
+            for key in GAME_PASS_RATING_FEATURE_WEIGHTS:
+                val = entry["values"].get(key)
                 if val is not None:
-                    bucket[key].append(float(val))
+                    metric_lists[key].append(float(val))
 
-    grade_context: dict[str, tuple[dict[str, tuple[float, float]], list[float]]] = {}
-    for group, metric_lists in pool_metrics.items():
-        pool_size = len(metric_lists.get("xpv") or [])
-        if pool_size < 10:
-            continue
-        z_params = _game_metric_z_params(metric_lists)
-        composite_zs = [
-            _game_composite_z(_round_game_metric_values(point), z_params)
-            for row in rows
-            if _metric_rank_pool_key(row) == group
-            for point in (row.get(XP_ROUND_SERIES_KEY) or ())
-        ]
-        if not composite_zs:
-            continue
-        grade_context[group] = (z_params, composite_zs)
+        passes_list = [int(e["passes"]) for e in entries if e["passes"] > 0]
+        p25_passes = float(np.percentile(passes_list, 25)) if passes_list else 29.0
+        p25_passes = max(p25_passes, 1.0)
+
+        shrunk_rows: list[dict[str, float]] = []
+        for entry in entries:
+            shrunk: dict[str, float] = {}
+            for feature_key in GAME_PASS_RATING_FEATURE_WEIGHTS:
+                shrunk[feature_key] = _game_pass_rating_shrink_value(
+                    feature_key,
+                    entry["values"].get(feature_key),
+                    entry["passes"],
+                    metric_lists.get(feature_key) or [],
+                )
+            shrunk_rows.append(shrunk)
+
+        composite_zs: list[float] = []
+        weight_sum = sum(GAME_PASS_RATING_FEATURE_WEIGHTS.values())
+        for shrunk in shrunk_rows:
+            z_parts: list[float] = []
+            for feature_key, weight in GAME_PASS_RATING_FEATURE_WEIGHTS.items():
+                col = [s[feature_key] for s in shrunk_rows]
+                arr = np.array(col, dtype=float)
+                std = float(arr.std())
+                z = (
+                    (shrunk[feature_key] - float(arr.mean())) / std
+                    if std > 1e-12
+                    else 0.0
+                )
+                z_parts.append(weight * z)
+            composite_zs.append(sum(z_parts) / weight_sum if z_parts else 0.0)
+
+        pool_size = len(composite_zs)
+        composite_arr = np.array(composite_zs, dtype=float)
+
+        for i, entry in enumerate(entries):
+            composite_z = composite_zs[i]
+            rank = int(np.sum(composite_arr > composite_z)) + 1
+            grade = _game_pass_rating_grade(
+                composite_z,
+                rank,
+                pool_size,
+                entry["passes"],
+                p25_passes,
+            )
+            pid = str(entry["row"].get("player_id") or "")
+            eid = str(entry["point"].get("event_id") or "")
+            if pid and eid:
+                grade_by_player_event[(pid, eid)] = grade
 
     for row in rows:
-        group = _metric_rank_pool_key(row)
         series = row.get(XP_ROUND_SERIES_KEY) or ()
-        context = grade_context.get(group)
-        if len(series) < 3 or context is None:
+        if len(series) < 3:
             row["xp_game_consistency_score"] = 0.0
             row["xp_game_grade_mad"] = None
             row["xp_game_grade_mean"] = None
             row["xp_game_grades"] = ()
             continue
 
-        z_params, pool_composite_zs = context
-        pool_arr = np.array(pool_composite_zs, dtype=float)
-        pool_size = len(pool_arr)
+        pid = str(row.get("player_id") or "")
         grades: list[float] = []
         for point in series:
-            composite_z = _game_composite_z(_round_game_metric_values(point), z_params)
-            pseudo_rank = int(np.sum(pool_arr > composite_z)) + 1
-            grades.append(float(_rank_to_game_display_score(pseudo_rank, pool_size)))
+            eid = str(point.get("event_id") or "")
+            grade = grade_by_player_event.get((pid, eid))
+            if grade is None:
+                continue
+            grades.append(float(grade))
+
+        if len(grades) < 3:
+            row["xp_game_consistency_score"] = 0.0
+            row["xp_game_grade_mad"] = None
+            row["xp_game_grade_mean"] = None
+            row["xp_game_grades"] = ()
+            continue
 
         grades_arr = np.array(grades, dtype=float)
         median_grade = float(np.median(grades_arr))
