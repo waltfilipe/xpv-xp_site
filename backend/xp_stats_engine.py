@@ -691,6 +691,16 @@ GAME_GRADE_DISPLAY_MAX = 10.0
 GAME_GRADE_IDEAL_BOOST = 1.10
 GAME_PASS_RATING_PSEUDO_MINUTES_PER_PASS = 3.0
 GAME_PASS_RATING_FULL_GAME_PSEUDO_MINUTES = 90.0
+# Per-match overall pass grade: same 4.5–8.48 band as season, merit-heavy blend to
+# separate elite games instead of pinning many at ~8.3.
+GAME_PASS_RATING_DISPLAY_FLOOR = 4.5
+GAME_PASS_RATING_DISPLAY_CAP = 8.48
+GAME_PASS_RATING_DISPLAY_MID = 6.0
+GAME_PASS_RATING_BLEND_RANK_WEIGHT = 0.28
+GAME_PASS_RATING_BLEND_PROBIT_SIGMA = 0.95
+GAME_PASS_RATING_BLEND_PROBIT_RANK_CAP = 7.70
+GAME_PASS_RATING_BLEND_MERIT_AMPLITUDE = 2.65
+GAME_PASS_RATING_BLEND_MERIT_SCALE = 1.0
 
 
 def _round_pass_eff_pct(point: dict) -> float | None:
@@ -2406,6 +2416,46 @@ def _game_pass_rating_confidence(passes: int, p25_passes: float) -> float:
     )
 
 
+def game_pass_rating_blended_display(rank: int, pool_size: int, composite_z: float) -> float:
+    """Map rank + composite z to a 4.5–8.48 per-match pass grade.
+
+    Merit-heavy blend (72% tanh z vs 52% for season) spreads elite games within the
+    season cap; a lower probit rank cap stops rank from pushing everyone to ~8.3.
+    """
+    if pool_size <= 0 or rank <= 0:
+        return GAME_PASS_RATING_DISPLAY_MID
+    pct_rank = (float(rank) - 0.5) / float(pool_size)
+    grade_rank = float(
+        np.clip(
+            norm.ppf(1.0 - pct_rank, loc=GAME_PASS_RATING_DISPLAY_MID, scale=GAME_PASS_RATING_BLEND_PROBIT_SIGMA),
+            GAME_PASS_RATING_DISPLAY_FLOOR,
+            GAME_PASS_RATING_BLEND_PROBIT_RANK_CAP,
+        )
+    )
+    grade_merit = float(
+        GAME_PASS_RATING_DISPLAY_MID
+        + GAME_PASS_RATING_BLEND_MERIT_AMPLITUDE
+        * np.tanh(float(composite_z) / GAME_PASS_RATING_BLEND_MERIT_SCALE)
+    )
+    blended = (
+        GAME_PASS_RATING_BLEND_RANK_WEIGHT * grade_rank
+        + (1.0 - GAME_PASS_RATING_BLEND_RANK_WEIGHT) * grade_merit
+    )
+    return float(
+        np.clip(blended, GAME_PASS_RATING_DISPLAY_FLOOR, GAME_PASS_RATING_DISPLAY_CAP)
+    )
+
+
+def _apply_game_pass_rating_confidence(
+    score_percentile: float,
+    confidence: float,
+) -> tuple[float, float]:
+    efetivo = 1.0 - XP_PASS_RATING_CONFIDENCE_WEIGHT * (1.0 - confidence)
+    grade = efetivo * score_percentile + (1.0 - efetivo) * GAME_PASS_RATING_DISPLAY_MID
+    uncertainty = (1.0 - efetivo) * pe.RATING_TANH_AMPLITUDE
+    return float(grade), float(uncertainty)
+
+
 def _game_pass_rating_grade(
     composite_z: float,
     rank: int,
@@ -2413,11 +2463,16 @@ def _game_pass_rating_grade(
     passes: int,
     p25_passes: float,
 ) -> float:
-    """Overall pass grade for one match (xp_pass_rating blend + confidence pull)."""
-    blend = xp_pass_rating_blended_display(rank, pool_size, composite_z)
+    """Overall pass grade for one match (xp style blend + confidence pull)."""
+    blend = game_pass_rating_blended_display(rank, pool_size, composite_z)
     confidence = _game_pass_rating_confidence(passes, p25_passes)
-    adjusted, _ = _apply_xp_pass_rating_confidence(blend, confidence)
-    return round(float(adjusted), 2)
+    adjusted, _ = _apply_game_pass_rating_confidence(blend, confidence)
+    return round(
+        float(
+            np.clip(adjusted, GAME_PASS_RATING_DISPLAY_FLOOR, GAME_PASS_RATING_DISPLAY_CAP)
+        ),
+        2,
+    )
 
 
 def _attach_game_grade_consistency(rows: list[dict]) -> None:
