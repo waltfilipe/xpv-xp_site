@@ -1,23 +1,36 @@
 {
-  "version": "xpass_logistic_od12x8_dist_prog_lat_v3",
+  "version": "xpass_logistic_od12x8_dist_prog_lat_v4_calib10",
   "model_type": "logistic_l2",
   "c": 0.08,
   "grid": "study_m3_m4",
+  "n_passes_training": 779098,
   "n_passes_scored": 445226,
   "n_players": 522,
+  "training_leagues": [
+    "premier_league",
+    "italia_seriea",
+    "laliga",
+    "bundesliga",
+    "ligue1",
+    "belgian_pro_league",
+    "greek_super_league",
+    "eredivisie",
+    "portugal_primeira",
+    "turkey_super_league"
+  ],
   "cv_match_metrics": {
-    "brier_score": 0.09152341117729405,
-    "log_loss": 0.30191284736844115,
-    "roc_auc": 0.8686326970513369,
-    "completion_rate": 0.8386841738802316,
-    "mean_predicted": 0.8387878357088762
+    "brier_score": 0.09640928750324108,
+    "log_loss": 0.3158550397060033,
+    "roc_auc": 0.8626321246486649,
+    "completion_rate": 0.8303371334543279,
+    "mean_predicted": 0.8304012437464353
   },
   "full_sample_metrics": {
-    "brier_score": 0.09131668017785848,
-    "log_loss": 0.30127807189072725,
-    "roc_auc": 0.8691600896016921,
+    "brier_score": 0.0913524308489336,
+    "log_loss": 0.3015699483737983,
+    "roc_auc": 0.8688610878306956,
     "completion_rate": 0.8386841738802316,
-    "mean_predicted": 0.8387747611148342
+    "mean_predicted": 0.8339421535544925
   },
   "min_player_passes": 100,
   "min_minutes": 450
