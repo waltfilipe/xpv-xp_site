@@ -1473,6 +1473,11 @@ XP_PASS_RATING_V2_GRADE_SPAN = 3.625
 XP_PASS_RATING_V2_CDF_SCALE = 0.84
 XP_PASS_RATING_V2_DISPLAY_MID = 6.75
 XP_PASS_RATING_V2_CONFIDENCE_WEIGHT = 0.22
+# Productivity Sofascore-style display (Geral / Relativo from z-scores).
+XP_PRODUCTIVITY_SOFASCORE_FLOOR = 4.8
+XP_PRODUCTIVITY_SOFASCORE_SPAN = 4.2
+XP_PRODUCTIVITY_SOFASCORE_CDF_SCALE = 0.42
+XP_PRODUCTIVITY_SOFASCORE_CAP = 9.5
 EUROPEAN_TEAM_XP_CACHE = (
     __import__("pathlib").Path(__file__).resolve().parent / "data" / "european_team_xp_per_game.json"
 )
@@ -3055,6 +3060,18 @@ def _coe_stratum_z_for_rows(rows: list[dict]) -> list[float]:
     return [float(v) for v in blended.tolist()]
 
 
+def xp_productivity_sofascore_display(z_score: float) -> float:
+    """Map productivity z to a Sofascore-like 4.8–9.5 grade (median ≈ 6.9, 8 very good)."""
+    pct = norm.cdf(float(z_score) * XP_PRODUCTIVITY_SOFASCORE_CDF_SCALE)
+    raw = XP_PRODUCTIVITY_SOFASCORE_FLOOR + XP_PRODUCTIVITY_SOFASCORE_SPAN * pct
+    return float(
+        min(
+            XP_PRODUCTIVITY_SOFASCORE_CAP,
+            max(XP_PRODUCTIVITY_SOFASCORE_FLOOR, raw),
+        )
+    )
+
+
 def xp_pass_rating_v2_display(composite_z: float) -> float:
     """Map composite z to ~4.9–8.5 via normal CDF on the European pool.
 
@@ -3195,6 +3212,23 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
             XP_PASS_RATING_V2_PROD_PURE_WEIGHT * z_prod_pure
             + (1.0 - XP_PASS_RATING_V2_PROD_PURE_WEIGHT) * z_prod_ratio
         )
+
+        for i, player in enumerate(rows):
+            zg = float(z_prod_pure.iloc[i])
+            zr = float(z_prod_ratio.iloc[i])
+            grade_geral = xp_productivity_sofascore_display(zg)
+            grade_rel = xp_productivity_sofascore_display(zr)
+            blend = (
+                XP_PASS_RATING_V2_PROD_PURE_WEIGHT * grade_geral
+                + (1.0 - XP_PASS_RATING_V2_PROD_PURE_WEIGHT) * grade_rel
+            )
+            player["prod_z_geral"] = round(zg, 4)
+            player["prod_z_rel"] = round(zr, 4)
+            player["prod_grade_geral"] = round(grade_geral, 2)
+            player["prod_grade_rel"] = round(grade_rel, 2)
+            player["prod_grade_blend"] = round(blend, 2)
+            if player.get("xp_profile_bars_eligible"):
+                player["xp_activity_display"] = round(blend, 2)
 
         z_prec_res = _zscore(pd.Series(shrunk_by_feature["xpass_residual_p90"]))
         z_prec_coe = pd.Series(coe_stratum_vals, dtype=float)
