@@ -1,0 +1,837 @@
+{
+  "premier_league|Liverpool FC": {
+    "team_xp_total": 5856.639,
+    "team_games": 38,
+    "team_xp_per_game": 154.1221
+  },
+  "premier_league|Bournemouth": {
+    "team_xp_total": 4165.029,
+    "team_games": 38,
+    "team_xp_per_game": 109.606
+  },
+  "ligue1|Bournemouth": {
+    "team_xp_total": 0.115,
+    "team_games": 1,
+    "team_xp_per_game": 0.1146
+  },
+  "premier_league|Aston Villa": {
+    "team_xp_total": 4269.583,
+    "team_games": 37,
+    "team_xp_per_game": 115.3941
+  },
+  "premier_league|Newcastle United": {
+    "team_xp_total": 4618.842,
+    "team_games": 37,
+    "team_xp_per_game": 124.8336
+  },
+  "premier_league|Brighton & Hove Albion": {
+    "team_xp_total": 4503.937,
+    "team_games": 38,
+    "team_xp_per_game": 118.5247
+  },
+  "ligue1|Brighton & Hove Albion": {
+    "team_xp_total": 46.279,
+    "team_games": 9,
+    "team_xp_per_game": 5.1421
+  },
+  "bundesliga|Brighton & Hove Albion": {
+    "team_xp_total": 69.048,
+    "team_games": 18,
+    "team_xp_per_game": 3.836
+  },
+  "premier_league|Fulham": {
+    "team_xp_total": 4567.266,
+    "team_games": 38,
+    "team_xp_per_game": 120.1912
+  },
+  "premier_league|Sunderland": {
+    "team_xp_total": 3530.122,
+    "team_games": 38,
+    "team_xp_per_game": 92.8979
+  },
+  "bundesliga|Sunderland": {
+    "team_xp_total": 34.888,
+    "team_games": 2,
+    "team_xp_per_game": 17.4438
+  },
+  "ligue1|Sunderland": {
+    "team_xp_total": 45.656,
+    "team_games": 15,
+    "team_xp_per_game": 3.0437
+  },
+  "premier_league|West Ham United": {
+    "team_xp_total": 3431.754,
+    "team_games": 38,
+    "team_xp_per_game": 90.3093
+  },
+  "ligue1|West Ham United": {
+    "team_xp_total": 32.205,
+    "team_games": 2,
+    "team_xp_per_game": 16.1025
+  },
+  "laliga|West Ham United": {
+    "team_xp_total": 23.333,
+    "team_games": 6,
+    "team_xp_per_game": 3.8888
+  },
+  "italia_seriea|West Ham United": {
+    "team_xp_total": 17.591,
+    "team_games": 8,
+    "team_xp_per_game": 2.1989
+  },
+  "premier_league|Tottenham Hotspur": {
+    "team_xp_total": 3885.444,
+    "team_games": 38,
+    "team_xp_per_game": 102.2485
+  },
+  "premier_league|Burnley": {
+    "team_xp_total": 3564.139,
+    "team_games": 38,
+    "team_xp_per_game": 93.7931
+  },
+  "premier_league|Wolverhampton": {
+    "team_xp_total": 3331.131,
+    "team_games": 38,
+    "team_xp_per_game": 87.6613
+  },
+  "ligue1|Wolverhampton": {
+    "team_xp_total": 93.305,
+    "team_games": 25,
+    "team_xp_per_game": 3.7322
+  },
+  "laliga|Wolverhampton": {
+    "team_xp_total": 30.45,
+    "team_games": 8,
+    "team_xp_per_game": 3.8063
+  },
+  "premier_league|Manchester City": {
+    "team_xp_total": 6187.003,
+    "team_games": 37,
+    "team_xp_per_game": 167.2163
+  },
+  "premier_league|Chelsea": {
+    "team_xp_total": 5354.485,
+    "team_games": 38,
+    "team_xp_per_game": 140.9075
+  },
+  "premier_league|Crystal Palace": {
+    "team_xp_total": 3818.415,
+    "team_games": 38,
+    "team_xp_per_game": 100.4846
+  },
+  "premier_league|Nottingham Forest": {
+    "team_xp_total": 4062.752,
+    "team_games": 37,
+    "team_xp_per_game": 109.8041
+  },
+  "premier_league|Brentford": {
+    "team_xp_total": 3658.807,
+    "team_games": 38,
+    "team_xp_per_game": 96.2844
+  },
+  "premier_league|Manchester United": {
+    "team_xp_total": 4847.494,
+    "team_games": 38,
+    "team_xp_per_game": 127.5656
+  },
+  "premier_league|Arsenal": {
+    "team_xp_total": 4919.398,
+    "team_games": 38,
+    "team_xp_per_game": 129.4578
+  },
+  "premier_league|Leeds United": {
+    "team_xp_total": 3663.644,
+    "team_games": 38,
+    "team_xp_per_game": 96.4117
+  },
+  "italia_seriea|Leeds United": {
+    "team_xp_total": 30.131,
+    "team_games": 10,
+    "team_xp_per_game": 3.0131
+  },
+  "premier_league|Everton": {
+    "team_xp_total": 3853.587,
+    "team_games": 38,
+    "team_xp_per_game": 101.4102
+  },
+  "italia_seriea|Aston Villa": {
+    "team_xp_total": 26.285,
+    "team_games": 17,
+    "team_xp_per_game": 1.5462
+  },
+  "ligue1|Arsenal": {
+    "team_xp_total": 29.298,
+    "team_games": 6,
+    "team_xp_per_game": 4.883
+  },
+  "bundesliga|Nottingham Forest": {
+    "team_xp_total": 28.885,
+    "team_games": 14,
+    "team_xp_per_game": 2.0632
+  },
+  "italia_seriea|Nottingham Forest": {
+    "team_xp_total": 2.609,
+    "team_games": 4,
+    "team_xp_per_game": 0.6524
+  },
+  "ligue1|Chelsea": {
+    "team_xp_total": 5.815,
+    "team_games": 3,
+    "team_xp_per_game": 1.9383
+  },
+  "italia_seriea|Genoa": {
+    "team_xp_total": 3539.964,
+    "team_games": 38,
+    "team_xp_per_game": 93.157
+  },
+  "bundesliga|Genoa": {
+    "team_xp_total": 5.242,
+    "team_games": 4,
+    "team_xp_per_game": 1.3104
+  },
+  "italia_seriea|Lecce": {
+    "team_xp_total": 3080.482,
+    "team_games": 38,
+    "team_xp_per_game": 81.0653
+  },
+  "laliga|Lecce": {
+    "team_xp_total": 73.632,
+    "team_games": 16,
+    "team_xp_per_game": 4.602
+  },
+  "ligue1|Lecce": {
+    "team_xp_total": 60.344,
+    "team_games": 17,
+    "team_xp_per_game": 3.5497
+  },
+  "italia_seriea|Sassuolo": {
+    "team_xp_total": 4009.59,
+    "team_games": 38,
+    "team_xp_per_game": 105.5155
+  },
+  "italia_seriea|SSC Napoli": {
+    "team_xp_total": 5609.207,
+    "team_games": 38,
+    "team_xp_per_game": 147.6107
+  },
+  "italia_seriea|AC Milan": {
+    "team_xp_total": 5265.818,
+    "team_games": 38,
+    "team_xp_per_game": 138.5742
+  },
+  "premier_league|AC Milan": {
+    "team_xp_total": 11.505,
+    "team_games": 1,
+    "team_xp_per_game": 11.5052
+  },
+  "italia_seriea|Cremonese": {
+    "team_xp_total": 3585.248,
+    "team_games": 38,
+    "team_xp_per_game": 94.3486
+  },
+  "italia_seriea|AS Roma": {
+    "team_xp_total": 5077.083,
+    "team_games": 38,
+    "team_xp_per_game": 133.6074
+  },
+  "italia_seriea|Bologna": {
+    "team_xp_total": 4531.095,
+    "team_games": 38,
+    "team_xp_per_game": 119.2393
+  },
+  "ligue1|Bologna": {
+    "team_xp_total": 10.549,
+    "team_games": 6,
+    "team_xp_per_game": 1.7581
+  },
+  "italia_seriea|Cagliari": {
+    "team_xp_total": 3570.303,
+    "team_games": 38,
+    "team_xp_per_game": 93.9554
+  },
+  "laliga|Cagliari": {
+    "team_xp_total": 18.659,
+    "team_games": 10,
+    "team_xp_per_game": 1.8659
+  },
+  "italia_seriea|Fiorentina": {
+    "team_xp_total": 4252.725,
+    "team_games": 38,
+    "team_xp_per_game": 111.9138
+  },
+  "italia_seriea|Como": {
+    "team_xp_total": 5507.147,
+    "team_games": 38,
+    "team_xp_per_game": 144.9249
+  },
+  "italia_seriea|Lazio": {
+    "team_xp_total": 4930.281,
+    "team_games": 38,
+    "team_xp_per_game": 129.7442
+  },
+  "premier_league|Lazio": {
+    "team_xp_total": 32.821,
+    "team_games": 11,
+    "team_xp_per_game": 2.9837
+  },
+  "italia_seriea|Atalanta": {
+    "team_xp_total": 5258.508,
+    "team_games": 38,
+    "team_xp_per_game": 138.3818
+  },
+  "italia_seriea|Pisa": {
+    "team_xp_total": 3115.101,
+    "team_games": 38,
+    "team_xp_per_game": 81.9763
+  },
+  "italia_seriea|Juventus": {
+    "team_xp_total": 5769.991,
+    "team_games": 38,
+    "team_xp_per_game": 151.8419
+  },
+  "laliga|Juventus": {
+    "team_xp_total": 0.515,
+    "team_games": 2,
+    "team_xp_per_game": 0.2575
+  },
+  "italia_seriea|Parma": {
+    "team_xp_total": 3498.584,
+    "team_games": 38,
+    "team_xp_per_game": 92.068
+  },
+  "italia_seriea|Udinese": {
+    "team_xp_total": 3596.8,
+    "team_games": 38,
+    "team_xp_per_game": 94.6526
+  },
+  "italia_seriea|Hellas Verona": {
+    "team_xp_total": 3230.114,
+    "team_games": 38,
+    "team_xp_per_game": 85.003
+  },
+  "italia_seriea|Inter": {
+    "team_xp_total": 6008.849,
+    "team_games": 38,
+    "team_xp_per_game": 158.1276
+  },
+  "ligue1|Inter": {
+    "team_xp_total": 20.82,
+    "team_games": 1,
+    "team_xp_per_game": 20.82
+  },
+  "italia_seriea|Torino": {
+    "team_xp_total": 3687.258,
+    "team_games": 38,
+    "team_xp_per_game": 97.0331
+  },
+  "bundesliga|Como": {
+    "team_xp_total": 55.459,
+    "team_games": 13,
+    "team_xp_per_game": 4.2661
+  },
+  "premier_league|AS Roma": {
+    "team_xp_total": 15.879,
+    "team_games": 7,
+    "team_xp_per_game": 2.2685
+  },
+  "ligue1|AS Roma": {
+    "team_xp_total": 7.851,
+    "team_games": 12,
+    "team_xp_per_game": 0.6543
+  },
+  "laliga|AS Roma": {
+    "team_xp_total": 18.169,
+    "team_games": 4,
+    "team_xp_per_game": 4.5423
+  },
+  "laliga|Girona FC": {
+    "team_xp_total": 4558.232,
+    "team_games": 38,
+    "team_xp_per_game": 119.9535
+  },
+  "premier_league|Girona FC": {
+    "team_xp_total": 23.967,
+    "team_games": 2,
+    "team_xp_per_game": 11.9834
+  },
+  "laliga|Rayo Vallecano": {
+    "team_xp_total": 4124.179,
+    "team_games": 38,
+    "team_xp_per_game": 108.531
+  },
+  "laliga|Villarreal": {
+    "team_xp_total": 4012.897,
+    "team_games": 38,
+    "team_xp_per_game": 105.6025
+  },
+  "premier_league|Villarreal": {
+    "team_xp_total": 28.846,
+    "team_games": 2,
+    "team_xp_per_game": 14.4231
+  },
+  "laliga|Real Oviedo": {
+    "team_xp_total": 3628.845,
+    "team_games": 38,
+    "team_xp_per_game": 95.4959
+  },
+  "laliga|Mallorca": {
+    "team_xp_total": 3952.381,
+    "team_games": 38,
+    "team_xp_per_game": 104.01
+  },
+  "laliga|FC Barcelona": {
+    "team_xp_total": 7235.764,
+    "team_games": 38,
+    "team_xp_per_game": 190.4149
+  },
+  "laliga|Deportivo Alav\u00e9s": {
+    "team_xp_total": 4099.627,
+    "team_games": 38,
+    "team_xp_per_game": 107.8849
+  },
+  "laliga|Levante UD": {
+    "team_xp_total": 3427.314,
+    "team_games": 38,
+    "team_xp_per_game": 90.1925
+  },
+  "laliga|Valencia": {
+    "team_xp_total": 3892.064,
+    "team_games": 38,
+    "team_xp_per_game": 102.4227
+  },
+  "laliga|Real Sociedad": {
+    "team_xp_total": 4502.976,
+    "team_games": 38,
+    "team_xp_per_game": 118.4994
+  },
+  "laliga|Celta Vigo": {
+    "team_xp_total": 5112.993,
+    "team_games": 38,
+    "team_xp_per_game": 134.5524
+  },
+  "laliga|Getafe": {
+    "team_xp_total": 2825.41,
+    "team_games": 38,
+    "team_xp_per_game": 74.3529
+  },
+  "premier_league|Getafe": {
+    "team_xp_total": 10.323,
+    "team_games": 3,
+    "team_xp_per_game": 3.441
+  },
+  "laliga|Athletic Club": {
+    "team_xp_total": 4380.989,
+    "team_games": 38,
+    "team_xp_per_game": 115.2892
+  },
+  "laliga|Sevilla": {
+    "team_xp_total": 3855.222,
+    "team_games": 38,
+    "team_xp_per_game": 101.4532
+  },
+  "ligue1|Sevilla": {
+    "team_xp_total": 2.558,
+    "team_games": 1,
+    "team_xp_per_game": 2.558
+  },
+  "laliga|Espanyol": {
+    "team_xp_total": 3449.469,
+    "team_games": 38,
+    "team_xp_per_game": 90.7755
+  },
+  "laliga|Atl\u00e9tico Madrid": {
+    "team_xp_total": 5129.739,
+    "team_games": 38,
+    "team_xp_per_game": 134.9931
+  },
+  "premier_league|Atl\u00e9tico Madrid": {
+    "team_xp_total": 97.804,
+    "team_games": 19,
+    "team_xp_per_game": 5.1476
+  },
+  "italia_seriea|Atl\u00e9tico Madrid": {
+    "team_xp_total": 74.827,
+    "team_games": 24,
+    "team_xp_per_game": 3.1178
+  },
+  "laliga|Elche": {
+    "team_xp_total": 5102.488,
+    "team_games": 38,
+    "team_xp_per_game": 134.276
+  },
+  "laliga|Real Betis": {
+    "team_xp_total": 4679.077,
+    "team_games": 38,
+    "team_xp_per_game": 123.1336
+  },
+  "laliga|Real Madrid": {
+    "team_xp_total": 6682.235,
+    "team_games": 38,
+    "team_xp_per_game": 175.8483
+  },
+  "laliga|Osasuna": {
+    "team_xp_total": 3766.675,
+    "team_games": 38,
+    "team_xp_per_game": 99.123
+  },
+  "ligue1|Espanyol": {
+    "team_xp_total": 7.162,
+    "team_games": 3,
+    "team_xp_per_game": 2.3874
+  },
+  "ligue1|Levante UD": {
+    "team_xp_total": 11.665,
+    "team_games": 11,
+    "team_xp_per_game": 1.0605
+  },
+  "italia_seriea|Villarreal": {
+    "team_xp_total": 15.307,
+    "team_games": 6,
+    "team_xp_per_game": 2.5511
+  },
+  "bundesliga|Osasuna": {
+    "team_xp_total": 10.041,
+    "team_games": 8,
+    "team_xp_per_game": 1.2551
+  },
+  "ligue1|FC Barcelona": {
+    "team_xp_total": 13.608,
+    "team_games": 4,
+    "team_xp_per_game": 3.4021
+  },
+  "italia_seriea|Valencia": {
+    "team_xp_total": 117.1,
+    "team_games": 12,
+    "team_xp_per_game": 9.7584
+  },
+  "italia_seriea|Espanyol": {
+    "team_xp_total": 30.706,
+    "team_games": 9,
+    "team_xp_per_game": 3.4117
+  },
+  "italia_seriea|Celta Vigo": {
+    "team_xp_total": 30.794,
+    "team_games": 6,
+    "team_xp_per_game": 5.1323
+  },
+  "ligue1|Mallorca": {
+    "team_xp_total": 7.109,
+    "team_games": 2,
+    "team_xp_per_game": 3.5544
+  },
+  "bundesliga|FC Bayern M\u00fcnchen": {
+    "team_xp_total": 7379.518,
+    "team_games": 34,
+    "team_xp_per_game": 217.0446
+  },
+  "bundesliga|RB Leipzig": {
+    "team_xp_total": 4577.94,
+    "team_games": 34,
+    "team_xp_per_game": 134.6453
+  },
+  "premier_league|RB Leipzig": {
+    "team_xp_total": 7.587,
+    "team_games": 1,
+    "team_xp_per_game": 7.5873
+  },
+  "italia_seriea|RB Leipzig": {
+    "team_xp_total": 2.594,
+    "team_games": 2,
+    "team_xp_per_game": 1.297
+  },
+  "bundesliga|1. FC Heidenheim": {
+    "team_xp_total": 3073.052,
+    "team_games": 34,
+    "team_xp_per_game": 90.3839
+  },
+  "bundesliga|VfL Wolfsburg": {
+    "team_xp_total": 3689.446,
+    "team_games": 36,
+    "team_xp_per_game": 102.4846
+  },
+  "bundesliga|1. FC Union Berlin": {
+    "team_xp_total": 2840.236,
+    "team_games": 34,
+    "team_xp_per_game": 83.5363
+  },
+  "bundesliga|VfB Stuttgart": {
+    "team_xp_total": 4925.305,
+    "team_games": 34,
+    "team_xp_per_game": 144.8619
+  },
+  "premier_league|VfB Stuttgart": {
+    "team_xp_total": 2.93,
+    "team_games": 1,
+    "team_xp_per_game": 2.9299
+  },
+  "bundesliga|Bayer 04 Leverkusen": {
+    "team_xp_total": 5738.212,
+    "team_games": 34,
+    "team_xp_per_game": 168.7709
+  },
+  "premier_league|Bayer 04 Leverkusen": {
+    "team_xp_total": 25.007,
+    "team_games": 1,
+    "team_xp_per_game": 25.0073
+  },
+  "laliga|Bayer 04 Leverkusen": {
+    "team_xp_total": 20.428,
+    "team_games": 6,
+    "team_xp_per_game": 3.4047
+  },
+  "bundesliga|TSG Hoffenheim": {
+    "team_xp_total": 4344.307,
+    "team_games": 34,
+    "team_xp_per_game": 127.7737
+  },
+  "bundesliga|Eintracht Frankfurt": {
+    "team_xp_total": 4413.598,
+    "team_games": 34,
+    "team_xp_per_game": 129.8117
+  },
+  "ligue1|Eintracht Frankfurt": {
+    "team_xp_total": 18.914,
+    "team_games": 10,
+    "team_xp_per_game": 1.8914
+  },
+  "bundesliga|SV Werder Bremen": {
+    "team_xp_total": 4333.541,
+    "team_games": 34,
+    "team_xp_per_game": 127.4571
+  },
+  "bundesliga|SC Freiburg": {
+    "team_xp_total": 3480.122,
+    "team_games": 34,
+    "team_xp_per_game": 102.3565
+  },
+  "premier_league|SC Freiburg": {
+    "team_xp_total": 7.697,
+    "team_games": 2,
+    "team_xp_per_game": 3.8483
+  },
+  "bundesliga|FC Augsburg": {
+    "team_xp_total": 3457.031,
+    "team_games": 34,
+    "team_xp_per_game": 101.6774
+  },
+  "bundesliga|FC St. Pauli": {
+    "team_xp_total": 3598.797,
+    "team_games": 34,
+    "team_xp_per_game": 105.847
+  },
+  "bundesliga|Borussia Dortmund": {
+    "team_xp_total": 4723.373,
+    "team_games": 34,
+    "team_xp_per_game": 138.9227
+  },
+  "premier_league|Borussia Dortmund": {
+    "team_xp_total": 152.734,
+    "team_games": 11,
+    "team_xp_per_game": 13.8849
+  },
+  "bundesliga|1. FSV Mainz 05": {
+    "team_xp_total": 3337.561,
+    "team_games": 34,
+    "team_xp_per_game": 98.1635
+  },
+  "bundesliga|1. FC K\u00f6ln": {
+    "team_xp_total": 3658.194,
+    "team_games": 34,
+    "team_xp_per_game": 107.594
+  },
+  "bundesliga|Borussia M'gladbach": {
+    "team_xp_total": 3739.115,
+    "team_games": 34,
+    "team_xp_per_game": 109.974
+  },
+  "bundesliga|Hamburger SV": {
+    "team_xp_total": 3204.563,
+    "team_games": 34,
+    "team_xp_per_game": 94.2518
+  },
+  "bundesliga|SC Paderborn 07": {
+    "team_xp_total": 290.731,
+    "team_games": 2,
+    "team_xp_per_game": 145.3654
+  },
+  "ligue1|Stade Rennais": {
+    "team_xp_total": 4214.893,
+    "team_games": 34,
+    "team_xp_per_game": 123.9674
+  },
+  "bundesliga|Stade Rennais": {
+    "team_xp_total": 46.014,
+    "team_games": 13,
+    "team_xp_per_game": 3.5395
+  },
+  "ligue1|Olympique de Marseille": {
+    "team_xp_total": 5102.315,
+    "team_games": 34,
+    "team_xp_per_game": 150.0681
+  },
+  "italia_seriea|Olympique de Marseille": {
+    "team_xp_total": 57.39,
+    "team_games": 10,
+    "team_xp_per_game": 5.739
+  },
+  "ligue1|RC Lens": {
+    "team_xp_total": 4397.883,
+    "team_games": 34,
+    "team_xp_per_game": 129.3495
+  },
+  "italia_seriea|RC Lens": {
+    "team_xp_total": 12.328,
+    "team_games": 1,
+    "team_xp_per_game": 12.3279
+  },
+  "ligue1|Olympique Lyonnais": {
+    "team_xp_total": 3997.821,
+    "team_games": 33,
+    "team_xp_per_game": 121.1461
+  },
+  "bundesliga|Olympique Lyonnais": {
+    "team_xp_total": 1.32,
+    "team_games": 1,
+    "team_xp_per_game": 1.3201
+  },
+  "laliga|Olympique Lyonnais": {
+    "team_xp_total": 48.964,
+    "team_games": 13,
+    "team_xp_per_game": 3.7665
+  },
+  "ligue1|AS Monaco": {
+    "team_xp_total": 4515.807,
+    "team_games": 33,
+    "team_xp_per_game": 136.8426
+  },
+  "bundesliga|AS Monaco": {
+    "team_xp_total": 6.323,
+    "team_games": 2,
+    "team_xp_per_game": 3.1616
+  },
+  "ligue1|Le Havre": {
+    "team_xp_total": 3204.495,
+    "team_games": 34,
+    "team_xp_per_game": 94.2499
+  },
+  "ligue1|Nice": {
+    "team_xp_total": 3747.038,
+    "team_games": 36,
+    "team_xp_per_game": 104.0844
+  },
+  "bundesliga|Nice": {
+    "team_xp_total": 10.958,
+    "team_games": 2,
+    "team_xp_per_game": 5.4788
+  },
+  "italia_seriea|Nice": {
+    "team_xp_total": 54.395,
+    "team_games": 14,
+    "team_xp_per_game": 3.8854
+  },
+  "ligue1|Toulouse": {
+    "team_xp_total": 3305.772,
+    "team_games": 33,
+    "team_xp_per_game": 100.1749
+  },
+  "premier_league|Toulouse": {
+    "team_xp_total": 26.758,
+    "team_games": 2,
+    "team_xp_per_game": 13.3789
+  },
+  "ligue1|Stade Brestois": {
+    "team_xp_total": 3157.814,
+    "team_games": 34,
+    "team_xp_per_game": 92.8769
+  },
+  "ligue1|Lille": {
+    "team_xp_total": 4658.389,
+    "team_games": 34,
+    "team_xp_per_game": 137.0115
+  },
+  "ligue1|Angers": {
+    "team_xp_total": 3236.482,
+    "team_games": 34,
+    "team_xp_per_game": 95.1906
+  },
+  "ligue1|Paris FC": {
+    "team_xp_total": 4018.111,
+    "team_games": 34,
+    "team_xp_per_game": 118.1797
+  },
+  "ligue1|Auxerre": {
+    "team_xp_total": 3363.701,
+    "team_games": 34,
+    "team_xp_per_game": 98.9324
+  },
+  "ligue1|Lorient": {
+    "team_xp_total": 3637.136,
+    "team_games": 34,
+    "team_xp_per_game": 106.9746
+  },
+  "ligue1|Metz": {
+    "team_xp_total": 3710.179,
+    "team_games": 34,
+    "team_xp_per_game": 109.1229
+  },
+  "ligue1|RC Strasbourg": {
+    "team_xp_total": 4226.911,
+    "team_games": 34,
+    "team_xp_per_game": 124.3209
+  },
+  "premier_league|RC Strasbourg": {
+    "team_xp_total": 13.878,
+    "team_games": 3,
+    "team_xp_per_game": 4.6261
+  },
+  "ligue1|Nantes": {
+    "team_xp_total": 2768.704,
+    "team_games": 33,
+    "team_xp_per_game": 83.9001
+  },
+  "ligue1|Paris Saint-Germain": {
+    "team_xp_total": 7197.802,
+    "team_games": 34,
+    "team_xp_per_game": 211.7001
+  },
+  "laliga|Lille": {
+    "team_xp_total": 1.805,
+    "team_games": 1,
+    "team_xp_per_game": 1.8054
+  },
+  "italia_seriea|Stade Rennais": {
+    "team_xp_total": 3.54,
+    "team_games": 1,
+    "team_xp_per_game": 3.54
+  },
+  "italia_seriea|Metz": {
+    "team_xp_total": 0.993,
+    "team_games": 2,
+    "team_xp_per_game": 0.4967
+  },
+  "laliga|Olympique de Marseille": {
+    "team_xp_total": 0.327,
+    "team_games": 1,
+    "team_xp_per_game": 0.3271
+  },
+  "bundesliga|RC Strasbourg": {
+    "team_xp_total": 0.793,
+    "team_games": 2,
+    "team_xp_per_game": 0.3966
+  },
+  "ligue1|Red Star FC": {
+    "team_xp_total": 139.627,
+    "team_games": 1,
+    "team_xp_per_game": 139.6265
+  },
+  "ligue1|Rodez AF": {
+    "team_xp_total": 168.153,
+    "team_games": 2,
+    "team_xp_per_game": 84.0767
+  },
+  "ligue1|Saint-\u00c9tienne": {
+    "team_xp_total": 380.762,
+    "team_games": 3,
+    "team_xp_per_game": 126.9207
+  }
+}

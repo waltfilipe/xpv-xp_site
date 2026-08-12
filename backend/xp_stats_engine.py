@@ -1454,6 +1454,29 @@ XP_PASS_RATING_CONFIDENCE_WEIGHT = 0.4
 XP_PASS_RATING_CONFIDENCE_PASS_WEIGHT = 0.5
 XP_PASS_RATING_CONFIDENCE_MINUTES_WEIGHT = 0.5
 
+# v2 overall pass grade — three pillars (Productivity / Precision / Lethality).
+XP_PASS_RATING_MODEL_VERSION = "v2_pillars_cdf7"
+XP_PASS_RATING_V2_PILLAR_WEIGHTS: dict[str, float] = {
+    "productivity": 0.35,
+    "precision": 0.35,
+    "lethality": 0.30,
+}
+XP_PASS_RATING_V2_PROD_PURE_WEIGHT = 0.70
+XP_PASS_RATING_V2_PREC_RESIDUAL_WEIGHT = 0.70
+XP_PASS_RATING_V2_LETHALITY_METRICS: tuple[str, ...] = (
+    "xpv_per_pass",
+    "test_impact_v2_p90",
+    "threat_pass_pct",
+)
+XP_PASS_RATING_V2_GRADE_FLOOR = 5.0
+XP_PASS_RATING_V2_GRADE_SPAN = 4.75
+XP_PASS_RATING_V2_CDF_SCALE = 0.78
+XP_PASS_RATING_V2_DISPLAY_MID = 7.0
+XP_PASS_RATING_V2_CONFIDENCE_WEIGHT = 0.22
+EUROPEAN_TEAM_XP_CACHE = (
+    __import__("pathlib").Path(__file__).resolve().parent / "data" / "european_team_xp_per_game.json"
+)
+
 BUILDER_BASE_METRICS: tuple[str, ...] = (
     "xp_line_break_total",
     "special_line_break_p90",
@@ -2038,10 +2061,10 @@ def display_score_letter_grade(display_score: float | int | None) -> str:
 
 
 def display_score_pass_grade_pct(display_score: float | int | None) -> float:
-    """Map display score onto the Overall Pass Grade gradient (4.5→0%, 9.0→100%)."""
+    """Map display score onto the Overall Pass Grade gradient (5→0%, 10→100%)."""
     if display_score is None:
         return 0.0
-    return max(0.0, min(100.0, (float(display_score) - 4.5) / 4.5 * 100.0))
+    return max(0.0, min(100.0, (float(display_score) - 5.0) / 5.0 * 100.0))
 
 
 def _zscore(series: pd.Series) -> pd.Series:
@@ -2921,13 +2944,25 @@ def _attach_secondary_indices(eligible_rows: list[dict]) -> None:
 
 
 def _xp_pass_rating_shrink_sample(feature_key: str, player: dict) -> float:
-    if feature_key in {"xp_per_90", "threat_passes_p90", "xpass_residual_p90"}:
+    if feature_key in {
+        "xp_per_90",
+        "threat_passes_p90",
+        "xpass_residual_p90",
+        "test_impact_v2_p90",
+        "prod_ratio_r_d",
+    }:
         return float(player.get("minutes") or 0.0)
     return float(player.get("passes_completed") or 0.0)
 
 
 def _xp_pass_rating_shrink_k(feature_key: str) -> float:
-    if feature_key in {"xp_per_90", "threat_passes_p90", "xpass_residual_p90"}:
+    if feature_key in {
+        "xp_per_90",
+        "threat_passes_p90",
+        "xpass_residual_p90",
+        "test_impact_v2_p90",
+        "prod_ratio_r_d",
+    }:
         return float(pe.SHRINKAGE_MINUTES_K)
     return float(pe.SHRINKAGE_PASS_K)
 
@@ -2967,10 +3002,62 @@ def _xp_pass_rating_confidence(player: dict) -> float:
 
 
 def _apply_xp_pass_rating_confidence(score_percentile: float, confidence: float) -> tuple[float, float]:
-    efetivo = 1.0 - XP_PASS_RATING_CONFIDENCE_WEIGHT * (1.0 - confidence)
-    grade = efetivo * score_percentile + (1.0 - efetivo) * pe.RATING_DISPLAY_MID
+    efetivo = 1.0 - XP_PASS_RATING_V2_CONFIDENCE_WEIGHT * (1.0 - confidence)
+    grade = efetivo * score_percentile + (1.0 - efetivo) * XP_PASS_RATING_V2_DISPLAY_MID
     uncertainty = (1.0 - efetivo) * pe.RATING_TANH_AMPLITUDE
     return float(grade), float(uncertainty)
+
+
+def _load_european_team_xp_per_game() -> dict[str, dict[str, float | int]]:
+    import json
+
+    path = EUROPEAN_TEAM_XP_CACHE
+    if not path.is_file():
+        return {}
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def _player_prod_ratio_r_d(player: dict, team_map: dict[str, dict]) -> float | None:
+    league = str(player.get("league_source") or "").strip()
+    team = str(player.get("team") or "").strip()
+    if not league or not team:
+        return None
+    info = team_map.get(f"{league}|{team}")
+    if not info:
+        return None
+    team_xp_pg = float(info.get("team_xp_per_game") or 0.0)
+    if team_xp_pg <= 0:
+        return None
+    xp_per_90 = float(player.get("xp_per_90") or 0.0)
+    return xp_per_90 / team_xp_pg
+
+
+def _coe_stratum_z_for_rows(rows: list[dict]) -> list[float]:
+    if not rows:
+        return []
+    df = pd.DataFrame(rows)
+    if "passes_total" not in df.columns:
+        return [0.0] * len(rows)
+    passes = pd.to_numeric(df["passes_total"], errors="coerce")
+    parts: list[pd.Series] = []
+    for col in ("xpass_coe_pct", "xpass_total_coe_pct"):
+        if col in df.columns:
+            parts.append(_coe_stratum_z_by_volume_quartile(passes, df[col]))
+    if not parts:
+        return [0.0] * len(rows)
+    blended = pd.concat(parts, axis=1).mean(axis=1, skipna=True).fillna(0.0)
+    return [float(v) for v in blended.tolist()]
+
+
+def xp_pass_rating_v2_display(composite_z: float) -> float:
+    """Map composite z to 5–10 via normal CDF (mean ≈ 7 on a standard pool)."""
+    pct = norm.cdf(float(composite_z) * XP_PASS_RATING_V2_CDF_SCALE)
+    raw = XP_PASS_RATING_V2_GRADE_FLOOR + XP_PASS_RATING_V2_GRADE_SPAN * pct
+    return float(min(10.0, max(XP_PASS_RATING_V2_GRADE_FLOOR, raw)))
 
 
 def xp_pass_rating_blended_display(rank: int, pool_size: int, composite_z: float) -> float:
@@ -3031,14 +3118,28 @@ def _xp_pass_rating_percentile_band_display(rank: int, pool_size: int) -> float:
 
 
 def attach_xp_pass_ratings(players: list[dict]) -> None:
-    """Attach xP pass rating (3-metric weighted mean + shrinkage) with blended display.
+    """Attach v2 overall pass grade: 3 pillars + shrinkage + soft confidence pull.
 
-    Composite = weighted z-scores within position:
-    Productivity 35%, Lethality 30% (xPV/pass + Pass Impact v2/game), Precision 35%.
-    Display grade blends probit rank (52%) with tanh(composite z) (48%), then confidence pull.
+    Productivity 35% — 0.7·z(xp_per_90) + 0.3·z(xp_per_90 / team_xp_per_game)
+    Precision    35% — 0.7·z(xpass_residual_p90) + 0.3·z(COE stratum)
+    Lethality    30% — mean z(xpv_per_pass, test_impact_v2_p90, threat_pass_pct)
+
+    Display: 5–10 via normal CDF on composite z (pool mean ≈ 7); confidence pull to 7.0.
     """
     if not players:
         return
+
+    team_map = _load_european_team_xp_per_game()
+    shrink_features = (
+        "xp_per_90",
+        "prod_ratio_r_d",
+        "xpass_residual_p90",
+        "xpass_coe_pct",
+        "xpass_total_coe_pct",
+        "xpv_per_pass",
+        "test_impact_v2_p90",
+        "threat_pass_pct",
+    )
 
     pools: dict[str, list[dict]] = {}
     for player in players:
@@ -3054,29 +3155,67 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
         p25_passes = float(np.percentile(passes, 25)) if passes else float(pe.RATING_CONFIDENCE_PASSES)
         p25_passes = max(p25_passes, 1.0)
 
+        for player in rows:
+            player["position_p25_passes"] = round(p25_passes, 1)
+            ratio = _player_prod_ratio_r_d(player, team_map)
+            player["prod_ratio_r_d"] = round(ratio, 4) if ratio is not None else None
+
         shrunk_by_feature: dict[str, list[float]] = {}
-        for feature_key in XP_PASS_RATING_FEATURES:
-            pool_values = [float(p.get(feature_key) or 0.0) for p in rows]
+        for feature_key in shrink_features:
+            pool_values = [
+                float(p.get(feature_key) or 0.0) if p.get(feature_key) is not None else 0.0
+                for p in rows
+            ]
             shrunk_by_feature[feature_key] = [
                 _xp_pass_rating_shrink_value(feature_key, player, pool_values)
                 for player in rows
             ]
 
-        feature_frame = pd.DataFrame(shrunk_by_feature)
-        z_frame = feature_frame.apply(_zscore)
-        weights = pd.Series(XP_PASS_RATING_FEATURE_WEIGHTS)
+        work_rows: list[dict] = []
+        for i, player in enumerate(rows):
+            work_rows.append(
+                {
+                    "passes_total": float(player.get("passes_total") or 0.0),
+                    "xpass_coe_pct": shrunk_by_feature["xpass_coe_pct"][i],
+                    "xpass_total_coe_pct": shrunk_by_feature["xpass_total_coe_pct"][i],
+                }
+            )
+        coe_stratum_vals = _coe_stratum_z_for_rows(work_rows)
+
+        z_prod_pure = _zscore(pd.Series(shrunk_by_feature["xp_per_90"]))
+        z_prod_ratio = _zscore(pd.Series(shrunk_by_feature["prod_ratio_r_d"]))
+        z_productivity = (
+            XP_PASS_RATING_V2_PROD_PURE_WEIGHT * z_prod_pure
+            + (1.0 - XP_PASS_RATING_V2_PROD_PURE_WEIGHT) * z_prod_ratio
+        )
+
+        z_prec_res = _zscore(pd.Series(shrunk_by_feature["xpass_residual_p90"]))
+        z_prec_coe = pd.Series(coe_stratum_vals, dtype=float)
+        z_precision = (
+            XP_PASS_RATING_V2_PREC_RESIDUAL_WEIGHT * z_prec_res
+            + (1.0 - XP_PASS_RATING_V2_PREC_RESIDUAL_WEIGHT) * z_prec_coe
+        )
+
+        leth_z_parts = [
+            _zscore(pd.Series(shrunk_by_feature[key]))
+            for key in XP_PASS_RATING_V2_LETHALITY_METRICS
+        ]
+        z_lethality = sum(leth_z_parts) / len(leth_z_parts)
+
+        w = XP_PASS_RATING_V2_PILLAR_WEIGHTS
         composite_scores = (
-            z_frame.mul(weights, axis=1).sum(axis=1) / weights.sum()
+            w["productivity"] * z_productivity
+            + w["precision"] * z_precision
+            + w["lethality"] * z_lethality
         ).astype(float).tolist()
 
-        for player in rows:
-            player["position_p25_passes"] = round(p25_passes, 1)
-
-        raw_displays = [_xp_pass_rating_tanh_display(score) for score in composite_scores]
-        for player, raw_display, composite_z in zip(rows, raw_displays, composite_scores):
-            player["xp_pass_rating_raw_display"] = round(raw_display, 2)
-            player["xp_pass_rating_confidence"] = round(_xp_pass_rating_confidence(player), 4)
+        for player, composite_z in zip(rows, composite_scores):
+            player["xp_pass_rating_model"] = XP_PASS_RATING_MODEL_VERSION
             player["xp_pass_rating_composite_z"] = round(float(composite_z), 4)
+            player["xp_pass_rating_confidence"] = round(_xp_pass_rating_confidence(player), 4)
+            display = xp_pass_rating_v2_display(float(composite_z))
+            player["xp_pass_rating_raw_display"] = round(display, 2)
+            player["xp_pass_rating_percentile_display"] = round(display, 2)
 
         ranked = sorted(
             zip(rows, composite_scores),
@@ -3084,14 +3223,14 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
             reverse=True,
         )
         for rank, (row, composite_z) in enumerate(ranked, start=1):
-            row["xp_pass_rating_rank_in_group"] = rank
-            row["xp_pass_rating_rank_pool_in_group"] = pool_size
-            pct_display = xp_pass_rating_blended_display(rank, pool_size, float(composite_z))
+            pct_display = xp_pass_rating_v2_display(float(composite_z))
             confidence = float(row.get("xp_pass_rating_confidence") or 0.0)
             adjusted, uncertainty = _apply_xp_pass_rating_confidence(pct_display, confidence)
             row["xp_pass_rating_percentile_display"] = round(pct_display, 2)
             row["xp_pass_rating_uncertainty"] = round(uncertainty, 2)
             row["xp_pass_rating"] = round(adjusted / 10.0, 4)
+            row["xp_pass_rating_rank_in_group"] = rank
+            row["xp_pass_rating_rank_pool_in_group"] = pool_size
             metric_ranks = row.get("metric_ranks")
             if not isinstance(metric_ranks, dict):
                 metric_ranks = {}
