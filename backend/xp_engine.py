@@ -978,6 +978,7 @@ def build_european_league_xp_analytics(
         family,
     )
     ti_v2_progress_cutoffs = xstats.test_impact_v2_attempt_progress_cutoffs(season)
+    keypass_lookup = xstats._build_keypass_lookup(raw_pass_frame)
     players: list[dict] = []
     registry_by_id = {str(p["code"]): p for p in registry}
 
@@ -997,6 +998,12 @@ def build_european_league_xp_analytics(
         if not metrics:
             continue
         minutes = mins.get("minutes")
+        xstats.attach_xpv_chance_creation_metrics(
+            metrics,
+            grp,
+            keypass_lookup=keypass_lookup,
+            minutes=minutes,
+        )
         player_raw = raw_pass_frame[raw_pass_frame["player_id"].astype(str) == pid]
         xstats.attach_regular_pass_stats(metrics, player_raw, minutes)
         xstats.apply_per90_metrics(metrics, minutes)

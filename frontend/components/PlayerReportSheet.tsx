@@ -10,6 +10,8 @@ import { LoadingState } from "@/components/LoadingState";
 import { getPassMap, type PlayerProfile } from "@/lib/api";
 import type { EnrichedReportPlayer } from "@/lib/playerReports";
 import { formatContractUntil } from "@/lib/formatters";
+import { useI18n } from "@/lib/i18n/context";
+import { getReportMapFilters, translateReportCategory, translateReportGroupLabel } from "@/lib/i18n/localize";
 
 export type PlayerReportMaps = {
   pass_map_b64?: string | null;
@@ -25,12 +27,13 @@ export type ReportMapSlot = {
   error?: string | null;
 };
 
-export const REPORT_MAP_FILTERS: { key: string; label: string }[] = [
+/** @deprecated Use getReportMapFilters from @/lib/i18n/localize */
+export const REPORT_MAP_FILTERS = [
   { key: "progressive", label: "Progressive Passes" },
   { key: "test_impact_v2", label: "Impact Passes" },
   { key: "long_passes", label: "Long Passes" },
   { key: "line_break", label: "Break line passes" },
-];
+] as const;
 
 function FactIcon({ icon }: { icon: string }) {
   return (
@@ -73,9 +76,11 @@ export function PlayerReportSheet({
   onExportPdf,
   exportDisabled = false,
 }: Props) {
+  const { t } = useI18n();
+  const mapFilters = getReportMapFilters(t);
   const [activePage, setActivePage] = useState<1 | 2>(1);
   const [localSlots, setLocalSlots] = useState<ReportMapSlot[]>(
-    REPORT_MAP_FILTERS.map((f) => ({ key: f.key, label: f.label })),
+    mapFilters.map((f) => ({ key: f.key, label: f.label })),
   );
   const [mapsLoading, setMapsLoading] = useState(false);
   const [mapsError, setMapsError] = useState<string | null>(null);
@@ -85,6 +90,10 @@ export function PlayerReportSheet({
 
   const p = profile.player;
   const category = entry.category;
+  const categoryTitle = translateReportCategory(category.id, "title", t, category.title);
+  const categorySubtitle = translateReportCategory(category.id, "subtitle", t, category.subtitle);
+  const categoryDescription = translateReportCategory(category.id, "description", t, category.description);
+  const groupLabel = translateReportGroupLabel(entry.groupLabel, t);
   const displayName = String(p.player_name ?? "—");
   const playerId = entry.playerId;
   const accent = category.accent;
@@ -100,7 +109,7 @@ export function PlayerReportSheet({
     let cancelled = false;
     setMapsLoading(true);
     setMapsError(null);
-    setMapSlots(REPORT_MAP_FILTERS.map((f) => {
+    setMapSlots(mapFilters.map((f) => {
       const existing = mapSlots.find((s) => s.key === f.key);
       return existing?.pass_map_b64
         ? { ...existing, loading: false }
@@ -112,7 +121,7 @@ export function PlayerReportSheet({
       let firstLoaded: PlayerReportMaps | null = initialMaps;
       const nextSlots: ReportMapSlot[] = [...mapSlots];
 
-      for (const filter of REPORT_MAP_FILTERS) {
+      for (const filter of mapFilters) {
         if (cancelled) return;
         const existing = nextSlots.find((s) => s.key === filter.key);
         if (existing?.pass_map_b64) continue;
@@ -144,7 +153,7 @@ export function PlayerReportSheet({
           setMapSlots([...nextSlots]);
         } catch (e) {
           if (cancelled) return;
-          const msg = e instanceof Error ? e.message : "Falha ao carregar";
+          const msg = e instanceof Error ? e.message : t.reports.mapLoadFailed;
           const idx = nextSlots.findIndex((s) => s.key === filter.key);
           if (idx >= 0) nextSlots[idx] = { ...nextSlots[idx], loading: false, error: msg };
           setMapSlots([...nextSlots]);
@@ -163,7 +172,7 @@ export function PlayerReportSheet({
       }
     })().catch((e) => {
       if (!cancelled) {
-        setMapsError(e instanceof Error ? e.message : "Falha ao carregar mapas");
+        setMapsError(e instanceof Error ? e.message : t.reports.mapLoadFailedMaps);
         setMapsLoading(false);
       }
     });
@@ -213,24 +222,24 @@ export function PlayerReportSheet({
             <div className="identity-facts identity-facts-side">
               <div className="identity-fact">
                 <FactIcon icon="fa-cake-candles" />
-                <span className="identity-fact-label">Idade</span>
+                <span className="identity-fact-label">{t.common.age}</span>
                 <span className="identity-fact-value tabular">
                   {p.age != null ? String(p.age) : "—"}
                 </span>
               </div>
               <div className="identity-fact">
                 <FactIcon icon="fa-ruler-vertical" />
-                <span className="identity-fact-label">Altura</span>
+                <span className="identity-fact-label">{t.common.height}</span>
                 <span className="identity-fact-value">{String(p.height ?? "—")}</span>
               </div>
               <div className="identity-fact">
                 <FactIcon icon="fa-earth-americas" />
-                <span className="identity-fact-label">Nacionalidade</span>
+                <span className="identity-fact-label">{t.common.nationality}</span>
                 <span className="identity-fact-value">{String(p.nationality ?? "—")}</span>
               </div>
               <div className="identity-fact">
                 <FactIcon icon="fa-shoe-prints" />
-                <span className="identity-fact-label">Pé</span>
+                <span className="identity-fact-label">{t.common.foot}</span>
                 <span className="identity-fact-value">{String(p.dominant_foot ?? "—")}</span>
               </div>
             </div>
@@ -239,7 +248,7 @@ export function PlayerReportSheet({
           {compact && (
             <div className="identity-facts identity-facts-compact">
               <span className="identity-fact-inline tabular">
-                {p.age != null ? `${p.age} anos` : "—"}
+                {p.age != null ? t.reports.yearsOld(Number(p.age)) : "—"}
               </span>
               <span className="identity-fact-inline">{String(p.league_source ?? p.league ?? "—")}</span>
             </div>
@@ -251,11 +260,11 @@ export function PlayerReportSheet({
         {!compact && (
           <>
             <div className="identity-meta-pill">
-              <span><FactIcon icon="fa-coins" /> Valor</span>
+              <span><FactIcon icon="fa-coins" /> {t.common.value}</span>
               <strong>{String(p.market_value ?? "—")}</strong>
             </div>
             <div className="identity-meta-pill">
-              <span><FactIcon icon="fa-calendar-days" /> Contrato</span>
+              <span><FactIcon icon="fa-calendar-days" /> {t.common.contract}</span>
               <strong>{formatContractUntil(p.contract_until)}</strong>
             </div>
           </>
@@ -265,11 +274,11 @@ export function PlayerReportSheet({
           style={minutesPillStyle(minutesPct)}
           title={
             minutesPct != null
-              ? `${(minutesPct * 100).toFixed(0)}% dos minutos possíveis`
+              ? t.reports.minutesPct(Number((minutesPct * 100).toFixed(0)))
               : undefined
           }
         >
-          <span><FactIcon icon="fa-clock" /> Minutos</span>
+          <span><FactIcon icon="fa-clock" /> {t.common.minutes}</span>
           <strong className="tabular">{p.minutes != null ? String(p.minutes) : "—"}</strong>
         </div>
       </div>
@@ -277,7 +286,7 @@ export function PlayerReportSheet({
       {!compact && profile.origin_heatmap_b64 && (
         <img
           src={`data:image/png;base64,${profile.origin_heatmap_b64}`}
-          alt="Origem dos passes"
+          alt={t.profile.passOriginAlt}
           className="heatmap-img report-heatmap"
         />
       )}
@@ -291,7 +300,7 @@ export function PlayerReportSheet({
             onClick={() => setActivePage(2)}
           >
             <i className="fa-solid fa-map-location-dot" />
-            <span>Ver mapas</span>
+            <span>{t.reports.viewMaps}</span>
             <i className="fa-solid fa-arrow-right report-card-maps-arrow" />
           </button>
         ) : (
@@ -301,7 +310,7 @@ export function PlayerReportSheet({
             onClick={() => setActivePage(1)}
           >
             <i className="fa-solid fa-arrow-left" />
-            <span>Voltar ao perfil</span>
+            <span>{t.reports.backToProfile}</span>
           </button>
         )}
       </div>
@@ -328,7 +337,7 @@ export function PlayerReportSheet({
         <strong className="report-maps-strip-name">{displayName}</strong>
         <span className="report-maps-strip-meta">
           {String(p.team ?? "—")} · {String(p.position ?? "—")}
-          {p.age != null ? ` · ${p.age} anos` : ""}
+          {p.age != null ? ` · ${t.reports.yearsOld(Number(p.age))}` : ""}
         </span>
         <span className="report-maps-strip-league muted">
           {String(p.league_source ?? p.league ?? "—")}
@@ -338,7 +347,7 @@ export function PlayerReportSheet({
         className="identity-meta-pill identity-meta-pill-minutes report-maps-strip-minutes"
         style={minutesPillStyle(minutesPct)}
       >
-        <span><FactIcon icon="fa-clock" /> Min</span>
+        <span><FactIcon icon="fa-clock" /> {t.reports.min}</span>
         <strong className="tabular">{p.minutes != null ? String(p.minutes) : "—"}</strong>
       </div>
     </div>
@@ -362,17 +371,17 @@ export function PlayerReportSheet({
               <i className="fa-solid fa-futbol" />
             </span>
             <div>
-              <span className="report-sheet-eyebrow">Pass Scout · Midfielder Report</span>
+              <span className="report-sheet-eyebrow">{t.reports.sheetEyebrow}</span>
               <h2 className="report-sheet-category" style={{ color: accent }}>
-                {category.title}
+                {categoryTitle}
               </h2>
             </div>
           </div>
           <div className="report-sheet-meta">
-            {entry.groupLabel && (
-              <span className="report-sheet-group">{entry.groupLabel}</span>
+            {groupLabel && (
+              <span className="report-sheet-group">{groupLabel}</span>
             )}
-            <span className="report-sheet-page-label report-print-only">Overview</span>
+            <span className="report-sheet-page-label report-print-only">{t.reports.overview}</span>
             <div className="report-sheet-meta-row">
               <span className="report-sheet-index tabular">
                 {String(categoryIndex).padStart(2, "0")}
@@ -383,7 +392,7 @@ export function PlayerReportSheet({
                   className="report-export-one-btn report-screen-only"
                   onClick={() => onExportPdf(playerId)}
                   disabled={exportDisabled}
-                  title={`Exportar PDF de ${displayName}`}
+                  title={t.reports.exportPdfTitle(displayName)}
                 >
                   <i className="fa-solid fa-file-pdf" />
                 </button>
@@ -392,7 +401,7 @@ export function PlayerReportSheet({
           </div>
         </header>
 
-        <p className="report-sheet-description">{category.description}</p>
+        <p className="report-sheet-description">{categoryDescription}</p>
 
         <div className="report-sheet-body pa-layout report-layout-v2">
           <div className="pa-col pa-col-identity">{renderIdentity(false)}</div>
@@ -406,7 +415,7 @@ export function PlayerReportSheet({
 
           <div className="pa-col pa-col-pillars">
             <div className="player-card pillars-card report-pillars-card">
-              <h3 className="section-label">Pass Scores</h3>
+              <h3 className="section-label">{t.profile.passScores}</h3>
               <ReportPassScoreAccordion sections={profile.pass_scores} expandAll={expandAll} />
             </div>
           </div>
@@ -421,10 +430,10 @@ export function PlayerReportSheet({
               href={`/profile?player=${playerId}&position_family=midfielders`}
               className="report-screen-only"
             >
-              Perfil completo
+              {t.profile.fullProfile}
             </Link>
             <span className="report-print-only tabular">
-              {displayName} · {category.subtitle}
+              {t.reports.pageFootnote(displayName, categorySubtitle)}
             </span>
           </span>
         </footer>
@@ -439,7 +448,7 @@ export function PlayerReportSheet({
               <i className="fa-solid fa-map-location-dot" />
             </span>
             <div>
-              <span className="report-sheet-eyebrow">Pass Maps</span>
+              <span className="report-sheet-eyebrow">{t.reports.mapsEyebrow}</span>
               <h2 className="report-sheet-category" style={{ color: accent }}>
                 {displayName}
               </h2>
@@ -452,9 +461,9 @@ export function PlayerReportSheet({
               onClick={() => setActivePage(1)}
             >
               <i className="fa-solid fa-arrow-left" />
-              Voltar ao perfil
+              {t.reports.backToProfile}
             </button>
-            <span className="report-sheet-page-label report-print-only">Maps</span>
+            <span className="report-sheet-page-label report-print-only">{t.reports.mapsPage}</span>
             <span className="report-sheet-index tabular">
               {String(categoryIndex).padStart(2, "0")}
             </span>
@@ -466,7 +475,7 @@ export function PlayerReportSheet({
 
           <div className="report-maps-body">
             {mapsLoading && loadedMaps.length === 0 && (
-              <LoadingState message="Gerando mapas do jogador…" />
+              <LoadingState message={t.reports.generatingMaps} />
             )}
             {mapsError && <p className="error-box">{mapsError}</p>}
 
@@ -490,7 +499,7 @@ export function PlayerReportSheet({
                     />
                   )}
                   {!slot.loading && !slot.error && !slot.pass_map_b64 && shouldLoadMaps && (
-                    <p className="placeholder-note">Indisponível</p>
+                    <p className="placeholder-note">{t.reports.unavailable}</p>
                   )}
                 </div>
               ))}
@@ -498,7 +507,7 @@ export function PlayerReportSheet({
 
             {anyLoading && loadedMaps.length > 0 && (
               <p className="muted report-maps-loading-hint report-screen-only">
-                Carregando mapas… ({loadedMaps.length}/{REPORT_MAP_FILTERS.length})
+                {t.reports.loadingMaps(loadedMaps.length, mapFilters.length)}
               </p>
             )}
           </div>

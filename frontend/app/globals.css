@@ -125,6 +125,26 @@ button, input, select { font: inherit; }
   background: rgba(255, 255, 255, 0.05);
 }
 
+.lang-toggle {
+  margin-left: 0.35rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.45);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.lang-toggle:hover {
+  color: var(--text);
+  border-color: rgba(148, 163, 184, 0.45);
+  background: rgba(30, 41, 59, 0.65);
+}
+
 /* ── Page hero ── */
 .page-hero {
   display: flex;
@@ -1952,6 +1972,18 @@ button, input, select { font: inherit; }
     rgba(22, 163, 74, 0.22) 100%
   );
   opacity: 0.85;
+}
+
+.metric-gradient-bar-midline {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-50%);
+  background: rgba(248, 250, 252, 0.12);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .metric-gradient-bar-fill {

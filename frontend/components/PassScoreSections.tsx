@@ -1,23 +1,33 @@
+"use client";
+
 import { PassMetricStratumStar } from "@/components/PassMetricStratumStar";
 import type { PassScoreSection } from "@/lib/api";
 import { GradeBadge } from "@/components/ui/GradeBadge";
 import { MetricGradientBar } from "@/components/ui/MetricGradientBar";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { formatMetric } from "@/lib/formatters";
+import {
+  translateComponentLabel,
+  translateComponentTip,
+  translatePassScoreTitle,
+  translatePassScoreTooltip,
+  useI18n,
+} from "@/lib/i18n/context";
 import { rankToBarScore } from "@/lib/gradeColors";
-import { COMPONENT_LABELS, COMPONENT_TOOLTIPS, PASS_SCORE_TOOLTIPS } from "@/lib/tooltips";
 
 function SectionMetrics({ section }: { section: PassScoreSection }) {
+  const { t } = useI18n();
+
   return (
     <div className="pass-score-metrics">
       {section.components.map((c) => {
         const barScore = rankToBarScore(c.rank, c.rank_pool);
         return (
-          <Tooltip key={c.key} content={COMPONENT_TOOLTIPS[c.key] ?? ""} block>
+          <Tooltip key={c.key} content={translateComponentTip(c.key, t)} block>
             <div className="pass-metric-block">
               <div className="pass-metric-head">
                 <span className="pass-metric-label">
-                  {COMPONENT_LABELS[c.key] ?? c.key.replace(/_/g, " ")}
+                  {translateComponentLabel(c.key, t)}
                   <PassMetricStratumStar show={c.stratum_star} />
                 </span>
                 <span className="pass-metric-value tabular">
@@ -38,6 +48,8 @@ function SectionMetrics({ section }: { section: PassScoreSection }) {
 }
 
 export function PassScoreSections({ sections }: { sections: PassScoreSection[] }) {
+  const { t } = useI18n();
+
   return (
     <div className="pass-scores-panel">
       <div className="report-pass-accordion">
@@ -46,8 +58,10 @@ export function PassScoreSections({ sections }: { sections: PassScoreSection[] }
             <summary className="report-pass-accordion-trigger">
               <span className="report-pass-accordion-left">
                 <i className="fa-solid fa-chevron-right report-pass-accordion-chevron" aria-hidden="true" />
-                <Tooltip content={PASS_SCORE_TOOLTIPS[section.title] ?? ""}>
-                  <span className="report-pass-accordion-title">{section.title}</span>
+                <Tooltip content={translatePassScoreTooltip(section.title, t)}>
+                  <span className="report-pass-accordion-title">
+                    {translatePassScoreTitle(section.title, t)}
+                  </span>
                 </Tooltip>
               </span>
               <span className="report-pass-accordion-right">

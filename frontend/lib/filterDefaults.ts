@@ -14,13 +14,13 @@ export const DEFAULT_FILTER_OPTIONS: FilterOptionsMeta = {
     { key: "ligue1", label: "Ligue 1" },
   ],
   foot: [
-    { key: "all", label: "Todos" },
-    { key: "left", label: "Esquerdo" },
-    { key: "right", label: "Direito" },
-    { key: "both", label: "Ambidestro" },
+    { key: "all", label: "All" },
+    { key: "left", label: "Left" },
+    { key: "right", label: "Right" },
+    { key: "both", label: "Both" },
   ],
   age_bands: [
-    { key: "all", label: "Todas as idades", min: null, max: null },
+    { key: "all", label: "All ages", min: null, max: null },
     { key: "u21", label: "U21", min: null, max: 21 },
     { key: "u23", label: "U23", min: 22, max: 23 },
     { key: "24_30", label: "24-30", min: 24, max: 30 },

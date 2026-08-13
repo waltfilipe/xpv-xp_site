@@ -1,5 +1,5 @@
-import { totalReportCount } from "@/lib/playerReports";
 import { ReportsClient } from "./ReportsClient";
+import { ReportsFootnote } from "./ReportsFootnote";
 
 export const metadata = {
   title: "Reports | Pass Scout",
@@ -10,9 +10,7 @@ export default function ReportsPage() {
   return (
     <div className="container reports-container">
       <ReportsClient />
-      <p className="reports-footnote muted report-screen-only">
-        {totalReportCount()} atletas · pool meio-campistas · 5 ligas europeias
-      </p>
+      <ReportsFootnote />
     </div>
   );
 }

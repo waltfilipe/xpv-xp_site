@@ -31,6 +31,7 @@ const CHANCE_CREATION_METRIC_KEYS = new Set([
   "key_passes",
   "passes_to_box",
   "test_impact_v2_start_final_third_p90",
+  "xpv_threat_p90",
 ]);
 
 export function formatMetric(value: unknown, key?: string): string {

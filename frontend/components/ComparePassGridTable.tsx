@@ -4,7 +4,11 @@ import type { CompareMetric } from "@/lib/api";
 import { CompareDualMetricTip } from "@/components/CompareDualMetricTip";
 import { GradeBadge } from "@/components/ui/GradeBadge";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { PASS_SCORE_TOOLTIPS } from "@/lib/tooltips";
+import {
+  translatePassScoreTitle,
+  translatePassScoreTooltip,
+  useI18n,
+} from "@/lib/i18n/context";
 
 type Props = {
   metrics: CompareMetric[];
@@ -13,6 +17,8 @@ type Props = {
 };
 
 export function ComparePassGridTable({ metrics, nameA, nameB }: Props) {
+  const { t } = useI18n();
+
   if (!metrics.length) return null;
 
   return (
@@ -20,13 +26,14 @@ export function ComparePassGridTable({ metrics, nameA, nameB }: Props) {
       <table className="compare-radar-table compare-pass-grid-table">
         <thead>
           <tr>
-            <th scope="col">Métrica</th>
+            <th scope="col">{t.compare.metric}</th>
             <th scope="col" className="compare-radar-th-a">{nameA}</th>
             <th scope="col" className="compare-radar-th-b">{nameB}</th>
           </tr>
         </thead>
         <tbody>
           {metrics.map((metric) => {
+            const label = translatePassScoreTitle(metric.label, t);
             const tip = metric.components?.length ? (
               <CompareDualMetricTip
                 nameA={nameA}
@@ -34,13 +41,13 @@ export function ComparePassGridTable({ metrics, nameA, nameB }: Props) {
                 components={metric.components}
               />
             ) : (
-              PASS_SCORE_TOOLTIPS[metric.label] ?? ""
+              translatePassScoreTooltip(metric.label, t)
             );
             return (
               <tr key={metric.key} className="compare-radar-table-row">
                 <td>
                   <Tooltip content={tip} block>
-                    <span className="compare-radar-metric-label">{metric.label}</span>
+                    <span className="compare-radar-metric-label">{label}</span>
                   </Tooltip>
                 </td>
                 <td className="compare-radar-val-a">

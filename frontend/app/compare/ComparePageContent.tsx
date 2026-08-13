@@ -6,10 +6,12 @@ import { CompareCenter } from "@/components/CompareCenter";
 import { ComparePlayerCard } from "@/components/ComparePlayerCard";
 import { LoadingState } from "@/components/LoadingState";
 import { getCompare, getPlayerOptionsLegacy, type ComparePayload } from "@/lib/api";
+import { useI18n } from "@/lib/i18n/context";
 
 const POSITION_FAMILY = "midfielders";
 
 export default function ComparePageContent() {
+  const { t } = useI18n();
   const searchParams = useSearchParams();
   const [playerA, setPlayerA] = useState(searchParams.get("a") ?? "");
   const [playerB, setPlayerB] = useState(searchParams.get("b") ?? "");
@@ -22,20 +24,20 @@ export default function ComparePageContent() {
     getPlayerOptionsLegacy({ position_family: POSITION_FAMILY }).then((r) => {
       if (!playerA && r.options[0]) setPlayerA(r.options[0].player_id);
       if (!playerB && r.options[1]) setPlayerB(r.options[1].player_id);
-    }).catch(() => setError("Backend indisponível"));
-  }, [playerA, playerB]);
+    }).catch(() => setError(t.common.backendUnavailable));
+  }, [playerA, playerB, t.common.backendUnavailable]);
 
   useEffect(() => {
     if (!playerA || !playerB || playerA === playerB) return;
     setLoading(true);
     getCompare(playerA, playerB, POSITION_FAMILY)
       .then(setData)
-      .catch((e) => setError(e instanceof Error ? e.message : "Erro"))
+      .catch((e) => setError(e instanceof Error ? e.message : t.common.error))
       .finally(() => setLoading(false));
-  }, [playerA, playerB]);
+  }, [playerA, playerB, t.common.error]);
 
-  const nameA = data ? String(data.player_a.player_name ?? "Jogador A") : "Jogador A";
-  const nameB = data ? String(data.player_b.player_name ?? "Jogador B") : "Jogador B";
+  const nameA = data ? String(data.player_a.player_name ?? t.common.playerA) : t.common.playerA;
+  const nameB = data ? String(data.player_b.player_name ?? t.common.playerB) : t.common.playerB;
 
   return (
     <div className="profile-page compare-page">
@@ -44,17 +46,15 @@ export default function ComparePageContent() {
           <div className="profile-page-hero-inner">
             <div>
               <span className="profile-page-eyebrow">Pass Scout</span>
-              <h1>Compare</h1>
-              <p>
-                Compare dois meio-campistas do pool europeu. Métricas e notas são relativas aos pares da posição.
-              </p>
+              <h1>{t.compare.title}</h1>
+              <p>{t.compare.description}</p>
             </div>
           </div>
         </div>
       </header>
 
       <div className="container profile-page-body">
-        {loading && <LoadingState message="Carregando comparação…" />}
+        {loading && <LoadingState message={t.compare.loading} />}
         {error && <div className="error-box">{error}</div>}
 
         {data && !loading && (

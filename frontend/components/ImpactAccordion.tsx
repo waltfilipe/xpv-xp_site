@@ -2,9 +2,15 @@
 
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ImpactMetricBar } from "@/components/ui/ImpactMetricBar";
-import { XP_INDEX_TIER_LABELS, xpIndexTierClass } from "@/lib/gradeColors";
+import { xpIndexTierClass } from "@/lib/gradeColors";
 import { formatMetric } from "@/lib/formatters";
-import { COMPONENT_TOOLTIPS, INDEX_TOOLTIPS } from "@/lib/tooltips";
+import {
+  translateComponentLabel,
+  translateComponentTip,
+  translateIndexTip,
+  translateTier,
+  useI18n,
+} from "@/lib/i18n/context";
 
 export type ImpactIndexComponent = {
   key: string;
@@ -37,21 +43,19 @@ const TIER_ACCENT: Record<string, string> = {
   below: "#fb923c",
 };
 
-const COMPONENT_TIPS: Record<string, string> = {
-  xpv_per_pass: "Average destination value (xPV) on completed passes.",
-  xp_residual_mean:
-    "Mean (actual xP − expected xP) per completed pass — how much the player beats the model on average.",
-  ...COMPONENT_TOOLTIPS,
-};
-
 function formatImpactValue(key: string, value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "—";
   if (key.startsWith("def_")) return formatMetric(value, key);
-  if (key === "xp_residual_mean") {
-    const cents = value * 100;
-    return `${cents >= 0 ? "+" : ""}${cents.toFixed(2)}¢`;
+  if (key === "threat_pass_pct") {
+    return `${value.toFixed(1)}%`;
   }
   return value.toFixed(3);
+}
+
+function componentLabel(key: string, fallback: string, t: ReturnType<typeof useI18n>["t"]): string {
+  if (key === "xpv_per_pass") return t.xpProfile.impactComponents.xpvPerPass;
+  if (key === "threat_pass_pct") return t.xpProfile.impactComponents.impactRate;
+  return translateComponentLabel(key, t) || fallback;
 }
 
 export function ImpactAccordion({
@@ -62,8 +66,9 @@ export function ImpactAccordion({
   components,
   expandAll = false,
 }: Props) {
-  const tierLabel = XP_INDEX_TIER_LABELS[tier ?? "mid"] ?? tier ?? "—";
-  const tip = INDEX_TOOLTIPS[tierKey ?? label] ?? INDEX_TOOLTIPS[label] ?? "";
+  const { t } = useI18n();
+  const tierLabel = translateTier(tier, t);
+  const tip = translateIndexTip(tierKey, label, t);
   const tierClass = xpIndexTierClass(tier);
   const tierKeyNorm = tier ?? "mid";
   const bgColor = TIER_BG[tierKeyNorm] ?? TIER_BG.mid;
@@ -96,7 +101,9 @@ export function ImpactAccordion({
         const row = (
           <div className="impact-accordion-metric">
             <div className="impact-accordion-metric-head">
-              <span className="impact-accordion-metric-label">{item.label}</span>
+              <span className="impact-accordion-metric-label">
+                {componentLabel(item.key, item.label, t)}
+              </span>
               <span className="impact-accordion-metric-value tabular">
                 {formatImpactValue(item.key, item.value)}
               </span>
@@ -104,7 +111,7 @@ export function ImpactAccordion({
             <ImpactMetricBar rank={item.rank} rankPool={item.rank_pool} />
           </div>
         );
-        const rowTip = COMPONENT_TIPS[item.key];
+        const rowTip = translateComponentTip(item.key, t);
         return rowTip ? (
           <Tooltip key={item.key} content={rowTip} block>
             {row}

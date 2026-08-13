@@ -4,7 +4,11 @@ import type { CompareMetric } from "@/lib/api";
 import { CompareDualMetricTip } from "@/components/CompareDualMetricTip";
 import { GradeBadge } from "@/components/ui/GradeBadge";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { PASS_SCORE_TOOLTIPS } from "@/lib/tooltips";
+import {
+  translatePassScoreTitle,
+  translatePassScoreTooltip,
+  useI18n,
+} from "@/lib/i18n/context";
 
 const COLOR_A = "#a78bfa";
 const COLOR_B = "#34d399";
@@ -44,7 +48,6 @@ function polygonPoints(metrics: CompareMetric[], side: "a" | "b", maxValue: numb
 }
 
 function labelLines(label: string): string[] {
-  if (label === "Chance creation") return ["Chance", "creation"];
   const words = label.split(" ");
   if (words.length >= 2 && label.length > 11) {
     const mid = Math.ceil(words.length / 2);
@@ -68,6 +71,8 @@ function labelOffset(angle: number): { dx: number; dy: number } {
 }
 
 export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
+  const { t } = useI18n();
+
   if (!metrics.length) return null;
 
   const count = metrics.length;
@@ -84,7 +89,7 @@ export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
           viewBox={`0 0 ${SIZE} ${SIZE}`}
           className="compare-radar-svg"
           role="img"
-          aria-label="Pass profile radar comparison"
+          aria-label={t.compare.radarAria}
         >
           <defs>
             <radialGradient id="compare-radar-bg" cx="50%" cy="50%" r="50%">
@@ -187,7 +192,8 @@ export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
             const lx = CENTER + LABEL_RADIUS * Math.cos(angle);
             const ly = CENTER + LABEL_RADIUS * Math.sin(angle);
             const { dx, dy } = labelOffset(angle);
-            const lines = labelLines(metric.label);
+            const label = translatePassScoreTitle(metric.label, t);
+            const lines = labelLines(label);
             const lineHeight = 11;
             const startDy = lines.length > 1 ? -(lineHeight * (lines.length - 1)) / 2 : 0;
             return (
@@ -216,13 +222,14 @@ export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
       <table className="compare-radar-table">
         <thead>
           <tr>
-            <th scope="col">Métrica</th>
+            <th scope="col">{t.compare.metric}</th>
             <th scope="col" className="compare-radar-th-a">{nameA}</th>
             <th scope="col" className="compare-radar-th-b">{nameB}</th>
           </tr>
         </thead>
         <tbody>
           {metrics.map((metric) => {
+            const label = translatePassScoreTitle(metric.label, t);
             const tip = metric.components?.length ? (
               <CompareDualMetricTip
                 nameA={nameA}
@@ -230,13 +237,13 @@ export function CompareRadarChart({ metrics, nameA, nameB }: Props) {
                 components={metric.components}
               />
             ) : (
-              PASS_SCORE_TOOLTIPS[metric.label] ?? ""
+              translatePassScoreTooltip(metric.label, t)
             );
             return (
               <tr key={metric.key} className="compare-radar-table-row">
                 <td>
                   <Tooltip content={tip} block>
-                    <span className="compare-radar-metric-label">{metric.label}</span>
+                    <span className="compare-radar-metric-label">{label}</span>
                   </Tooltip>
                 </td>
                 <td className="compare-radar-val-a">

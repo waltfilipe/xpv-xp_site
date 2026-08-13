@@ -16,14 +16,11 @@ XP_PA_REGULAR_SCORE_SPECS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...
     ("pass_volume_display", "pass_volume_index", "pass_volume_letter", "Volume", ("passes_total", "long_balls")),
     ("pass_efficiency_display", "pass_efficiency_index", "pass_efficiency_letter", "Efficiency", ("xpass_coe_pct", "xpass_long_coe_pct")),
     ("pass_buildup_display", "pass_buildup_index", "pass_buildup_letter", "Build-up", ("progressive_passes", "final_third_passes", "special_line_break_p90")),
-    ("pass_chance_creation_display", "pass_chance_creation_index", "pass_chance_creation_letter", "Chance creation", ("key_passes", "passes_to_box", "test_impact_v2_start_final_third_p90")),
+    ("pass_chance_creation_display", "pass_chance_creation_index", "pass_chance_creation_letter", "Chance creation", ("key_passes", "passes_to_box", "test_impact_v2_start_final_third_p90", "xpv_threat_p90")),
 )
 
 DEFENSIVE_INDEX_COMPONENTS: tuple[tuple[str, str], ...] = (
-    ("def_won_tackle_p90", "Won tackles / 90"),
-    ("def_interception_p90", "Interceptions / 90"),
-    ("def_clearance_p90", "Clearances / 90"),
-    ("def_recovery_p90", "Recoveries / 90"),
+    ("def_actions_successful_p90", "Defensive Actions Successful"),
     ("def_tackle_won_pct", "Tackle won %"),
     ("def_aerial_won_pct", "Aerial won %"),
 )
@@ -123,11 +120,11 @@ def build_xp_indices(xp_profile: dict) -> list[dict[str, Any]]:
                     "rank_pool": xp_profile.get("xpv_per_pass_rank_pool_in_group"),
                 },
                 {
-                    "key": "xp_residual_mean",
-                    "label": "ΔxP/Pass",
-                    "value": xp_profile.get("xp_residual_mean"),
-                    "rank": xp_profile.get("xp_residual_mean_rank_in_group"),
-                    "rank_pool": xp_profile.get("xp_residual_mean_rank_pool_in_group"),
+                    "key": "threat_pass_pct",
+                    "label": "Impact Rate",
+                    "value": xp_profile.get("threat_pass_pct"),
+                    "rank": xp_profile.get("threat_pass_pct_rank_in_group"),
+                    "rank_pool": xp_profile.get("threat_pass_pct_rank_pool_in_group"),
                 },
             ],
         },

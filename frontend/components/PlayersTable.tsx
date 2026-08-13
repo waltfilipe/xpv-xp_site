@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { PlayerSummary } from "@/lib/api";
 import { GradeBadge } from "@/components/ui/GradeBadge";
 import { formatLeagueName } from "@/lib/formatters";
+import { useI18n } from "@/lib/i18n/context";
 
 const LETTER_ORDER = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D"] as const;
 
@@ -78,6 +79,7 @@ function defaultDirForKey(key: SortKey): SortDir {
 }
 
 export function PlayersTable({ players, positionFamily }: Props) {
+  const { t } = useI18n();
   const [sortStack, setSortStack] = useState<SortEntry[]>([
     { key: "pass_rating", dir: "desc" },
   ]);
@@ -131,47 +133,47 @@ export function PlayersTable({ players, positionFamily }: Props) {
           <tr>
             <th>
               <button type="button" className="players-sort-btn" onClick={() => toggleSort("player_name")}>
-                Jogador {sortIndicator("player_name")}
+                {t.common.player} {sortIndicator("player_name")}
               </button>
             </th>
             <th>
               <button type="button" className="players-sort-btn" onClick={() => toggleSort("league")}>
-                Liga {sortIndicator("league")}
+                {t.common.league} {sortIndicator("league")}
               </button>
             </th>
             <th>
               <button type="button" className="players-sort-btn" onClick={() => toggleSort("age")}>
-                Idade {sortIndicator("age")}
+                {t.common.age} {sortIndicator("age")}
               </button>
             </th>
             <th>
               <button type="button" className="players-sort-btn" onClick={() => toggleSort("pass_rating")}>
-                Pass Rating {sortIndicator("pass_rating")}
+                {t.players.passRating} {sortIndicator("pass_rating")}
               </button>
             </th>
             <th>
               <button type="button" className="players-sort-btn" onClick={() => toggleSort("pass_volume_letter")}>
-                Volume {sortIndicator("pass_volume_letter")}
+                {t.players.volume} {sortIndicator("pass_volume_letter")}
               </button>
             </th>
             <th>
               <button type="button" className="players-sort-btn" onClick={() => toggleSort("pass_efficiency_letter")}>
-                Efficiency {sortIndicator("pass_efficiency_letter")}
+                {t.players.efficiency} {sortIndicator("pass_efficiency_letter")}
               </button>
             </th>
             <th>
               <button type="button" className="players-sort-btn" onClick={() => toggleSort("pass_buildup_letter")}>
-                Build-up {sortIndicator("pass_buildup_letter")}
+                {t.players.buildup} {sortIndicator("pass_buildup_letter")}
               </button>
             </th>
             <th>
               <button type="button" className="players-sort-btn" onClick={() => toggleSort("pass_chance_creation_letter")}>
-                Chance creation {sortIndicator("pass_chance_creation_letter")}
+                {t.players.chanceCreation} {sortIndicator("pass_chance_creation_letter")}
               </button>
             </th>
             <th>
               <button type="button" className="players-sort-btn" onClick={() => toggleSort("defense_letter")}>
-                Defense {sortIndicator("defense_letter")}
+                {t.players.defense} {sortIndicator("defense_letter")}
               </button>
             </th>
           </tr>
@@ -201,7 +203,7 @@ export function PlayersTable({ players, positionFamily }: Props) {
           {sorted.length === 0 && (
             <tr>
               <td colSpan={9} className="muted" style={{ textAlign: "center", padding: "2rem" }}>
-                Nenhum jogador encontrado.
+                {t.common.noResults}
               </td>
             </tr>
           )}

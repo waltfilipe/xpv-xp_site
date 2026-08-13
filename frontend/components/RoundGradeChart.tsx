@@ -4,6 +4,7 @@ import { useId, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { XpRoundGrade } from "@/lib/api";
 import { passGradeGradientColor, passGradePct } from "@/lib/gradeColors";
+import { useI18n } from "@/lib/i18n/context";
 import { RoundGradeStatsPanel } from "@/components/RoundGradeStatsPanel";
 
 const WIDTH = 280;
@@ -36,6 +37,7 @@ type ActiveCoord = ChartCoord & {
 };
 
 export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, onPointClick }: Props) {
+  const { t } = useI18n();
   const gradId = useId().replace(/:/g, "");
   const [active, setActive] = useState<ActiveCoord | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -90,7 +92,7 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, 
     <div className={`round-grade-chart${embedded ? " round-grade-chart-embedded" : ""}`}>
       {!embedded && (
         <div className="round-grade-chart-head">
-          <span className="round-grade-chart-title">Grades por rodada</span>
+          <span className="round-grade-chart-title">{t.roundGrade.title}</span>
         </div>
       )}
 
@@ -100,7 +102,7 @@ export function RoundGradeChart({ points, accent = "#a78bfa", embedded = false, 
             viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
             className="round-grade-chart-svg"
             role="img"
-            aria-label="Grades por rodada"
+            aria-label={t.roundGrade.aria}
             onMouseLeave={() => setActive(null)}
           >
           <defs>

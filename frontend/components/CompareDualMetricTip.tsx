@@ -1,5 +1,7 @@
+"use client";
+
 import { formatMetric } from "@/lib/formatters";
-import { COMPONENT_LABELS } from "@/lib/tooltips";
+import { translateComponentLabel, useI18n } from "@/lib/i18n/context";
 
 export type CompareComponentMetric = {
   key: string;
@@ -50,6 +52,8 @@ function WinnerArrows({ strength, side }: { strength: WinStrength; side: WinSide
 }
 
 export function CompareDualMetricTip({ nameA, nameB, components }: Props) {
+  const { t } = useI18n();
+
   if (!components.length) return null;
 
   return (
@@ -62,7 +66,7 @@ export function CompareDualMetricTip({ nameA, nameB, components }: Props) {
             return (
               <div key={`a-${comp.key}`} className="compare-dual-tip-stat">
                 <span className="compare-dual-tip-label">
-                  {comp.label ?? COMPONENT_LABELS[comp.key] ?? comp.key}
+                  {comp.label ?? translateComponentLabel(comp.key, t)}
                 </span>
                 <span className="compare-dual-tip-val">
                   <WinnerArrows strength={strength} side="a" />
@@ -79,7 +83,7 @@ export function CompareDualMetricTip({ nameA, nameB, components }: Props) {
             return (
               <div key={`b-${comp.key}`} className="compare-dual-tip-stat">
                 <span className="compare-dual-tip-label">
-                  {comp.label ?? COMPONENT_LABELS[comp.key] ?? comp.key}
+                  {comp.label ?? translateComponentLabel(comp.key, t)}
                 </span>
                 <span className="compare-dual-tip-val">
                   <WinnerArrows strength={strength} side="b" />

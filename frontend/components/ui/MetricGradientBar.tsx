@@ -20,6 +20,7 @@ export function MetricGradientBar({ score, letter, displayScore }: Props) {
           className="metric-gradient-bar-spectrum"
           aria-hidden="true"
         />
+        <div className="metric-gradient-bar-midline" aria-hidden="true" />
         {score != null && (
           <div
             className="metric-gradient-bar-fill"

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getPlayerOptionsLegacy, type PlayerOption } from "@/lib/api";
+import { useI18n } from "@/lib/i18n/context";
 
 const POSITION_FAMILY = "midfielders";
 
@@ -13,6 +14,7 @@ type Props = {
 };
 
 export function ComparePlayerPicker({ label, value, exclude, onChange }: Props) {
+  const { t } = useI18n();
   const [search, setSearch] = useState("");
   const [options, setOptions] = useState<PlayerOption[]>([]);
   const [open, setOpen] = useState(false);
@@ -45,7 +47,7 @@ export function ComparePlayerPicker({ label, value, exclude, onChange }: Props) 
           type="text"
           className="compare-player-picker-input"
           value={displayValue}
-          placeholder="Digite o nome do jogador…"
+          placeholder={t.compare.searchPlaceholder}
           onChange={(e) => {
             setSearch(e.target.value);
             setOpen(true);

@@ -32,23 +32,19 @@ def _defensive_league_sources() -> tuple[tuple[str, Path], ...]:
 QTY_P90_METRICS: tuple[str, ...] = (
     "def_won_tackle_p90",
     "def_interception_p90",
-    "def_clearance_p90",
-    "def_recovery_p90",
     "def_aerial_won_p90",
-    "def_block_p90",
+    "def_clearance_p90",
 )
 QUAL_PCT_METRICS: tuple[str, ...] = (
     "def_tackle_won_pct",
     "def_aerial_won_pct",
 )
-DEFENSE_COMPONENT_KEYS: tuple[str, ...] = QTY_P90_METRICS + QUAL_PCT_METRICS
+DEFENSE_COMPONENT_KEYS: tuple[str, ...] = QTY_P90_METRICS + QUAL_PCT_METRICS + ("def_actions_successful_p90",)
 
 MINUTES_CONF_CAP = 900.0
 MIN_ATTEMPTS_FOR_PCT = 10
 QTY_WEIGHT = 0.6
 QUAL_WEIGHT = 0.4
-ERR_SHOT_WEIGHT = 0.15
-ERR_GOAL_WEIGHT = 0.25
 
 
 def _zscore(series: pd.Series) -> pd.Series:
@@ -140,11 +136,19 @@ def aggregate_defensive_player_stats(frame: pd.DataFrame | None = None) -> dict[
         if aerial_attempts >= MIN_ATTEMPTS_FOR_PCT:
             aerial_won_pct = round(100.0 * aerial_won / aerial_attempts, 2)
 
+        actions_successful = (
+            float(row["won_tackle"])
+            + float(row["interception"])
+            + float(row["clearance"])
+            + float(row["recovery"])
+            + aerial_won
+        )
         out[str(pid)] = {
             "player_id": str(pid),
             "player_name": row["player_name"],
             "league_source": str(league_source),
             "def_minutes": round(minutes, 1),
+            "def_actions_successful_p90": round(actions_successful * per90, 3),
             "def_won_tackle_p90": round(float(row["won_tackle"]) * per90, 3),
             "def_interception_p90": round(float(row["interception"]) * per90, 3),
             "def_clearance_p90": round(float(row["clearance"]) * per90, 3),
@@ -201,14 +205,7 @@ def attach_defensive_contribution(players: list[dict]) -> None:
         qual_cols = [c for c in QUAL_PCT_METRICS if c in df.columns]
         qty_z = _mean_z_columns(df, tuple(qty_cols))
         qual_z = _mean_z_columns(df, tuple(qual_cols)) if qual_cols else pd.Series(0.0, index=df.index)
-        err_shot_z = _zscore(df["def_err_shot_p90"]) if "def_err_shot_p90" in df.columns else pd.Series(0.0, index=df.index)
-        err_goal_z = _zscore(df["def_err_goal_p90"]) if "def_err_goal_p90" in df.columns else pd.Series(0.0, index=df.index)
-        merit_raw = (
-            QTY_WEIGHT * qty_z
-            + QUAL_WEIGHT * qual_z
-            - ERR_SHOT_WEIGHT * err_shot_z
-            - ERR_GOAL_WEIGHT * err_goal_z
-        )
+        merit_raw = QTY_WEIGHT * qty_z + QUAL_WEIGHT * qual_z
         minutes = pd.to_numeric(df.get("def_minutes", df.get("minutes")), errors="coerce").fillna(0.0)
         conf = (minutes / MINUTES_CONF_CAP).clip(upper=1.0)
         defense_core = merit_raw * conf

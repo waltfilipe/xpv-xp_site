@@ -1,4 +1,7 @@
-import { XP_INDEX_TIER_LABELS, xpIndexTierClass } from "@/lib/gradeColors";
+"use client";
+
+import { xpIndexTierClass } from "@/lib/gradeColors";
+import { translateIndexLabel, translateTier, useI18n } from "@/lib/i18n/context";
 
 type IndexItem = {
   key: string;
@@ -8,22 +11,23 @@ type IndexItem = {
 };
 
 export function CompareXpIndicesStrip({ indices }: { indices: IndexItem[] }) {
+  const { t } = useI18n();
   const rows = indices.filter((item) => item.tier);
   if (!rows.length) return null;
 
   return (
     <div className="compare-xp-indices-strip">
-      <h4 className="section-label-sm">xP Indices</h4>
+      <h4 className="section-label-sm">{t.xpProfile.indices}</h4>
       <div className="compare-xp-indices-list">
         {rows.map((item) => {
-          const tierLabel = XP_INDEX_TIER_LABELS[item.tier ?? "mid"] ?? item.tier ?? "—";
+          const tierLabel = translateTier(item.tier, t);
           const tierClass = xpIndexTierClass(item.tier);
           return (
             <div key={item.key} className={`compare-xp-index-row ${tierClass}`}>
               <span className="xp-index-row-icon">
                 <i className={`fa-solid ${item.icon ?? "fa-circle"}`} />
               </span>
-              <span className="compare-xp-index-name">{item.label}</span>
+              <span className="compare-xp-index-name">{translateIndexLabel(item.label, t)}</span>
               <span className="compare-xp-index-val">{tierLabel}</span>
             </div>
           );

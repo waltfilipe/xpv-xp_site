@@ -14,6 +14,7 @@ export function XpHeatBar({ value }: Props) {
     <div className={`xp-heat-bar metric-gradient-bar${value == null ? " xp-heat-bar-empty" : ""}`}>
       <div className="xp-heat-bar-track metric-gradient-bar-track">
         <div className="xp-heat-bar-spectrum metric-gradient-bar-spectrum" aria-hidden="true" />
+        <div className="metric-gradient-bar-midline" aria-hidden="true" />
         {value != null && (
           <div
             className="xp-heat-bar-fill metric-gradient-bar-fill"

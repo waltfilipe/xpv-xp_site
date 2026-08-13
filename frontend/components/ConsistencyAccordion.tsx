@@ -3,10 +3,10 @@
 import { useState } from "react";
 import type { XpRoundGrade } from "@/lib/api";
 import { GameStatsModal } from "@/components/GameStatsModal";
-import { XP_INDEX_TIER_LABELS, xpIndexTierClass } from "@/lib/gradeColors";
-import { INDEX_TOOLTIPS } from "@/lib/tooltips";
+import { xpIndexTierClass } from "@/lib/gradeColors";
 import { RoundGradeChart } from "@/components/RoundGradeChart";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { translateIndexTip, translateTier, useI18n } from "@/lib/i18n/context";
 
 type Props = {
   label: string;
@@ -41,9 +41,10 @@ export function ConsistencyAccordion({
   accent,
   expandAll = false,
 }: Props) {
+  const { t } = useI18n();
   const [selectedGame, setSelectedGame] = useState<XpRoundGrade | null>(null);
-  const tierLabel = XP_INDEX_TIER_LABELS[tier ?? "mid"] ?? tier ?? "—";
-  const tip = INDEX_TOOLTIPS[tierKey ?? label] ?? INDEX_TOOLTIPS[label] ?? "";
+  const tierLabel = translateTier(tier, t);
+  const tip = translateIndexTip(tierKey, label, t);
   const tierClass = xpIndexTierClass(tier);
   const tierKeyNorm = tier ?? "mid";
   const chartAccent = accent ?? TIER_ACCENT[tierKeyNorm] ?? "#a78bfa";

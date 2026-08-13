@@ -1,8 +1,8 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import type { XpRoundGrade } from "@/lib/api";
 import { passGradeGradientColor, passGradePct } from "@/lib/gradeColors";
+import { useI18n } from "@/lib/i18n/context";
 
 type Props = {
   point: XpRoundGrade;
@@ -53,7 +53,7 @@ function rowPseudoGrade(row: StatRow): number | null {
   return null;
 }
 
-function qualityRowStyle(row: StatRow): CSSProperties {
+function qualityRowStyle(row: StatRow): React.CSSProperties {
   const pseudoGrade = rowPseudoGrade(row);
   if (pseudoGrade == null) {
     return {
@@ -68,7 +68,7 @@ function qualityRowStyle(row: StatRow): CSSProperties {
   };
 }
 
-function valueStyle(row: StatRow): CSSProperties | undefined {
+function valueStyle(row: StatRow): React.CSSProperties | undefined {
   const pseudoGrade = rowPseudoGrade(row);
   if (pseudoGrade == null) return undefined;
   const color = passGradeGradientColor(passGradePct(pseudoGrade));
@@ -78,53 +78,53 @@ function valueStyle(row: StatRow): CSSProperties | undefined {
   return { color };
 }
 
-function buildRows(point: XpRoundGrade): StatRow[] {
+function buildRows(point: XpRoundGrade, t: ReturnType<typeof useI18n>["t"]): StatRow[] {
   return [
     {
       key: "grade",
-      label: "Grade",
+      label: t.roundGrade.grade,
       value: point.grade != null ? point.grade.toFixed(1) : "—",
       tone: "grade",
       grade: point.grade,
     },
     {
       key: "passes",
-      label: "Passes",
+      label: t.gameStats.passes,
       value: point.passes != null ? String(point.passes) : "—",
       tone: "count",
       countValue: point.passes,
     },
     {
       key: "short",
-      label: "% eff pass curto",
+      label: t.gameStats.shortEff,
       value: formatPct(point.short_pass_eff_pct),
       tone: "eff",
       effPct: point.short_pass_eff_pct,
     },
     {
       key: "long",
-      label: "% eff pass longo",
+      label: t.gameStats.longEff,
       value: formatPct(point.long_pass_eff_pct),
       tone: "eff",
       effPct: point.long_pass_eff_pct,
     },
     {
       key: "breakline",
-      label: "Breakline passes",
+      label: t.roundGrade.breakline,
       value: point.breakline_passes != null ? String(point.breakline_passes) : "—",
       tone: "count",
       countValue: point.breakline_passes,
     },
     {
       key: "impact",
-      label: "Impact passes",
+      label: t.roundGrade.impactPasses,
       value: point.impact != null ? String(point.impact) : "—",
       tone: "count",
       countValue: point.impact,
     },
     {
       key: "key",
-      label: "Key passes",
+      label: t.roundGrade.keyPasses,
       value: point.key_passes != null ? String(point.key_passes) : "—",
       tone: "count",
       countValue: point.key_passes,
@@ -133,8 +133,9 @@ function buildRows(point: XpRoundGrade): StatRow[] {
 }
 
 export function RoundGradeStatsPanel({ point, accent = "#a78bfa", layout = "tooltip" }: Props) {
+  const { t } = useI18n();
   const header = `R${point.round}${point.opponent ? ` vs ${point.opponent}` : ""}`;
-  const rows = buildRows(point);
+  const rows = buildRows(point, t);
   const listClass = layout === "modal" ? "round-grade-stats-list round-grade-stats-list-modal" : "round-grade-stats-list";
 
   return (
