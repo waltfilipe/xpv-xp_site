@@ -1470,6 +1470,7 @@ XP_PRODUCTIVITY_SOFASCORE_SPAN = 4.2
 XP_PRODUCTIVITY_SOFASCORE_CDF_SCALE = 0.42
 XP_PRODUCTIVITY_SOFASCORE_CAP = 9.5
 PROD_REL_LIFT_BADGE_PERCENTILE = 70
+PREC_STRATUM_LIFT_BADGE_PERCENTILE = 70
 EUROPEAN_TEAM_XP_CACHE = (
     __import__("pathlib").Path(__file__).resolve().parent / "data" / "european_team_xp_per_game.json"
 )
@@ -3107,6 +3108,50 @@ def _attach_prod_rel_lift_badges(rows: list[dict]) -> None:
             row["prod_rel_lift_badge"] = False
 
 
+def _attach_prec_stratum_lift_badges(rows: list[dict]) -> None:
+    """Badge when Stratum − General COE gap is at or above P70 among eligible peers."""
+    eligible = [
+        r for r in rows
+        if r.get("xp_profile_bars_eligible")
+        and r.get("prec_grade_geral") is not None
+        and r.get("prec_grade_stratum") is not None
+    ]
+    gaps: list[float] = []
+    for row in eligible:
+        gap = float(row["prec_grade_stratum"]) - float(row["prec_grade_geral"])
+        row["prec_stratum_gap"] = round(gap, 2)
+        gaps.append(gap)
+
+    mean_gap = float(np.mean(gaps)) if gaps else 0.0
+    p70_gap = (
+        float(np.percentile(gaps, PREC_STRATUM_LIFT_BADGE_PERCENTILE))
+        if len(gaps) >= 2
+        else mean_gap
+    )
+
+    for row in rows:
+        row["prec_stratum_gap_pool_mean"] = round(mean_gap, 3)
+        row["prec_stratum_gap_pool_p70"] = round(p70_gap, 3)
+        if row.get("prec_grade_geral") is not None and row.get("prec_grade_stratum") is not None:
+            if "prec_stratum_gap" not in row:
+                row["prec_stratum_gap"] = round(
+                    float(row["prec_grade_stratum"]) - float(row["prec_grade_geral"]),
+                    2,
+                )
+        else:
+            row["prec_stratum_gap"] = None
+
+        if (
+            row.get("xp_profile_bars_eligible")
+            and row.get("prec_stratum_gap") is not None
+            and float(row["prec_stratum_gap"]) >= p70_gap
+            and float(row["prec_stratum_gap"]) > 0.0
+        ):
+            row["prec_stratum_lift_badge"] = True
+        else:
+            row["prec_stratum_lift_badge"] = False
+
+
 def xp_pass_rating_blended_display(rank: int, pool_size: int, composite_z: float) -> float:
     """Map rank + composite z to a 4.5–8.48 display score (idea 4, calibrated).
 
@@ -3272,6 +3317,8 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
             player["prec_grade_blend"] = round(prec_blend, 2)
             if player.get("xp_profile_bars_eligible"):
                 player["xp_efficiency_display"] = round(prec_blend, 2)
+
+        _attach_prec_stratum_lift_badges(rows)
 
         z_prec_res = _zscore(pd.Series(shrunk_by_feature["xpass_residual_p90"]))
         z_prec_coe = pd.Series(coe_stratum_vals, dtype=float)
