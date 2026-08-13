@@ -3064,15 +3064,8 @@ def xp_productivity_sofascore_display(z_score: float) -> float:
 
 
 def xp_pass_rating_v2_display(composite_z: float) -> float:
-    """Map composite z to ~4.9–8.5 via normal CDF on the European pool.
-
-    Calibrated so median players sit ~6.5–7, strong seasons ~8–8.5, and scores
-  above 8.5 or below 5 require exceptional composite z (rare tails).
-    """
-    pct = norm.cdf(float(composite_z) * XP_PASS_RATING_V2_CDF_SCALE)
-    raw = XP_PASS_RATING_V2_GRADE_FLOOR + XP_PASS_RATING_V2_GRADE_SPAN * pct
-    grade_cap = XP_PASS_RATING_V2_GRADE_FLOOR + XP_PASS_RATING_V2_GRADE_SPAN
-    return float(min(grade_cap, max(XP_PASS_RATING_V2_GRADE_FLOOR, raw)))
+    """Map composite z to Sofascore-like 4.8–9.5 display (median ≈ 6.9, 8 very good)."""
+    return xp_productivity_sofascore_display(composite_z)
 
 
 def xp_pass_rating_blended_display(rank: int, pool_size: int, composite_z: float) -> float:
