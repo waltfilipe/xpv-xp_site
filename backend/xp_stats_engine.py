@@ -1226,7 +1226,7 @@ XP_PROFILE_BAR_ICONS: dict[str, str] = {
 
 XP_PROFILE_BAR_METRICS: dict[str, tuple[str, ...]] = {
     "xp_activity_display": ("xp_per_90",),
-    "xp_edge_display": ("xpv_per_pass", "test_impact_v2_p90", "threat_pass_pct"),
+    "xp_edge_display": ("xpv_per_pass", "threat_pass_pct"),
     "xp_efficiency_display": ("xpass_residual_p90",),
     "xp_quality_display": ("xp_residual_median",),
     "xp_consistency_display": ("xp_game_consistency_score",),
@@ -1242,17 +1242,13 @@ XP_PROFILE_SUBMETRICS: tuple[str, ...] = (
     "xp_residual_median",
 )
 
-# Lethality pillar (xP Profile bar) — mean z of xPV/pass, ImpV2 p90, and impact rate.
-LETHALITY_METRICS: tuple[str, ...] = ("xpv_per_pass", "test_impact_v2_p90", "threat_pass_pct")
-
-# xP Impact index — destination value + mean residual vs. geometric model per pass.
-IMPACT_INDEX_METRICS: tuple[str, ...] = ("xpv_per_pass", "xp_residual_mean")
+# Lethality pillar (xP Profile bar) — mean z of xPV/pass and impact-pass rate.
+LETHALITY_METRICS: tuple[str, ...] = ("xpv_per_pass", "threat_pass_pct")
 
 # (index_key, label, metrics, invert_metrics)
 XP_INDEX_ELITE_TOP_N = 10
 XP_INDEX_SPECS: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
     ("xp_idx_consistency", "Consistency", ("xp_game_consistency_score",), ()),
-    ("xp_idx_impact", "Impact", IMPACT_INDEX_METRICS, ()),
 )
 
 XP_INDEX_TIER_LABELS: dict[str, str] = {
@@ -1268,16 +1264,11 @@ XP_INDEX_TOOLTIPS: dict[str, str] = {
         "Consistency badge when the dispersion of those grades is low — measured by MAD "
         "(median absolute deviation), which is robust to outlier games."
     ),
-    "xp_idx_impact": (
-        "50% xPV per completed pass and 50% mean (xP − xP expected) per pass — "
-        "destination value plus how much the player beats the geometric model on average."
-    ),
 }
 
 # Icons for the index rows (tier indices + badges) shown in the xP Profile card.
 XP_INDEX_ICONS: dict[str, str] = {
     "xp_idx_consistency": "fa-wave-square",
-    "xp_idx_impact": "fa-crosshairs",
 }
 
 # Achievement badges — earned when ranked in the top N among eligible peers on the
@@ -1306,8 +1297,8 @@ XP_COMPARE_COLUMN_TOOLTIPS: dict[str, str] = {
         "produces per game."
     ),
     "xp_edge_display": (
-        "Mean z-score of xPV per completed pass, Pass Impact v2 per game, and impact-pass "
-        "rate (33/33/33) within the position group."
+        "Mean z-score of xPV per completed pass and impact-pass rate (50/50) within the "
+        "position group."
     ),
     "passes_total": "Passes attempted per game (p90).",
 }
@@ -1328,8 +1319,8 @@ XP_COMPARE_METRIC_TOOLTIPS: dict[str, str] = {
 XP_PROFILE_BAR_TOOLTIPS: dict[str, str] = {
     "xp_activity_display": "How much xPV the player generates per game — passing volume times destination value.",
     "xp_edge_display": (
-        "Mean z-score of xPV per completed pass, Pass Impact v2 per game, and impact-pass "
-        "rate (33/33/33) within the position group."
+        "Mean z-score of xPV per completed pass and impact-pass rate (50/50) within the "
+        "position group."
     ),
     "xp_efficiency_display": (
         "75% xPass residual per 90 minutes and 25% COE stratum (short + total passes) vs. "
@@ -1419,7 +1410,7 @@ COE_STRATUM_METRICS: tuple[tuple[str, str], ...] = (
 XP_PASS_RATING_FEATURE_WEIGHTS: dict[str, float] = {
     "xp_per_90": 0.35,
     "xpv_per_pass": 0.15,
-    "test_impact_v2_p90": 0.15,
+    "threat_pass_pct": 0.15,
     "xpass_residual_p90": 0.35,
 }
 XP_PASS_RATING_FEATURES: tuple[str, ...] = tuple(XP_PASS_RATING_FEATURE_WEIGHTS)
@@ -1429,7 +1420,7 @@ XP_PROFILE_BAR_WEIGHTS: dict[str, float] = {
     "xp_activity_display": XP_PASS_RATING_FEATURE_WEIGHTS["xp_per_90"],
     "xp_edge_display": (
         XP_PASS_RATING_FEATURE_WEIGHTS["xpv_per_pass"]
-        + XP_PASS_RATING_FEATURE_WEIGHTS["test_impact_v2_p90"]
+        + XP_PASS_RATING_FEATURE_WEIGHTS["threat_pass_pct"]
     ),
     "xp_efficiency_display": XP_PASS_RATING_FEATURE_WEIGHTS["xpass_residual_p90"],
 }
@@ -1465,9 +1456,9 @@ XP_PASS_RATING_V2_PROD_PURE_WEIGHT = 0.70
 XP_PASS_RATING_V2_PREC_RESIDUAL_WEIGHT = 0.70
 XP_PASS_RATING_V2_LETHALITY_METRICS: tuple[str, ...] = (
     "xpv_per_pass",
-    "test_impact_v2_p90",
     "threat_pass_pct",
 )
+XP_PASS_RATING_V2_LETHALITY_XPV_WEIGHT = 0.50
 XP_PASS_RATING_V2_GRADE_FLOOR = 4.875
 XP_PASS_RATING_V2_GRADE_SPAN = 3.625
 XP_PASS_RATING_V2_CDF_SCALE = 0.84
@@ -3146,7 +3137,7 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
 
     Productivity 35% — 0.7·z(xp_per_90) + 0.3·z(xp_per_90 / team_xp_per_game)
     Precision    35% — 0.7·z(xpass_residual_p90) + 0.3·z(COE stratum)
-    Lethality    30% — mean z(xpv_per_pass, test_impact_v2_p90, threat_pass_pct)
+    Lethality    30% — mean z(xpv_per_pass, threat_pass_pct)
 
     Display: normal CDF on composite z (~6.5–7 median, ~8–8.5 elite); confidence pull to 6.75.
     """
@@ -3161,7 +3152,6 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
         "xpass_coe_pct",
         "xpass_total_coe_pct",
         "xpv_per_pass",
-        "test_impact_v2_p90",
         "threat_pass_pct",
     )
 
@@ -3256,11 +3246,24 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
             + (1.0 - XP_PASS_RATING_V2_PREC_RESIDUAL_WEIGHT) * z_prec_coe
         )
 
-        leth_z_parts = [
-            _zscore(pd.Series(shrunk_by_feature[key]))
-            for key in XP_PASS_RATING_V2_LETHALITY_METRICS
-        ]
-        z_lethality = sum(leth_z_parts) / len(leth_z_parts)
+        z_leth_xpv = _zscore(pd.Series(shrunk_by_feature["xpv_per_pass"]))
+        z_leth_threat = _zscore(pd.Series(shrunk_by_feature["threat_pass_pct"]))
+        leth_w = XP_PASS_RATING_V2_LETHALITY_XPV_WEIGHT
+        z_lethality = leth_w * z_leth_xpv + (1.0 - leth_w) * z_leth_threat
+
+        for i, player in enumerate(rows):
+            zx = float(z_leth_xpv.iloc[i])
+            zt = float(z_leth_threat.iloc[i])
+            grade_xpv = xp_productivity_sofascore_display(zx)
+            grade_threat = xp_productivity_sofascore_display(zt)
+            leth_blend = leth_w * grade_xpv + (1.0 - leth_w) * grade_threat
+            player["leth_z_xpv"] = round(zx, 4)
+            player["leth_z_threat"] = round(zt, 4)
+            player["leth_grade_xpv"] = round(grade_xpv, 2)
+            player["leth_grade_threat"] = round(grade_threat, 2)
+            player["leth_grade_blend"] = round(leth_blend, 2)
+            if player.get("xp_profile_bars_eligible"):
+                player["xp_edge_display"] = round(leth_blend, 2)
 
         w = XP_PASS_RATING_V2_PILLAR_WEIGHTS
         composite_scores = (

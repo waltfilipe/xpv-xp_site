@@ -108,29 +108,6 @@ def build_xp_indices(xp_profile: dict) -> list[dict[str, Any]]:
             "value": xp_profile.get("xp_game_consistency_score"),
             "icon": "fa-wave-square",
         },
-        {
-            "key": "impact",
-            "label": "Impact",
-            "tier": xp_profile.get("xp_idx_impact_tier"),
-            "tier_key": "xp_idx_impact",
-            "icon": "fa-crosshairs",
-            "components": [
-                {
-                    "key": "xpv_per_pass",
-                    "label": "xPV/Pass",
-                    "value": xp_profile.get("xpv_per_pass"),
-                    "rank": xp_profile.get("xpv_per_pass_rank_in_group"),
-                    "rank_pool": xp_profile.get("xpv_per_pass_rank_pool_in_group"),
-                },
-                {
-                    "key": "xp_residual_mean",
-                    "label": "ΔxP/Pass",
-                    "value": xp_profile.get("xp_residual_mean"),
-                    "rank": xp_profile.get("xp_residual_mean_rank_in_group"),
-                    "rank_pool": xp_profile.get("xp_residual_mean_rank_pool_in_group"),
-                },
-            ],
-        },
     ]
     defense = build_defensive_index_item(xp_profile)
     if defense:
@@ -237,6 +214,9 @@ def build_profile_payload(
         "prec_grade_geral": xp.get("prec_grade_geral"),
         "prec_grade_stratum": xp.get("prec_grade_stratum"),
         "prec_grade_blend": xp.get("prec_grade_blend"),
+        "leth_grade_xpv": xp.get("leth_grade_xpv"),
+        "leth_grade_threat": xp.get("leth_grade_threat"),
+        "leth_grade_blend": xp.get("leth_grade_blend"),
         "xp_game_consistency_score": xp.get("xp_game_consistency_score"),
         "test_impact_v2_p90": xp.get("test_impact_v2_p90"),
         "xp_indices": build_xp_indices(xp) if xp else [],
