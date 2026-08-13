@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 _BACKEND = Path(__file__).resolve().parents[1]
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
@@ -80,10 +82,51 @@ def _write_json(path: Path, payload: Any) -> None:
     print(f"  wrote {path.relative_to(OUTPUT_DIR)}")
 
 
+def _write_prod_rel_gap_stats(parts: dict[str, Any]) -> None:
+    from collections import defaultdict
+
+    xp_by_id = parts["xp_by_id"]
+    players_by_id = parts["players_by_id"]
+    by_pool: dict[str, list[float]] = defaultdict(list)
+    combined: list[float] = []
+    badge_ids: list[str] = []
+
+    for pid, xp in xp_by_id.items():
+        if not xp.get("xp_profile_bars_eligible"):
+            continue
+        gap = xp.get("prod_rel_gap")
+        if gap is None:
+            continue
+        gap_f = float(gap)
+        combined.append(gap_f)
+        player = players_by_id.get(str(pid), {})
+        pool_key = xstats._metric_rank_pool_key(player)
+        by_pool[pool_key].append(gap_f)
+        if xp.get("prod_rel_lift_badge"):
+            badge_ids.append(str(pid))
+
+    def _pool_stats(gaps: list[float]) -> dict[str, Any]:
+        if not gaps:
+            return {"n": 0, "mean_gap": None, "p70_gap": None}
+        return {
+            "n": len(gaps),
+            "mean_gap": round(float(np.mean(gaps)), 3),
+            "p70_gap": round(float(np.percentile(gaps, 70)), 3),
+        }
+
+    payload = {
+        "combined": _pool_stats(combined),
+        "by_pool": {key: _pool_stats(gaps) for key, gaps in sorted(by_pool.items())},
+        "badge_player_ids": sorted(badge_ids),
+    }
+    _write_json(OUTPUT_DIR / "prod-rel-gap-stats.json", payload)
+
+
 def main() -> None:
     print("Loading full midfielder bundle (local mode)…")
     clear_data_parts_cache()
     parts = get_data_parts(POSITION_FAMILY, require_passes=True)
+    _write_prod_rel_gap_stats(parts)
     player_ids = set(PLAYER_IDS)
     missing = player_ids - {str(p["player_id"]) for p in parts["analysis_players"]}
     if missing:

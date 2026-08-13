@@ -1469,6 +1469,7 @@ XP_PRODUCTIVITY_SOFASCORE_FLOOR = 4.8
 XP_PRODUCTIVITY_SOFASCORE_SPAN = 4.2
 XP_PRODUCTIVITY_SOFASCORE_CDF_SCALE = 0.42
 XP_PRODUCTIVITY_SOFASCORE_CAP = 9.5
+PROD_REL_LIFT_BADGE_PERCENTILE = 70
 EUROPEAN_TEAM_XP_CACHE = (
     __import__("pathlib").Path(__file__).resolve().parent / "data" / "european_team_xp_per_game.json"
 )
@@ -3063,6 +3064,49 @@ def xp_pass_rating_v2_display(composite_z: float) -> float:
     return xp_productivity_sofascore_display(composite_z)
 
 
+def _attach_prod_rel_lift_badges(rows: list[dict]) -> None:
+    """Flag players whose Rel − Geral gap is at or above P70 among profile-bar eligible peers."""
+    eligible = [
+        r for r in rows
+        if r.get("xp_profile_bars_eligible")
+        and r.get("prod_grade_geral") is not None
+        and r.get("prod_grade_rel") is not None
+    ]
+    gaps: list[float] = []
+    for row in eligible:
+        gap = float(row["prod_grade_rel"]) - float(row["prod_grade_geral"])
+        row["prod_rel_gap"] = round(gap, 2)
+        gaps.append(gap)
+
+    mean_gap = float(np.mean(gaps)) if gaps else 0.0
+    p70_gap = (
+        float(np.percentile(gaps, PROD_REL_LIFT_BADGE_PERCENTILE))
+        if len(gaps) >= 2
+        else mean_gap
+    )
+
+    for row in rows:
+        row["prod_rel_gap_pool_mean"] = round(mean_gap, 3)
+        row["prod_rel_gap_pool_p70"] = round(p70_gap, 3)
+        if row.get("prod_grade_geral") is not None and row.get("prod_grade_rel") is not None:
+            if "prod_rel_gap" not in row:
+                row["prod_rel_gap"] = round(
+                    float(row["prod_grade_rel"]) - float(row["prod_grade_geral"]),
+                    2,
+                )
+        else:
+            row["prod_rel_gap"] = None
+
+        if (
+            row.get("xp_profile_bars_eligible")
+            and row.get("prod_rel_gap") is not None
+            and float(row["prod_rel_gap"]) >= p70_gap
+        ):
+            row["prod_rel_lift_badge"] = True
+        else:
+            row["prod_rel_lift_badge"] = False
+
+
 def xp_pass_rating_blended_display(rank: int, pool_size: int, composite_z: float) -> float:
     """Map rank + composite z to a 4.5–8.48 display score (idea 4, calibrated).
 
@@ -3207,6 +3251,8 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
             player["prod_grade_blend"] = round(blend, 2)
             if player.get("xp_profile_bars_eligible"):
                 player["xp_activity_display"] = round(blend, 2)
+
+        _attach_prod_rel_lift_badges(rows)
 
         z_coe_total = _zscore(pd.Series(shrunk_by_feature["xpass_total_coe_pct"]))
         z_coe_stratum = pd.Series(coe_stratum_vals, dtype=float)
