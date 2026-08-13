@@ -3230,6 +3230,25 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
             if player.get("xp_profile_bars_eligible"):
                 player["xp_activity_display"] = round(blend, 2)
 
+        z_coe_total = _zscore(pd.Series(shrunk_by_feature["xpass_total_coe_pct"]))
+        z_coe_stratum = pd.Series(coe_stratum_vals, dtype=float)
+        for i, player in enumerate(rows):
+            zcg = float(z_coe_total.iloc[i])
+            zcs = float(z_coe_stratum.iloc[i])
+            grade_coe_g = xp_productivity_sofascore_display(zcg)
+            grade_coe_s = xp_productivity_sofascore_display(zcs)
+            prec_blend = (
+                XP_PASS_RATING_V2_PREC_RESIDUAL_WEIGHT * grade_coe_g
+                + (1.0 - XP_PASS_RATING_V2_PREC_RESIDUAL_WEIGHT) * grade_coe_s
+            )
+            player["prec_z_coe_total"] = round(zcg, 4)
+            player["prec_z_coe_stratum"] = round(zcs, 4)
+            player["prec_grade_geral"] = round(grade_coe_g, 2)
+            player["prec_grade_stratum"] = round(grade_coe_s, 2)
+            player["prec_grade_blend"] = round(prec_blend, 2)
+            if player.get("xp_profile_bars_eligible"):
+                player["xp_efficiency_display"] = round(prec_blend, 2)
+
         z_prec_res = _zscore(pd.Series(shrunk_by_feature["xpass_residual_p90"]))
         z_prec_coe = pd.Series(coe_stratum_vals, dtype=float)
         z_precision = (
