@@ -1323,7 +1323,7 @@ XP_PROFILE_BAR_TOOLTIPS: dict[str, str] = {
         "position group."
     ),
     "xp_efficiency_display": (
-        "75% xPass residual per 90 minutes and 25% COE stratum (short + total passes) vs. "
+        "75% xPass residual per 90 minutes and 25% total-pass COE stratum vs. "
         "peers in the same pass-volume quartile."
     ),
     "xp_quality_display": "Median xP above the model's expectation — value that comes from surprise.",
@@ -3035,20 +3035,15 @@ def _player_prod_ratio_r_d(player: dict, team_map: dict[str, dict]) -> float | N
 
 
 def _coe_stratum_z_for_rows(rows: list[dict]) -> list[float]:
+    """Z-score of total-pass COE within pass-volume quartiles (all passes)."""
     if not rows:
         return []
     df = pd.DataFrame(rows)
-    if "passes_total" not in df.columns:
+    if "passes_total" not in df.columns or "xpass_total_coe_pct" not in df.columns:
         return [0.0] * len(rows)
     passes = pd.to_numeric(df["passes_total"], errors="coerce")
-    parts: list[pd.Series] = []
-    for col in ("xpass_coe_pct", "xpass_total_coe_pct"):
-        if col in df.columns:
-            parts.append(_coe_stratum_z_by_volume_quartile(passes, df[col]))
-    if not parts:
-        return [0.0] * len(rows)
-    blended = pd.concat(parts, axis=1).mean(axis=1, skipna=True).fillna(0.0)
-    return [float(v) for v in blended.tolist()]
+    z = _coe_stratum_z_by_volume_quartile(passes, df["xpass_total_coe_pct"])
+    return [float(v) if pd.notna(v) else 0.0 for v in z.fillna(0.0).tolist()]
 
 
 def xp_productivity_sofascore_display(z_score: float) -> float:
