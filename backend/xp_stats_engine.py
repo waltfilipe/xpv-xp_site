@@ -2693,6 +2693,7 @@ def _clear_xp_profile_bar_scores(row: dict) -> None:
     row.pop("xp_profile_archetype", None)
     row.pop("xp_profile_archetype_label", None)
     row.pop("xp_profile_archetype_description", None)
+    _clear_hybrid_productivity_fields(row)
 
 
 def xp_profile_bar_pass_thresholds(
@@ -3048,6 +3049,127 @@ def _coe_stratum_z_for_rows(rows: list[dict]) -> list[float]:
     return [float(v) if pd.notna(v) else 0.0 for v in z.fillna(0.0).tolist()]
 
 
+EUROPEAN_TOP_FIVE_LEAGUES = frozenset({
+    "premier_league",
+    "italia_seriea",
+    "laliga",
+    "bundesliga",
+    "ligue1",
+})
+
+HYBRID_PRODUCTIVITY_FIELDS: tuple[str, ...] = (
+    "prod_xpv_per_game",
+    "prod_xpv_expected",
+    "prod_rel_xpv",
+    "prod_geral_display",
+    "prod_expected_display",
+)
+
+
+def _league_minmax_display(value: float | None, league_values: list[float]) -> float | None:
+    """Map a raw value to 0–100 within a league cohort (min → 0, max → 100)."""
+    vals = [float(v) for v in league_values if v is not None and np.isfinite(v)]
+    if value is None or not np.isfinite(float(value)) or not vals:
+        return None
+    if len(vals) == 1:
+        return 100.0 if float(value) >= vals[0] else 0.0
+    mn = min(vals)
+    mx = max(vals)
+    if mx <= mn:
+        return 50.0
+    pct = (float(value) - mn) / (mx - mn) * 100.0
+    return round(float(np.clip(pct, 0.0, 100.0)), 1)
+
+
+def _clear_hybrid_productivity_fields(row: dict) -> None:
+    for key in HYBRID_PRODUCTIVITY_FIELDS:
+        row.pop(key, None)
+
+
+def _attach_hybrid_productivity_league_bars(players: list[dict]) -> None:
+    """Hybrid xPV model (EU slope + league intercept) with 0–100 league bars."""
+    if not players:
+        return
+
+    for row in players:
+        _clear_hybrid_productivity_fields(row)
+
+    eligible = [
+        p for p in players
+        if p.get("xp_profile_bars_eligible")
+        and p.get("xp_per_90") is not None
+        and p.get("passes_total") is not None
+        and str(p.get("league_source") or "").strip() in EUROPEAN_TOP_FIVE_LEAGUES
+    ]
+    if len(eligible) < 3:
+        return
+
+    xs = [float(p["passes_total"]) for p in eligible]
+    ys = [float(p["xp_per_90"]) for p in eligible]
+    n = len(xs)
+    mx = sum(xs) / n
+    my = sum(ys) / n
+    sxx = sum((x - mx) ** 2 for x in xs)
+    if sxx <= 0:
+        return
+    beta = sum((xs[i] - mx) * (ys[i] - my) for i in range(n)) / sxx
+
+    from collections import defaultdict
+
+    league_residuals: dict[str, list[float]] = defaultdict(list)
+    for player in eligible:
+        league = str(player.get("league_source") or "").strip()
+        residual = float(player["xp_per_90"]) - beta * float(player["passes_total"])
+        league_residuals[league].append(residual)
+
+    alpha_by_league = {
+        league: float(np.mean(vals))
+        for league, vals in league_residuals.items()
+        if vals
+    }
+
+    for player in players:
+        if not player.get("xp_profile_bars_eligible"):
+            continue
+        league = str(player.get("league_source") or "").strip()
+        alpha = alpha_by_league.get(league)
+        if alpha is None or player.get("xp_per_90") is None or player.get("passes_total") is None:
+            continue
+        xpv_pg = float(player["xp_per_90"])
+        passes_pg = float(player["passes_total"])
+        expected = alpha + beta * passes_pg
+        player["prod_xpv_per_game"] = round(xpv_pg, 3)
+        player["prod_xpv_expected"] = round(expected, 3)
+        player["prod_rel_xpv"] = round(xpv_pg - expected, 3)
+
+    league_geral: dict[str, list[float]] = defaultdict(list)
+    league_expected: dict[str, list[float]] = defaultdict(list)
+    for player in eligible:
+        league = str(player.get("league_source") or "").strip()
+        if player.get("prod_xpv_per_game") is not None:
+            league_geral[league].append(float(player["prod_xpv_per_game"]))
+        if player.get("prod_xpv_expected") is not None:
+            league_expected[league].append(float(player["prod_xpv_expected"]))
+
+    for player in players:
+        if not player.get("xp_profile_bars_eligible"):
+            continue
+        league = str(player.get("league_source") or "").strip()
+        geral_display = _league_minmax_display(
+            player.get("prod_xpv_per_game"),
+            league_geral.get(league, []),
+        )
+        expected_display = _league_minmax_display(
+            player.get("prod_xpv_expected"),
+            league_expected.get(league, []),
+        )
+        if geral_display is not None:
+            player["prod_geral_display"] = geral_display
+            player["xp_activity_display"] = geral_display
+        if expected_display is not None:
+            player["prod_expected_display"] = expected_display
+
+
 def xp_productivity_sofascore_display(z_score: float) -> float:
     """Map productivity z to a Sofascore-like 4.8–9.5 grade (median ≈ 6.9, 8 very good)."""
     pct = norm.cdf(float(z_score) * XP_PRODUCTIVITY_SOFASCORE_CDF_SCALE)
@@ -3384,6 +3506,8 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
                 "value": row.get("xp_pass_rating"),
             }
             row["metric_ranks"] = metric_ranks
+
+    _attach_hybrid_productivity_league_bars(players)
 
 
 PASS_LENGTH_MIN_PEERS = 5
