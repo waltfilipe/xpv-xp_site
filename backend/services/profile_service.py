@@ -223,6 +223,8 @@ def build_profile_payload(
         "prec_grade_geral": xp.get("prec_grade_geral"),
         "prec_grade_stratum": xp.get("prec_grade_stratum"),
         "prec_grade_blend": xp.get("prec_grade_blend"),
+        "prec_coe_per_pass": xp.get("prec_coe_per_pass"),
+        "prec_display": xp.get("prec_display"),
         "prec_stratum_gap": xp.get("prec_stratum_gap"),
         "prec_stratum_lift_badge": xp.get("prec_stratum_lift_badge"),
         "prec_stratum_gap_pool_mean": xp.get("prec_stratum_gap_pool_mean"),

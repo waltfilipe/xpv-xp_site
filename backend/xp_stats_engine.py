@@ -3065,6 +3065,11 @@ HYBRID_PRODUCTIVITY_FIELDS: tuple[str, ...] = (
     "prod_rel_display",
 )
 
+PRECISION_LEAGUE_FIELDS: tuple[str, ...] = (
+    "prec_coe_per_pass",
+    "prec_display",
+)
+
 
 def _league_minmax_display(value: float | None, league_values: list[float]) -> float | None:
     """Map a raw value to 0–100 within a league cohort (min → 0, max → 100)."""
@@ -3168,6 +3173,72 @@ def _attach_hybrid_productivity_league_bars(players: list[dict]) -> None:
             player["xp_activity_display"] = geral_display
         if rel_display is not None:
             player["prod_rel_display"] = rel_display
+
+
+def _precision_coe_per_pass_pct(player: dict) -> float | None:
+    """COE per pass (percentage points): completion% minus xPass expected%."""
+    coe = player.get("xpass_total_coe_pct")
+    if coe is not None and np.isfinite(float(coe)):
+        return float(coe)
+    coe = player.get("xpass_coe_pct")
+    if coe is not None and np.isfinite(float(coe)):
+        return float(coe)
+    residual_p90 = player.get("xpass_residual_p90")
+    passes_pg = player.get("passes_total")
+    if (
+        residual_p90 is not None
+        and passes_pg is not None
+        and float(passes_pg) > 0
+        and np.isfinite(float(residual_p90))
+    ):
+        return float(residual_p90) / float(passes_pg) * 100.0
+    return None
+
+
+def _clear_precision_league_fields(row: dict) -> None:
+    for key in PRECISION_LEAGUE_FIELDS:
+        row.pop(key, None)
+
+
+def _attach_precision_coe_league_bar(players: list[dict]) -> None:
+    """Precision = COE per pass; 0–100 bar min-max within each top-five league cohort."""
+    if not players:
+        return
+
+    from collections import defaultdict
+
+    for row in players:
+        _clear_precision_league_fields(row)
+
+    eligible = [
+        p for p in players
+        if p.get("xp_profile_bars_eligible")
+        and str(p.get("league_source") or "").strip() in EUROPEAN_TOP_FIVE_LEAGUES
+    ]
+
+    for player in players:
+        coe = _precision_coe_per_pass_pct(player)
+        if coe is not None:
+            player["prec_coe_per_pass"] = round(coe, 2)
+
+    league_coe: dict[str, list[float]] = defaultdict(list)
+    for player in eligible:
+        coe = player.get("prec_coe_per_pass")
+        if coe is not None:
+            league = str(player.get("league_source") or "").strip()
+            league_coe[league].append(float(coe))
+
+    for player in players:
+        if not player.get("xp_profile_bars_eligible"):
+            continue
+        league = str(player.get("league_source") or "").strip()
+        display = _league_minmax_display(
+            player.get("prec_coe_per_pass"),
+            league_coe.get(league, []),
+        )
+        if display is not None:
+            player["prec_display"] = display
+            player["xp_efficiency_display"] = display
 
 
 def xp_productivity_sofascore_display(z_score: float) -> float:
@@ -3437,8 +3508,6 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
             player["prec_grade_geral"] = round(grade_coe_g, 2)
             player["prec_grade_stratum"] = round(grade_coe_s, 2)
             player["prec_grade_blend"] = round(prec_blend, 2)
-            if player.get("xp_profile_bars_eligible"):
-                player["xp_efficiency_display"] = round(prec_blend, 2)
 
         _attach_prec_stratum_lift_badges(rows)
 
@@ -3508,6 +3577,7 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
             row["metric_ranks"] = metric_ranks
 
     _attach_hybrid_productivity_league_bars(players)
+    _attach_precision_coe_league_bar(players)
 
 
 PASS_LENGTH_MIN_PEERS = 5
