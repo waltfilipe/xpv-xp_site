@@ -3070,6 +3070,14 @@ PRECISION_LEAGUE_FIELDS: tuple[str, ...] = (
     "prec_display",
 )
 
+LETHALITY_LEAGUE_FIELDS: tuple[str, ...] = (
+    "leth_xpv_per_pass",
+    "leth_impact_rate_pct",
+    "leth_xpv_display",
+    "leth_threat_display",
+    "leth_display",
+)
+
 
 def _league_minmax_display(value: float | None, league_values: list[float]) -> float | None:
     """Map a raw value to 0–100 within a league cohort (min → 0, max → 100)."""
@@ -3239,6 +3247,73 @@ def _attach_precision_coe_league_bar(players: list[dict]) -> None:
         if display is not None:
             player["prec_display"] = display
             player["xp_efficiency_display"] = display
+
+
+def _clear_lethality_league_fields(row: dict) -> None:
+    for key in LETHALITY_LEAGUE_FIELDS:
+        row.pop(key, None)
+
+
+def _attach_lethality_league_bars(players: list[dict]) -> None:
+    """Lethality sub-metrics scaled 0–100 within each top-five league cohort."""
+    if not players:
+        return
+
+    from collections import defaultdict
+
+    for row in players:
+        _clear_lethality_league_fields(row)
+
+    eligible = [
+        p for p in players
+        if p.get("xp_profile_bars_eligible")
+        and str(p.get("league_source") or "").strip() in EUROPEAN_TOP_FIVE_LEAGUES
+    ]
+
+    for player in players:
+        xpv = player.get("xpv_per_pass")
+        if xpv is not None and np.isfinite(float(xpv)):
+            player["leth_xpv_per_pass"] = round(float(xpv), 4)
+        threat = player.get("threat_pass_pct")
+        if threat is not None and np.isfinite(float(threat)):
+            player["leth_impact_rate_pct"] = round(float(threat), 2)
+
+    league_xpv: dict[str, list[float]] = defaultdict(list)
+    league_threat: dict[str, list[float]] = defaultdict(list)
+    for player in eligible:
+        league = str(player.get("league_source") or "").strip()
+        if player.get("leth_xpv_per_pass") is not None:
+            league_xpv[league].append(float(player["leth_xpv_per_pass"]))
+        if player.get("leth_impact_rate_pct") is not None:
+            league_threat[league].append(float(player["leth_impact_rate_pct"]))
+
+    leth_w = XP_PASS_RATING_V2_LETHALITY_XPV_WEIGHT
+    for player in players:
+        if not player.get("xp_profile_bars_eligible"):
+            continue
+        league = str(player.get("league_source") or "").strip()
+        xpv_display = _league_minmax_display(
+            player.get("leth_xpv_per_pass"),
+            league_xpv.get(league, []),
+        )
+        threat_display = _league_minmax_display(
+            player.get("leth_impact_rate_pct"),
+            league_threat.get(league, []),
+        )
+        if xpv_display is not None:
+            player["leth_xpv_display"] = xpv_display
+        if threat_display is not None:
+            player["leth_threat_display"] = threat_display
+        if xpv_display is not None and threat_display is not None:
+            blend = leth_w * float(xpv_display) + (1.0 - leth_w) * float(threat_display)
+            player["leth_display"] = round(blend, 1)
+            player["xp_edge_display"] = player["leth_display"]
+        elif xpv_display is not None:
+            player["leth_display"] = xpv_display
+            player["xp_edge_display"] = xpv_display
+        elif threat_display is not None:
+            player["leth_display"] = threat_display
+            player["xp_edge_display"] = threat_display
 
 
 def xp_productivity_sofascore_display(z_score: float) -> float:
@@ -3534,8 +3609,6 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
             player["leth_grade_xpv"] = round(grade_xpv, 2)
             player["leth_grade_threat"] = round(grade_threat, 2)
             player["leth_grade_blend"] = round(leth_blend, 2)
-            if player.get("xp_profile_bars_eligible"):
-                player["xp_edge_display"] = round(leth_blend, 2)
 
         w = XP_PASS_RATING_V2_PILLAR_WEIGHTS
         composite_scores = (
@@ -3578,6 +3651,7 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
 
     _attach_hybrid_productivity_league_bars(players)
     _attach_precision_coe_league_bar(players)
+    _attach_lethality_league_bars(players)
 
 
 PASS_LENGTH_MIN_PEERS = 5
