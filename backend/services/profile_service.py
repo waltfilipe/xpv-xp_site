@@ -14,10 +14,28 @@ COE_STRATUM_STAR_BY_METRIC = dict(COE_STRATUM_METRICS)
 
 XP_PA_REGULAR_SCORE_SPECS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...] = (
     ("pass_volume_display", "pass_volume_index", "pass_volume_letter", "Volume", ("passes_total", "long_balls")),
-    ("pass_efficiency_display", "pass_efficiency_index", "pass_efficiency_letter", "Efficiency", ("xpass_coe_pct", "xpass_long_coe_pct")),
+    (
+        "pass_efficiency_display",
+        "pass_efficiency_index",
+        "pass_efficiency_letter",
+        "Efficiency",
+        ("xpass_coe_pct", "xpass_long_coe_pct", "xpv_per_pass", "threat_pass_pct"),
+    ),
     ("pass_buildup_display", "pass_buildup_index", "pass_buildup_letter", "Build-up", ("progressive_passes", "final_third_passes", "special_line_break_p90")),
     ("pass_chance_creation_display", "pass_chance_creation_index", "pass_chance_creation_letter", "Chance creation", ("key_passes", "passes_to_box", "test_impact_v2_start_final_third_p90")),
 )
+
+EFFICIENCY_LETHALITY_COMPONENT_KEYS: frozenset[str] = frozenset({"xpv_per_pass", "threat_pass_pct"})
+EFFICIENCY_LETHALITY_GRADE_KEYS: dict[str, str] = {
+    "xpv_per_pass": "leth_grade_xpv",
+    "threat_pass_pct": "leth_grade_threat",
+}
+
+XP_PROFILE_BAR_KEYS = ("xp_activity_display", "xp_efficiency_display")
+XP_PROFILE_BAR_LABELS = {
+    "xp_activity_display": "Productivity",
+    "xp_efficiency_display": "Precision",
+}
 
 DEFENSIVE_INDEX_COMPONENTS: tuple[tuple[str, str], ...] = (
     ("def_won_tackle_p90", "Won tackles / 90"),
@@ -28,13 +46,6 @@ DEFENSIVE_INDEX_COMPONENTS: tuple[tuple[str, str], ...] = (
     ("def_aerial_won_pct", "Aerial won %"),
 )
 
-XP_PROFILE_BAR_KEYS = ("xp_activity_display", "xp_efficiency_display", "xp_edge_display")
-XP_PROFILE_BAR_LABELS = {
-    "xp_activity_display": "Productivity",
-    "xp_efficiency_display": "Precision",
-    "xp_edge_display": "Lethality",
-}
-
 
 def build_pass_score_sections(xp_profile: dict) -> list[dict[str, Any]]:
     sections: list[dict[str, Any]] = []
@@ -42,13 +53,23 @@ def build_pass_score_sections(xp_profile: dict) -> list[dict[str, Any]]:
         components = []
         for ck in component_keys:
             star_key = COE_STRATUM_STAR_BY_METRIC.get(ck, f"{ck}_stratum_star")
-            components.append({
+            value = xp_profile.get(ck)
+            if ck == "xpv_per_pass" and value is None:
+                value = xp_profile.get("leth_xpv_per_pass")
+            if ck == "threat_pass_pct" and value is None:
+                value = xp_profile.get("leth_impact_rate_pct")
+            grade_key = EFFICIENCY_LETHALITY_GRADE_KEYS.get(ck)
+            component: dict[str, Any] = {
                 "key": ck,
-                "value": xp_profile.get(ck),
+                "value": value,
                 "rank": xp_profile.get(f"{ck}_rank_in_group"),
                 "rank_pool": xp_profile.get(f"{ck}_rank_pool_in_group"),
                 "stratum_star": bool(xp_profile.get(star_key)),
-            })
+            }
+            if grade_key:
+                component["grade"] = xp_profile.get(grade_key)
+                component["lethality"] = True
+            components.append(component)
         sections.append({
             "title": title,
             "display_score": xp_profile.get(display_key),
@@ -206,8 +227,11 @@ def build_profile_payload(
         "long_pass_share_ref_avg_pct": xp.get("long_pass_share_ref_avg_pct") if xp else None,
         "long_pass_share_pctile": xp.get("long_pass_share_pctile") if xp else None,
         "xp_pass_rating": xp.get("xp_pass_rating"),
+        "pass_grade_general": xp.get("pass_grade_general"),
+        "pass_grade_expected": xp.get("pass_grade_expected"),
         "prod_grade_geral": xp.get("prod_grade_geral"),
         "prod_grade_rel": xp.get("prod_grade_rel"),
+        "prod_grade_expected": xp.get("prod_grade_rel"),
         "prod_grade_blend": xp.get("prod_grade_blend"),
         "prod_xpv_per_game": xp.get("prod_xpv_per_game"),
         "prod_xpv_expected": xp.get("prod_xpv_expected"),
@@ -222,6 +246,7 @@ def build_profile_payload(
         "prod_z_rel": xp.get("prod_z_rel"),
         "prec_grade_geral": xp.get("prec_grade_geral"),
         "prec_grade_stratum": xp.get("prec_grade_stratum"),
+        "prec_grade_expected": xp.get("prec_grade_stratum"),
         "prec_grade_blend": xp.get("prec_grade_blend"),
         "prec_coe_per_pass": xp.get("prec_coe_per_pass"),
         "prec_display": xp.get("prec_display"),

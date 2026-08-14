@@ -1077,6 +1077,8 @@ def attach_regular_pass_stats(
     metrics["final_third_passes"] = float(pass_metrics.get("final_third_passes_p90", 0) or 0)
     metrics["pass_completion_pct"] = pass_metrics.get("pass_completion_pct", 0.0)
     metrics["long_ball_completion_pct"] = pass_metrics.get("long_ball_completion_pct", 0.0)
+    if pass_metrics.get("threat_pass_pct") is not None:
+        metrics["threat_pass_pct"] = pass_metrics.get("threat_pass_pct")
 
 
 def apply_per90_metrics(metrics: dict[str, float | int], minutes: float | None) -> None:
@@ -3079,6 +3081,126 @@ LETHALITY_LEAGUE_FIELDS: tuple[str, ...] = (
 )
 
 
+def _league_rank_probit_grade(rank: int, pool_size: int) -> float:
+    """Sofascore-style grade from league rank (rank 1 = best in league)."""
+    if pool_size <= 0 or rank <= 0:
+        mid = XP_PRODUCTIVITY_SOFASCORE_FLOOR + XP_PRODUCTIVITY_SOFASCORE_SPAN * 0.5
+        return round(mid, 2)
+    if pool_size == 1:
+        return round(xp_productivity_sofascore_display(0.0), 2)
+    rank_pct = (float(pool_size) - float(rank)) / float(pool_size - 1)
+    rank_pct = float(np.clip(rank_pct, 0.001, 0.999))
+    z = float(norm.ppf(rank_pct))
+    return round(xp_productivity_sofascore_display(z), 2)
+
+
+def _assign_league_metric_grades(
+    eligible: list[dict],
+    metric_key: str,
+    grade_key: str,
+) -> None:
+    """Rank metric within each top-five league cohort and attach probit grades."""
+    from collections import defaultdict
+
+    by_league: dict[str, list[tuple[dict, float]]] = defaultdict(list)
+    for player in eligible:
+        raw = player.get(metric_key)
+        if raw is None or not np.isfinite(float(raw)):
+            continue
+        league = str(player.get("league_source") or "").strip()
+        by_league[league].append((player, float(raw)))
+
+    for items in by_league.values():
+        if not items:
+            continue
+        ranked = sorted(items, key=lambda item: item[1], reverse=True)
+        pool_size = len(ranked)
+        for rank, (player, _) in enumerate(ranked, start=1):
+            player[grade_key] = _league_rank_probit_grade(rank, pool_size)
+
+
+def _attach_league_profile_grades(players: list[dict]) -> None:
+    """League-rank probit grades for XP profile pillars and pass-grade composites."""
+    if not players:
+        return
+
+    eligible = [
+        p for p in players
+        if p.get("xp_profile_bars_eligible")
+        and str(p.get("league_source") or "").strip() in EUROPEAN_TOP_FIVE_LEAGUES
+    ]
+    if not eligible:
+        return
+
+    _assign_league_metric_grades(eligible, "prod_xpv_per_game", "prod_grade_geral")
+    _assign_league_metric_grades(eligible, "prod_rel_xpv", "prod_grade_rel")
+    _assign_league_metric_grades(eligible, "prec_coe_per_pass", "prec_grade_geral")
+    _assign_league_metric_grades(eligible, "leth_xpv_per_pass", "leth_grade_xpv")
+    _assign_league_metric_grades(eligible, "leth_impact_rate_pct", "leth_grade_threat")
+
+    from collections import defaultdict
+
+    by_league: dict[str, list[dict]] = defaultdict(list)
+    for player in eligible:
+        league = str(player.get("league_source") or "").strip()
+        by_league[league].append(player)
+
+    for league_players in by_league.values():
+        work_rows = [
+            {
+                "passes_total": p.get("passes_total"),
+                "xpass_total_coe_pct": p.get("xpass_total_coe_pct") or p.get("xpass_coe_pct"),
+            }
+            for p in league_players
+        ]
+        z_vals = _coe_stratum_z_for_rows(work_rows)
+        ranked = sorted(
+            zip(league_players, z_vals),
+            key=lambda item: float(item[1]),
+            reverse=True,
+        )
+        pool_size = len(ranked)
+        for rank, (player, z_val) in enumerate(ranked, start=1):
+            player["prec_z_coe_stratum"] = round(float(z_val), 4)
+            player["prec_grade_stratum"] = _league_rank_probit_grade(rank, pool_size)
+
+    for player in players:
+        if not player.get("xp_profile_bars_eligible"):
+            continue
+        pg = player.get("prod_grade_geral")
+        pr = player.get("prod_grade_rel")
+        if pg is not None and pr is not None:
+            blend = (float(pg) + float(pr)) / 2.0
+            player["prod_grade_blend"] = round(blend, 2)
+            player["xp_activity_display"] = round(blend, 2)
+
+        pcg = player.get("prec_grade_geral")
+        pcs = player.get("prec_grade_stratum")
+        if pcg is not None and pcs is not None:
+            blend = (float(pcg) + float(pcs)) / 2.0
+            player["prec_grade_blend"] = round(blend, 2)
+            player["xp_efficiency_display"] = round(blend, 2)
+
+        leth_x = player.get("leth_grade_xpv")
+        leth_t = player.get("leth_grade_threat")
+        if leth_x is not None and leth_t is not None:
+            leth_w = XP_PASS_RATING_V2_LETHALITY_XPV_WEIGHT
+            blend = leth_w * float(leth_x) + (1.0 - leth_w) * float(leth_t)
+            player["leth_grade_blend"] = round(blend, 2)
+
+        gen_parts = [player.get("prod_grade_geral"), player.get("prec_grade_geral")]
+        exp_parts = [player.get("prod_grade_rel"), player.get("prec_grade_stratum")]
+        gen_clean = [float(v) for v in gen_parts if v is not None]
+        exp_clean = [float(v) for v in exp_parts if v is not None]
+        if len(gen_clean) == 2:
+            player["pass_grade_general"] = round(sum(gen_clean) / 2.0, 2)
+        if len(exp_clean) == 2:
+            player["pass_grade_expected"] = round(sum(exp_clean) / 2.0, 2)
+
+    _attach_prod_rel_lift_badges(players)
+    _attach_prec_stratum_lift_badges(players)
+
+
 def _league_minmax_display(value: float | None, league_values: list[float]) -> float | None:
     """Map a raw value to 0–100 within a league cohort (min → 0, max → 100)."""
     vals = [float(v) for v in league_values if v is not None and np.isfinite(v)]
@@ -3580,8 +3702,6 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
             if player.get("xp_profile_bars_eligible"):
                 player["xp_activity_display"] = round(blend, 2)
 
-        _attach_prod_rel_lift_badges(rows)
-
         z_coe_total = _zscore(pd.Series(shrunk_by_feature["xpass_total_coe_pct"]))
         z_coe_stratum = pd.Series(coe_stratum_vals, dtype=float)
         for i, player in enumerate(rows):
@@ -3598,8 +3718,6 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
             player["prec_grade_geral"] = round(grade_coe_g, 2)
             player["prec_grade_stratum"] = round(grade_coe_s, 2)
             player["prec_grade_blend"] = round(prec_blend, 2)
-
-        _attach_prec_stratum_lift_badges(rows)
 
         z_prec_res = _zscore(pd.Series(shrunk_by_feature["xpass_residual_p90"]))
         z_prec_coe = pd.Series(coe_stratum_vals, dtype=float)
@@ -3667,6 +3785,7 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
     _attach_hybrid_productivity_league_bars(players)
     _attach_precision_coe_league_bar(players)
     _attach_lethality_league_bars(players)
+    _attach_league_profile_grades(players)
 
 
 PASS_LENGTH_MIN_PEERS = 5
