@@ -6,7 +6,13 @@ from typing import Any
 
 import progression_engine as pge
 from passes_maps import draw_action_origin_smooth_heatmap
-from xp_stats_engine import COE_STRATUM_METRICS, XP_ROUND_SERIES_KEY, _index_tier_from_rank, round_production_series
+from xp_stats_engine import (
+    COE_STRATUM_METRICS,
+    XP_ROUND_SERIES_KEY,
+    _index_tier_from_rank,
+    display_score_letter_grade,
+    round_production_series,
+)
 
 from services.figures import fig_to_b64
 
@@ -19,17 +25,16 @@ XP_PA_REGULAR_SCORE_SPECS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...
         "pass_efficiency_index",
         "pass_efficiency_letter",
         "Efficiency",
-        ("xpass_coe_pct", "xpass_long_coe_pct", "xpv_per_pass", "threat_pass_pct"),
+        ("xpass_coe_pct", "xpass_long_coe_pct"),
     ),
     ("pass_buildup_display", "pass_buildup_index", "pass_buildup_letter", "Build-up", ("progressive_passes", "final_third_passes", "special_line_break_p90")),
     ("pass_chance_creation_display", "pass_chance_creation_index", "pass_chance_creation_letter", "Chance creation", ("key_passes", "passes_to_box", "test_impact_v2_start_final_third_p90")),
 )
 
-EFFICIENCY_LETHALITY_COMPONENT_KEYS: frozenset[str] = frozenset({"xpv_per_pass", "threat_pass_pct"})
-EFFICIENCY_LETHALITY_GRADE_KEYS: dict[str, str] = {
-    "xpv_per_pass": "leth_grade_xpv",
-    "threat_pass_pct": "leth_grade_threat",
-}
+LETHALITY_PASS_COMPONENTS: tuple[tuple[str, str], ...] = (
+    ("xpv_per_pass", "leth_grade_xpv"),
+    ("threat_pass_pct", "leth_grade_threat"),
+)
 
 XP_PROFILE_BAR_KEYS = ("xp_activity_display", "xp_efficiency_display")
 XP_PROFILE_BAR_LABELS = {
@@ -47,29 +52,56 @@ DEFENSIVE_INDEX_COMPONENTS: tuple[tuple[str, str], ...] = (
 )
 
 
+def _pass_score_component(
+    xp_profile: dict,
+    ck: str,
+    *,
+    grade_key: str | None = None,
+) -> dict[str, Any]:
+    star_key = COE_STRATUM_STAR_BY_METRIC.get(ck, f"{ck}_stratum_star")
+    value = xp_profile.get(ck)
+    if ck == "xpv_per_pass" and value is None:
+        value = xp_profile.get("leth_xpv_per_pass")
+    if ck == "threat_pass_pct" and value is None:
+        value = xp_profile.get("leth_impact_rate_pct")
+    component: dict[str, Any] = {
+        "key": ck,
+        "value": value,
+        "rank": xp_profile.get(f"{ck}_rank_in_group"),
+        "rank_pool": xp_profile.get(f"{ck}_rank_pool_in_group"),
+        "stratum_star": bool(xp_profile.get(star_key)),
+    }
+    if grade_key:
+        component["grade"] = xp_profile.get(grade_key)
+    return component
+
+
+def _build_lethality_pass_score_section(xp_profile: dict) -> dict[str, Any] | None:
+    blend = xp_profile.get("leth_grade_blend")
+    if blend is None:
+        return None
+    components = [
+        _pass_score_component(xp_profile, ck, grade_key=grade_key)
+        for ck, grade_key in LETHALITY_PASS_COMPONENTS
+    ]
+    return {
+        "title": "Lethality",
+        "display_score": blend,
+        "letter": display_score_letter_grade(blend),
+        "index": blend,
+        "rank": xp_profile.get("leth_grade_blend_rank_in_group"),
+        "rank_pool": xp_profile.get("leth_grade_blend_rank_pool_in_group"),
+        "components": components,
+    }
+
+
 def build_pass_score_sections(xp_profile: dict) -> list[dict[str, Any]]:
     sections: list[dict[str, Any]] = []
     for display_key, index_key, letter_key, title, component_keys in XP_PA_REGULAR_SCORE_SPECS:
-        components = []
-        for ck in component_keys:
-            star_key = COE_STRATUM_STAR_BY_METRIC.get(ck, f"{ck}_stratum_star")
-            value = xp_profile.get(ck)
-            if ck == "xpv_per_pass" and value is None:
-                value = xp_profile.get("leth_xpv_per_pass")
-            if ck == "threat_pass_pct" and value is None:
-                value = xp_profile.get("leth_impact_rate_pct")
-            grade_key = EFFICIENCY_LETHALITY_GRADE_KEYS.get(ck)
-            component: dict[str, Any] = {
-                "key": ck,
-                "value": value,
-                "rank": xp_profile.get(f"{ck}_rank_in_group"),
-                "rank_pool": xp_profile.get(f"{ck}_rank_pool_in_group"),
-                "stratum_star": bool(xp_profile.get(star_key)),
-            }
-            if grade_key:
-                component["grade"] = xp_profile.get(grade_key)
-                component["lethality"] = True
-            components.append(component)
+        components = [
+            _pass_score_component(xp_profile, ck)
+            for ck in component_keys
+        ]
         sections.append({
             "title": title,
             "display_score": xp_profile.get(display_key),
@@ -79,6 +111,10 @@ def build_pass_score_sections(xp_profile: dict) -> list[dict[str, Any]]:
             "rank_pool": xp_profile.get(f"{index_key}_rank_pool_in_group"),
             "components": components,
         })
+        if title == "Efficiency":
+            lethality = _build_lethality_pass_score_section(xp_profile)
+            if lethality is not None:
+                sections.append(lethality)
     return sections
 
 
