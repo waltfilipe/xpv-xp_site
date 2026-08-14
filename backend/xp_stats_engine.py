@@ -3254,6 +3254,21 @@ def _clear_lethality_league_fields(row: dict) -> None:
         row.pop(key, None)
 
 
+def _lethality_impact_rate_pct(player: dict) -> float | None:
+    threat = player.get("threat_pass_pct")
+    if threat is not None and np.isfinite(float(threat)):
+        return float(threat)
+    passes_pg = player.get("passes_total")
+    if passes_pg is None or float(passes_pg) <= 0:
+        return None
+    impact_pg = player.get("impact_passes_p90")
+    if impact_pg is None:
+        impact_pg = player.get("threat_passes_p90")
+    if impact_pg is not None and np.isfinite(float(impact_pg)):
+        return float(impact_pg) / float(passes_pg) * 100.0
+    return None
+
+
 def _attach_lethality_league_bars(players: list[dict]) -> None:
     """Lethality sub-metrics scaled 0–100 within each top-five league cohort."""
     if not players:
@@ -3274,9 +3289,9 @@ def _attach_lethality_league_bars(players: list[dict]) -> None:
         xpv = player.get("xpv_per_pass")
         if xpv is not None and np.isfinite(float(xpv)):
             player["leth_xpv_per_pass"] = round(float(xpv), 4)
-        threat = player.get("threat_pass_pct")
-        if threat is not None and np.isfinite(float(threat)):
-            player["leth_impact_rate_pct"] = round(float(threat), 2)
+        impact_rate = _lethality_impact_rate_pct(player)
+        if impact_rate is not None:
+            player["leth_impact_rate_pct"] = round(impact_rate, 2)
 
     league_xpv: dict[str, list[float]] = defaultdict(list)
     league_threat: dict[str, list[float]] = defaultdict(list)
