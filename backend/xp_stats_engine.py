@@ -1916,11 +1916,11 @@ PASS_SCORE_TOOLTIPS: dict[str, str] = {
         "Within-position composite of passes and long passes per game."
     ),
     "pass_efficiency_index": (
-        "Within-position composite of COE (completion over expected) on short passes "
+        "Within-position composite of per-pass COE (completion over expected) on short "
         "and long passes."
     ),
     "pass_efficiency_display": (
-        "Within-position composite of COE (completion over expected) on short passes "
+        "Within-position composite of per-pass COE (completion over expected) on short "
         "and long passes."
     ),
     "pass_buildup_index": (
@@ -2317,7 +2317,7 @@ def _blend_precision_with_stratum(eligible_rows: list[dict]) -> None:
     z_stratum = _coe_stratum_z_blend(
         passes,
         df,
-        ("xpass_coe_pct", "xpass_total_coe_pct"),
+        ("xpass_coe_pct", "xpass_long_coe_pct"),
     )
     pool_size = len(eligible_rows)
     stratum_display = pd.Series(np.nan, index=df.index, dtype=float)
@@ -3039,15 +3039,36 @@ def _player_prod_ratio_r_d(player: dict, team_map: dict[str, dict]) -> float | N
     return xp_per_90 / team_xp_pg
 
 
+def _short_long_coe_per_pass_blend(player: dict) -> float | None:
+    """Mean COE per pass (percentage points) across short and long bands."""
+    parts: list[float] = []
+    short = player.get("xpass_coe_pct")
+    if short is not None and np.isfinite(float(short)):
+        parts.append(float(short))
+    long_coe = player.get("xpass_long_coe_pct")
+    if long_coe is not None and np.isfinite(float(long_coe)):
+        parts.append(float(long_coe))
+    if not parts:
+        return None
+    return sum(parts) / len(parts)
+
+
 def _coe_stratum_z_for_rows(rows: list[dict]) -> list[float]:
-    """Z-score of total-pass COE within pass-volume quartiles (all passes)."""
+    """Z-score of short+long COE per-pass blend within pass-volume quartiles."""
     if not rows:
         return []
     df = pd.DataFrame(rows)
-    if "passes_total" not in df.columns or "xpass_total_coe_pct" not in df.columns:
+    if "passes_total" not in df.columns:
+        return [0.0] * len(rows)
+    blends = [_short_long_coe_per_pass_blend(row) for row in rows]
+    if not any(v is not None for v in blends):
         return [0.0] * len(rows)
     passes = pd.to_numeric(df["passes_total"], errors="coerce")
-    z = _coe_stratum_z_by_volume_quartile(passes, df["xpass_total_coe_pct"])
+    coe_series = pd.Series(
+        [float(v) if v is not None else np.nan for v in blends],
+        dtype=float,
+    )
+    z = _coe_stratum_z_by_volume_quartile(passes, coe_series)
     return [float(v) if pd.notna(v) else 0.0 for v in z.fillna(0.0).tolist()]
 
 
@@ -3149,7 +3170,8 @@ def _attach_league_profile_grades(players: list[dict]) -> None:
         work_rows = [
             {
                 "passes_total": p.get("passes_total"),
-                "xpass_total_coe_pct": p.get("xpass_total_coe_pct") or p.get("xpass_coe_pct"),
+                "xpass_coe_pct": p.get("xpass_coe_pct"),
+                "xpass_long_coe_pct": p.get("xpass_long_coe_pct"),
             }
             for p in league_players
         ]
@@ -3306,11 +3328,11 @@ def _attach_hybrid_productivity_league_bars(players: list[dict]) -> None:
 
 
 def _precision_coe_per_pass_pct(player: dict) -> float | None:
-    """COE per pass (percentage points): completion% minus xPass expected%."""
+    """Mean short+long COE per pass (percentage points), not total-pass COE."""
+    blend = _short_long_coe_per_pass_blend(player)
+    if blend is not None:
+        return blend
     coe = player.get("xpass_total_coe_pct")
-    if coe is not None and np.isfinite(float(coe)):
-        return float(coe)
-    coe = player.get("xpass_coe_pct")
     if coe is not None and np.isfinite(float(coe)):
         return float(coe)
     residual_p90 = player.get("xpass_residual_p90")
@@ -3632,7 +3654,7 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
         "prod_ratio_r_d",
         "xpass_residual_p90",
         "xpass_coe_pct",
-        "xpass_total_coe_pct",
+        "xpass_long_coe_pct",
         "xpv_per_pass",
         "threat_pass_pct",
     )
@@ -3668,14 +3690,16 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
             ]
 
         work_rows: list[dict] = []
+        coe_blend_shrunk: list[float] = []
         for i, player in enumerate(rows):
-            work_rows.append(
-                {
-                    "passes_total": float(player.get("passes_total") or 0.0),
-                    "xpass_coe_pct": shrunk_by_feature["xpass_coe_pct"][i],
-                    "xpass_total_coe_pct": shrunk_by_feature["xpass_total_coe_pct"][i],
-                }
-            )
+            shrunk_row = {
+                "passes_total": float(player.get("passes_total") or 0.0),
+                "xpass_coe_pct": shrunk_by_feature["xpass_coe_pct"][i],
+                "xpass_long_coe_pct": shrunk_by_feature["xpass_long_coe_pct"][i],
+            }
+            work_rows.append(shrunk_row)
+            blend = _short_long_coe_per_pass_blend(shrunk_row)
+            coe_blend_shrunk.append(float(blend) if blend is not None else 0.0)
         coe_stratum_vals = _coe_stratum_z_for_rows(work_rows)
 
         z_prod_pure = _zscore(pd.Series(shrunk_by_feature["xp_per_90"]))
@@ -3702,10 +3726,10 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
             if player.get("xp_profile_bars_eligible"):
                 player["xp_activity_display"] = round(blend, 2)
 
-        z_coe_total = _zscore(pd.Series(shrunk_by_feature["xpass_total_coe_pct"]))
+        z_coe_blend = _zscore(pd.Series(coe_blend_shrunk))
         z_coe_stratum = pd.Series(coe_stratum_vals, dtype=float)
         for i, player in enumerate(rows):
-            zcg = float(z_coe_total.iloc[i])
+            zcg = float(z_coe_blend.iloc[i])
             zcs = float(z_coe_stratum.iloc[i])
             grade_coe_g = xp_productivity_sofascore_display(zcg)
             grade_coe_s = xp_productivity_sofascore_display(zcs)
@@ -3713,7 +3737,8 @@ def attach_xp_pass_ratings(players: list[dict]) -> None:
                 XP_PASS_RATING_V2_PREC_RESIDUAL_WEIGHT * grade_coe_g
                 + (1.0 - XP_PASS_RATING_V2_PREC_RESIDUAL_WEIGHT) * grade_coe_s
             )
-            player["prec_z_coe_total"] = round(zcg, 4)
+            player["prec_z_coe_blend"] = round(zcg, 4)
+            player["prec_coe_per_pass"] = round(coe_blend_shrunk[i], 2)
             player["prec_z_coe_stratum"] = round(zcs, 4)
             player["prec_grade_geral"] = round(grade_coe_g, 2)
             player["prec_grade_stratum"] = round(grade_coe_s, 2)
