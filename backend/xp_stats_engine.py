@@ -3062,7 +3062,7 @@ HYBRID_PRODUCTIVITY_FIELDS: tuple[str, ...] = (
     "prod_xpv_expected",
     "prod_rel_xpv",
     "prod_geral_display",
-    "prod_expected_display",
+    "prod_rel_display",
 )
 
 
@@ -3143,13 +3143,13 @@ def _attach_hybrid_productivity_league_bars(players: list[dict]) -> None:
         player["prod_rel_xpv"] = round(xpv_pg - expected, 3)
 
     league_geral: dict[str, list[float]] = defaultdict(list)
-    league_expected: dict[str, list[float]] = defaultdict(list)
+    league_rel: dict[str, list[float]] = defaultdict(list)
     for player in eligible:
         league = str(player.get("league_source") or "").strip()
         if player.get("prod_xpv_per_game") is not None:
             league_geral[league].append(float(player["prod_xpv_per_game"]))
-        if player.get("prod_xpv_expected") is not None:
-            league_expected[league].append(float(player["prod_xpv_expected"]))
+        if player.get("prod_rel_xpv") is not None:
+            league_rel[league].append(float(player["prod_rel_xpv"]))
 
     for player in players:
         if not player.get("xp_profile_bars_eligible"):
@@ -3159,15 +3159,15 @@ def _attach_hybrid_productivity_league_bars(players: list[dict]) -> None:
             player.get("prod_xpv_per_game"),
             league_geral.get(league, []),
         )
-        expected_display = _league_minmax_display(
-            player.get("prod_xpv_expected"),
-            league_expected.get(league, []),
+        rel_display = _league_minmax_display(
+            player.get("prod_rel_xpv"),
+            league_rel.get(league, []),
         )
         if geral_display is not None:
             player["prod_geral_display"] = geral_display
             player["xp_activity_display"] = geral_display
-        if expected_display is not None:
-            player["prod_expected_display"] = expected_display
+        if rel_display is not None:
+            player["prod_rel_display"] = rel_display
 
 
 def xp_productivity_sofascore_display(z_score: float) -> float:

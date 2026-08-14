@@ -213,7 +213,7 @@ def build_profile_payload(
         "prod_xpv_expected": xp.get("prod_xpv_expected"),
         "prod_rel_xpv": xp.get("prod_rel_xpv"),
         "prod_geral_display": xp.get("prod_geral_display"),
-        "prod_expected_display": xp.get("prod_expected_display"),
+        "prod_rel_display": xp.get("prod_rel_display"),
         "prod_rel_gap": xp.get("prod_rel_gap"),
         "prod_rel_lift_badge": xp.get("prod_rel_lift_badge"),
         "prod_rel_gap_pool_mean": xp.get("prod_rel_gap_pool_mean"),
