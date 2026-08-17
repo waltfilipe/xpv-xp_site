@@ -72,9 +72,9 @@ def _pass_score_component(xp_profile: dict, ck: str) -> dict[str, Any]:
     return {
         "key": ck,
         "value": value,
-        "rank": xp_profile.get(f"{ck}_rank_in_league"),
-        "rank_pool": xp_profile.get(f"{ck}_rank_pool_in_league"),
-        "bar_display": xp_profile.get(f"{ck}_league_bar"),
+        "rank": xp_profile.get(f"{ck}_rank_in_group"),
+        "rank_pool": xp_profile.get(f"{ck}_rank_pool_in_group"),
+        "bar_display": xp_profile.get(f"{ck}_pool_bar"),
         "stratum_star": False,
     }
 
@@ -91,8 +91,8 @@ def _build_pass_score_sections(
             "display_score": xp_profile.get(f"{prefix}_display"),
             "letter": xp_profile.get(f"{prefix}_letter"),
             "index": xp_profile.get(f"{prefix}_index"),
-            "rank": xp_profile.get(f"{prefix}_rank_in_league"),
-            "rank_pool": xp_profile.get(f"{prefix}_rank_pool_in_league"),
+            "rank": xp_profile.get(f"{prefix}_rank_in_group"),
+            "rank_pool": xp_profile.get(f"{prefix}_rank_pool_in_group"),
             "components": components,
         })
     return sections
