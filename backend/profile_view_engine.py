@@ -2,37 +2,44 @@
 
 from __future__ import annotations
 
+import functools
 from collections import defaultdict
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
+import passes_engine as pe
+
 from xp_stats_engine import (
     EUROPEAN_TOP_FIVE_LEAGUES,
+    XP_PASS_RATING_V2_LETHALITY_XPV_WEIGHT,
     _assign_pool_metric_grades,
     _league_minmax_display,
     _league_rank_probit_grade,
     _mean_winsorized_z_columns,
     _rank_descending,
+    _zscore,
     display_score_letter_grade,
 )
 
-PASS_GRADE_ABS_PILLARS: tuple[str, ...] = (
-    "prod_grade_pass_pool",
-    "prec_grade_pass_pool",
-    "pv_abs_volume_display",
-    "pv_abs_efficiency_display",
-    "pv_abs_buildup_display",
-    "pv_abs_chance_display",
+# Five pillars; productivity and precision each carry 20% more weight than the other three.
+_PASS_GRADE_WEIGHT_OTHER = 1.0 / 5.2
+_PASS_GRADE_WEIGHT_PROD_PREC = 1.2 / 5.2
+
+PASS_GRADE_ABS_WEIGHTS: tuple[tuple[str, float], ...] = (
+    ("prod_grade_pass_pool", _PASS_GRADE_WEIGHT_PROD_PREC),
+    ("prec_grade_pass_pool", _PASS_GRADE_WEIGHT_PROD_PREC),
+    ("pv_abs_buildup_display", _PASS_GRADE_WEIGHT_OTHER),
+    ("pv_abs_chance_display", _PASS_GRADE_WEIGHT_OTHER),
+    ("leth_grade_pass_pool", _PASS_GRADE_WEIGHT_OTHER),
 )
-PASS_GRADE_REL_PILLARS: tuple[str, ...] = (
-    "prod_grade_rel_pool",
-    "prec_grade_stratum_pool",
-    "pv_rel_volume_display",
-    "pv_rel_efficiency_display",
-    "pv_rel_buildup_display",
-    "pv_rel_chance_display",
+PASS_GRADE_REL_WEIGHTS: tuple[tuple[str, float], ...] = (
+    ("prod_grade_rel_pool", _PASS_GRADE_WEIGHT_PROD_PREC),
+    ("prec_grade_stratum_pool", _PASS_GRADE_WEIGHT_PROD_PREC),
+    ("pv_rel_buildup_display", _PASS_GRADE_WEIGHT_OTHER),
+    ("pv_rel_chance_display", _PASS_GRADE_WEIGHT_OTHER),
+    ("leth_grade_rel_pool", _PASS_GRADE_WEIGHT_OTHER),
 )
 
 PASS_SCORE_ABSOLUTE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
@@ -198,27 +205,67 @@ def _compute_profile_derived_metrics(player: dict) -> None:
         player.setdefault("eff_long_stratum_delta_pp", long_delta)
 
 
-def _team_pass_totals(eligible: list[dict]) -> dict[str, dict[str, float]]:
-    """Sum per-game pass volume for eligible pool midfielders on each team."""
-    buckets: dict[str, list[dict]] = defaultdict(list)
-    for player in eligible:
-        league = str(player.get("league_source") or "").strip()
-        team = str(player.get("team") or "").strip()
-        if not league or not team:
-            continue
-        buckets[f"{league}|{team}"].append(player)
+@functools.lru_cache(maxsize=1)
+def _cached_team_pass_totals_from_frame() -> dict[str, dict[str, float]]:
+    """Mean completed passes (and long balls) per match for each team — all positions."""
+    frame = pe._load_european_league_pass_frame()
+    if frame.empty:
+        return {}
+
+    work = frame.copy()
+    if "isHome" in work.columns:
+        is_home = pe._parse_bool_series(work["isHome"])
+        work["team"] = np.where(is_home, work["home_team"], work["away_team"])
+    else:
+        work["team"] = work.get("home_team", "—")
+    work["team"] = work["team"].astype(str).str.strip()
+    work["league_source"] = work["league_source"].astype(str).str.strip()
+
+    has_end = work["end_x"].notna() & work["end_y"].notna()
+    is_success = (
+        pe._parse_bool_series(work["outcome"])
+        if "outcome" in work.columns
+        else pd.Series(False, index=work.index)
+    )
+    completed = work[has_end & is_success].copy()
+    if completed.empty:
+        return {}
+
+    sx, sy = pe._wyscout_to_sb(completed["start_x"], completed["start_y"])
+    ex = np.full(len(completed), np.nan)
+    ey = np.full(len(completed), np.nan)
+    end_mask = completed["end_x"].notna() & completed["end_y"].notna()
+    if end_mask.any():
+        ex[end_mask.to_numpy()], ey[end_mask.to_numpy()] = pe._wyscout_to_sb(
+            completed.loc[end_mask, "end_x"], completed.loc[end_mask, "end_y"],
+        )
+    pass_dist = np.sqrt((ex - sx) ** 2 + (ey - sy) ** 2)
+    completed["is_long_ball"] = end_mask.to_numpy() & (pass_dist >= pe.LONG_PASS_MIN_DISTANCE_M)
+
+    pass_per_match = completed.groupby(
+        ["league_source", "team", "event_id"], sort=False,
+    ).size()
+    long_completed = completed[completed["is_long_ball"]]
+    long_per_match = (
+        long_completed.groupby(
+            ["league_source", "team", "event_id"], sort=False,
+        ).size()
+        if not long_completed.empty
+        else pd.Series(dtype=float)
+    )
 
     out: dict[str, dict[str, float]] = {}
-    for key, members in buckets.items():
-        passes_vals = [_safe_float(p.get("passes_total")) for p in members]
-        long_vals = [_safe_float(p.get("long_balls")) for p in members]
-        passes_clean = [v for v in passes_vals if v is not None]
-        long_clean = [v for v in long_vals if v is not None]
-        if passes_clean:
-            out[key] = {
-                "passes": float(np.sum(passes_clean)),
-                "long": float(np.sum(long_clean)) if long_clean else 0.0,
-            }
+    for (league, team), counts in pass_per_match.groupby(level=[0, 1]):
+        key = f"{league}|{team}"
+        long_mean = 0.0
+        if not long_per_match.empty:
+            long_grp = long_per_match.xs((league, team), level=[0, 1], drop_level=False)
+            if len(long_grp):
+                long_mean = float(long_grp.mean())
+        out[key] = {
+            "passes": float(counts.mean()),
+            "long": long_mean,
+        }
     return out
 
 
@@ -324,18 +371,48 @@ def _assign_pool_ranks_and_bars(
             player[f"{metric}_pool_bar"] = _pool_rank_bar_display(rank, pool_size)
 
 
-def _mean_pillar_grades(keys: tuple[str, ...], player: dict) -> float | None:
-    parts: list[float] = []
-    for key in keys:
+def _weighted_pillar_grade(
+    weights: tuple[tuple[str, float], ...],
+    player: dict,
+) -> float | None:
+    total = 0.0
+    for key, weight in weights:
         raw = _safe_float(player.get(key))
         if raw is None:
             return None
-        parts.append(raw)
-    return round(sum(parts) / len(parts), 2)
+        total += weight * raw
+    return round(total, 2)
 
 
-def _attach_six_pillar_pass_grades(eligible: list[dict], players: list[dict]) -> None:
-    """Pass headline grades: mean of six pillars; prod/prec ranked in full eligible pool."""
+def _attach_lethality_pool_grades(eligible: list[dict]) -> None:
+    leth_w = XP_PASS_RATING_V2_LETHALITY_XPV_WEIGHT
+    _assign_pool_metric_grades(eligible, "leth_xpv_per_pass", "leth_grade_xpv_pool")
+    _assign_pool_metric_grades(eligible, "leth_impact_rate_pct", "leth_grade_threat_pool")
+    for player in eligible:
+        xpv_grade = player.get("leth_grade_xpv_pool")
+        threat_grade = player.get("leth_grade_threat_pool")
+        if xpv_grade is not None and threat_grade is not None:
+            blend = leth_w * float(xpv_grade) + (1.0 - leth_w) * float(threat_grade)
+            player["leth_grade_pass_pool"] = round(blend, 2)
+
+    df = pd.DataFrame(eligible)
+    xpv = pd.to_numeric(df.get("leth_xpv_per_pass"), errors="coerce")
+    threat = pd.to_numeric(df.get("leth_impact_rate_pct"), errors="coerce")
+    if xpv.notna().sum() < 2 and threat.notna().sum() < 2:
+        return
+    z_composite = leth_w * _zscore(xpv.fillna(0.0)) + (1.0 - leth_w) * _zscore(threat.fillna(0.0))
+    ranks = _rank_descending(z_composite)
+    pool_size = len(eligible)
+    for i, player in enumerate(eligible):
+        rank_raw = ranks.iloc[i]
+        if pd.isna(rank_raw):
+            player.pop("leth_grade_rel_pool", None)
+            continue
+        player["leth_grade_rel_pool"] = _league_rank_probit_grade(int(rank_raw), pool_size)
+
+
+def _attach_weighted_pass_grades(eligible: list[dict], players: list[dict]) -> None:
+    """Pass headline: weighted five pillars (prod/prec +20%); pool-scoped prod/prec/lethality."""
     if not eligible:
         return
 
@@ -343,13 +420,14 @@ def _attach_six_pillar_pass_grades(eligible: list[dict], players: list[dict]) ->
     _assign_pool_metric_grades(eligible, "prec_coe_per_pass", "prec_grade_pass_pool")
     _assign_pool_metric_grades(eligible, "prod_rel_xpv", "prod_grade_rel_pool")
     _assign_pool_metric_grades(eligible, "prec_z_coe_stratum", "prec_grade_stratum_pool")
+    _attach_lethality_pool_grades(eligible)
 
     for player in eligible:
-        abs_grade = _mean_pillar_grades(PASS_GRADE_ABS_PILLARS, player)
+        abs_grade = _weighted_pillar_grade(PASS_GRADE_ABS_WEIGHTS, player)
         if abs_grade is not None:
             player["pass_grade_general"] = abs_grade
 
-        rel_grade = _mean_pillar_grades(PASS_GRADE_REL_PILLARS, player)
+        rel_grade = _weighted_pillar_grade(PASS_GRADE_REL_WEIGHTS, player)
         if rel_grade is not None:
             player["pass_grade_expected"] = rel_grade
             player["pass_grade_relative"] = rel_grade
@@ -405,7 +483,7 @@ def attach_profile_view_metrics(players: list[dict]) -> None:
     if not eligible:
         return
 
-    team_totals = _team_pass_totals(eligible)
+    team_totals = _cached_team_pass_totals_from_frame()
     for player in eligible:
         league = str(player.get("league_source") or "").strip()
         team = str(player.get("team") or "").strip()
@@ -440,4 +518,4 @@ def attach_profile_view_metrics(players: list[dict]) -> None:
         if coe_bar is not None:
             player["prec_coe_league_bar"] = coe_bar
 
-    _attach_six_pillar_pass_grades(eligible, players)
+    _attach_weighted_pass_grades(eligible, players)
