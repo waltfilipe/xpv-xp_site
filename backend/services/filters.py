@@ -391,13 +391,32 @@ def fmt_rating_score(value: Any) -> str:
         return "—"
 
 
+def overall_pass_grade_from_profile(profile: dict[str, Any]) -> float | None:
+    stored = profile.get("pass_grade_overall")
+    if stored is not None:
+        try:
+            return round(float(stored), 2)
+        except (TypeError, ValueError):
+            pass
+    general = profile.get("pass_grade_general")
+    relative = profile.get("pass_grade_expected")
+    if relative is None:
+        relative = profile.get("pass_grade_relative")
+    if general is None or relative is None:
+        return None
+    try:
+        return round((float(general) + float(relative)) / 2.0, 2)
+    except (TypeError, ValueError):
+        return None
+
+
 def player_options(
     players: list[dict],
     progression_by_id: dict[str, dict],
     *,
     xp_by_id: dict[str, dict] | None = None,
     exclude_player_id: str | None = None,
-    sort_by: str = "xp_pass_rating",
+    sort_by: str = "pass_grade_overall",
     position_block: str = "all",
     position_family: str = DEFAULT_POSITION_FAMILY,
 ) -> list[dict[str, str]]:
@@ -418,7 +437,11 @@ def player_options(
         ):
             continue
         xp_profile = (xp_by_id or {}).get(pid, {})
-        if sort_by == "xp_pass_rating":
+        merged = {**profile, **xp_profile}
+        if sort_by == "pass_grade_overall":
+            overall = overall_pass_grade_from_profile(merged)
+            sort_key = float(overall) if overall is not None else float("-inf")
+        elif sort_by == "xp_pass_rating":
             rating_val = xp_profile.get("xp_pass_rating")
             sort_key = float(rating_val) if rating_val is not None else float("-inf")
         else:
@@ -434,7 +457,12 @@ def player_options(
     options: list[dict[str, str]] = []
     for idx, (pid, name, team, sort_key) in enumerate(ranked_rows, start=1):
         xp_profile = (xp_by_id or {}).get(pid, {})
-        if sort_by == "xp_pass_rating":
+        profile = progression_by_id.get(pid, {})
+        merged = {**profile, **xp_profile}
+        if sort_by == "pass_grade_overall":
+            overall = overall_pass_grade_from_profile(merged)
+            suffix = f"· {fmt_rating_score(overall)}" if overall is not None else "· —"
+        elif sort_by == "xp_pass_rating":
             rating_val = xp_profile.get("xp_pass_rating")
             if rating_val is not None:
                 try:
