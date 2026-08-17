@@ -10,11 +10,29 @@ import pandas as pd
 
 from xp_stats_engine import (
     EUROPEAN_TOP_FIVE_LEAGUES,
+    _assign_pool_metric_grades,
     _league_minmax_display,
     _league_rank_probit_grade,
     _mean_winsorized_z_columns,
     _rank_descending,
     display_score_letter_grade,
+)
+
+PASS_GRADE_ABS_PILLARS: tuple[str, ...] = (
+    "prod_grade_pass_pool",
+    "prec_grade_pass_pool",
+    "pv_abs_volume_display",
+    "pv_abs_efficiency_display",
+    "pv_abs_buildup_display",
+    "pv_abs_chance_display",
+)
+PASS_GRADE_REL_PILLARS: tuple[str, ...] = (
+    "prod_grade_rel_pool",
+    "prec_grade_stratum_pool",
+    "pv_rel_volume_display",
+    "pv_rel_efficiency_display",
+    "pv_rel_buildup_display",
+    "pv_rel_chance_display",
 )
 
 PASS_SCORE_ABSOLUTE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
@@ -306,6 +324,41 @@ def _assign_pool_ranks_and_bars(
             player[f"{metric}_pool_bar"] = _pool_rank_bar_display(rank, pool_size)
 
 
+def _mean_pillar_grades(keys: tuple[str, ...], player: dict) -> float | None:
+    parts: list[float] = []
+    for key in keys:
+        raw = _safe_float(player.get(key))
+        if raw is None:
+            return None
+        parts.append(raw)
+    return round(sum(parts) / len(parts), 2)
+
+
+def _attach_six_pillar_pass_grades(eligible: list[dict], players: list[dict]) -> None:
+    """Pass headline grades: mean of six pillars; prod/prec ranked in full eligible pool."""
+    if not eligible:
+        return
+
+    _assign_pool_metric_grades(eligible, "prod_xpv_per_game", "prod_grade_pass_pool")
+    _assign_pool_metric_grades(eligible, "prec_coe_per_pass", "prec_grade_pass_pool")
+    _assign_pool_metric_grades(eligible, "prod_rel_xpv", "prod_grade_rel_pool")
+    _assign_pool_metric_grades(eligible, "prec_z_coe_stratum", "prec_grade_stratum_pool")
+
+    for player in eligible:
+        abs_grade = _mean_pillar_grades(PASS_GRADE_ABS_PILLARS, player)
+        if abs_grade is not None:
+            player["pass_grade_general"] = abs_grade
+
+        rel_grade = _mean_pillar_grades(PASS_GRADE_REL_PILLARS, player)
+        if rel_grade is not None:
+            player["pass_grade_expected"] = rel_grade
+            player["pass_grade_relative"] = rel_grade
+
+    for player in players:
+        if player.get("pass_grade_expected") is not None:
+            player["pass_grade_relative"] = player.get("pass_grade_expected")
+
+
 def _attach_pass_score_composites(
     pool_players: list[dict],
     specs: tuple[tuple[str, str, tuple[str, ...]], ...],
@@ -387,6 +440,4 @@ def attach_profile_view_metrics(players: list[dict]) -> None:
         if coe_bar is not None:
             player["prec_coe_league_bar"] = coe_bar
 
-    for player in players:
-        if player.get("pass_grade_expected") is not None:
-            player["pass_grade_relative"] = player.get("pass_grade_expected")
+    _attach_six_pillar_pass_grades(eligible, players)

@@ -3324,20 +3324,6 @@ def _attach_league_profile_grades(players: list[dict]) -> None:
             blend = leth_w * float(leth_x) + (1.0 - leth_w) * float(leth_t)
             player["leth_grade_blend"] = round(blend, 2)
 
-        gen_parts = [player.get("prod_grade_geral"), player.get("prec_grade_geral")]
-        exp_parts = [player.get("prod_grade_rel"), player.get("prec_grade_stratum")]
-        gen_clean = [float(v) for v in gen_parts if v is not None]
-        exp_clean = [float(v) for v in exp_parts if v is not None]
-        if len(gen_clean) == 2:
-            player["pass_grade_general"] = round(sum(gen_clean) / 2.0, 2)
-        if len(exp_clean) == 2:
-            pillar_blend = round(sum(exp_clean) / 2.0, 2)
-            headline = player.get("pass_grade_relative_headline")
-            if headline is not None:
-                player["pass_grade_expected"] = round(max(pillar_blend, float(headline)), 2)
-            else:
-                player["pass_grade_expected"] = pillar_blend
-
     _attach_prod_rel_lift_badges(players)
     _attach_prec_stratum_lift_badges(players)
 
