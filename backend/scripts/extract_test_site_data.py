@@ -168,6 +168,20 @@ def main() -> None:
     parts = get_data_parts(POSITION_FAMILY, require_passes=True)
     _write_prod_rel_gap_stats(parts)
     _write_prec_stratum_gap_stats(parts)
+
+    derived_path = OUTPUT_DIR / "pool-derived-metrics.json"
+    if derived_path.is_file():
+        derived_players = json.loads(derived_path.read_text(encoding="utf-8")).get("players", {})
+        xp_by_id_all = parts["xp_by_id"]
+        for pid, xp in xp_by_id_all.items():
+            row = derived_players.get(str(pid), {})
+            if row.get("chance_creation_xpv_per_game") is not None:
+                xp["chance_creation_xpv_per_game"] = row["chance_creation_xpv_per_game"]
+            if row.get("chance_creation_xpv") is not None:
+                xp["chance_creation_xpv"] = row["chance_creation_xpv"]
+        import profile_view_engine as pve
+
+        pve.attach_profile_view_metrics(list(xp_by_id_all.values()))
     player_ids = set(PLAYER_IDS)
     missing = player_ids - {str(p["player_id"]) for p in parts["analysis_players"]}
     if missing:

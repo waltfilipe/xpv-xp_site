@@ -942,6 +942,9 @@ def build_xp_analytics(
     xstats.attach_regular_pass_scores(players)
     xstats.attach_composite_indices(players)
     xstats.attach_xp_pass_ratings(players)
+    import profile_view_engine as pve
+
+    pve.attach_profile_view_metrics(players)
     xstats.attach_all_stats_ranks(players)
     attach_xp_metric_ranks(players)
     return registry, players
@@ -1026,6 +1029,9 @@ def build_european_league_xp_analytics(
     xstats.attach_regular_pass_scores(players)
     xstats.attach_composite_indices(players)
     xstats.attach_xp_pass_ratings(players)
+    import profile_view_engine as pve
+
+    pve.attach_profile_view_metrics(players)
     xstats.attach_all_stats_ranks(players)
     attach_xp_metric_ranks(players)
     return registry, players
@@ -1051,6 +1057,9 @@ def refresh_xp_midfield_origin_rankings(players: list[dict]) -> None:
     xstats.attach_regular_pass_scores(players)
     xstats.attach_composite_indices(players)
     xstats.attach_xp_pass_ratings(players)
+    import profile_view_engine as pve
+
+    pve.attach_profile_view_metrics(players)
     xstats.attach_all_stats_ranks(players)
     attach_xp_metric_ranks(players)
 
