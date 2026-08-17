@@ -64,7 +64,7 @@ PASS_SCORE_RELATIVE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "chance_key_share_pct",
             "chance_box_share_pct",
             "chance_impact_ft_share_pct",
-            "chance_xpv_share_pct",
+            "chance_creation_xpv_per_pass",
         ),
     ),
 )
@@ -123,6 +123,18 @@ def _compute_chance_creation_xpv_per_game(player: dict) -> float | None:
     return None
 
 
+def _creation_passes_per_game(player: dict) -> float | None:
+    parts = [
+        _safe_float(player.get("key_passes")),
+        _safe_float(player.get("passes_to_box")),
+        _safe_float(player.get("test_impact_v2_start_final_third_p90")),
+    ]
+    if not any(p is not None for p in parts):
+        return None
+    total = sum(p or 0.0 for p in parts)
+    return total if total > 0 else None
+
+
 def _compute_profile_derived_metrics(player: dict) -> None:
     passes_pg = _safe_float(player.get("passes_total"))
     team_passes = _safe_float(player.get("team_passes_per_game"))
@@ -156,9 +168,9 @@ def _compute_profile_derived_metrics(player: dict) -> None:
         cc_pg = _compute_chance_creation_xpv_per_game(player)
         if cc_pg is not None:
             player["chance_creation_xpv_per_game"] = cc_pg
-        xp_pg = _safe_float(player.get("xp_per_90"))
-        if cc_pg is not None and xp_pg is not None and xp_pg > 0:
-            player["chance_xpv_share_pct"] = round(cc_pg / xp_pg * 100.0, 2)
+        creation_pg = _creation_passes_per_game(player)
+        if cc_pg is not None and creation_pg is not None and creation_pg > 0:
+            player["chance_creation_xpv_per_pass"] = round(cc_pg / creation_pg, 3)
 
     short_delta = _safe_float(player.get("eff_short_stratum_delta_pp"))
     long_delta = _safe_float(player.get("eff_long_stratum_delta_pp"))

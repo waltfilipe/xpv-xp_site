@@ -3042,17 +3042,56 @@ def _player_prod_ratio_r_d(player: dict, team_map: dict[str, dict]) -> float | N
 
 
 def _short_long_coe_per_pass_blend(player: dict) -> float | None:
-    """Mean COE per pass (percentage points) across short and long bands."""
-    parts: list[float] = []
-    short = player.get("xpass_coe_pct")
-    if short is not None and np.isfinite(float(short)):
-        parts.append(float(short))
+    """Volume-weighted short+long COE per pass (percentage points)."""
+    short_coe = player.get("xpass_coe_pct")
     long_coe = player.get("xpass_long_coe_pct")
+    passes_total = player.get("passes_total")
+    long_balls = player.get("long_balls")
+    passes_short = player.get("passes_short")
+    passes_long = player.get("passes_long")
+
+    short_pg: float | None = None
+    long_pg: float | None = None
+    if passes_short is not None and passes_long is not None:
+        short_pg = float(passes_short)
+        long_pg = float(passes_long)
+    elif passes_total is not None and long_balls is not None:
+        total_pg = float(passes_total)
+        long_pg = float(long_balls)
+        short_pg = max(0.0, total_pg - long_pg)
+    elif passes_total is not None:
+        short_pg = float(passes_total)
+        long_pg = 0.0
+
+    weighted: list[tuple[float, float]] = []
+    if (
+        short_pg is not None
+        and short_pg > 0
+        and short_coe is not None
+        and np.isfinite(float(short_coe))
+    ):
+        weighted.append((float(short_coe), short_pg))
+    if (
+        long_pg is not None
+        and long_pg > 0
+        and long_coe is not None
+        and np.isfinite(float(long_coe))
+    ):
+        weighted.append((float(long_coe), long_pg))
+
+    if weighted:
+        vol = sum(weight for _, weight in weighted)
+        if vol > 0:
+            return sum(coe * weight for coe, weight in weighted) / vol
+
+    parts: list[float] = []
+    if short_coe is not None and np.isfinite(float(short_coe)):
+        parts.append(float(short_coe))
     if long_coe is not None and np.isfinite(float(long_coe)):
         parts.append(float(long_coe))
-    if not parts:
-        return None
-    return sum(parts) / len(parts)
+    if parts:
+        return sum(parts) / len(parts)
+    return None
 
 
 def _coe_stratum_z_for_rows(rows: list[dict]) -> list[float]:
