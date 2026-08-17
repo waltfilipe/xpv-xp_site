@@ -432,6 +432,9 @@ def _attach_weighted_pass_grades(eligible: list[dict], players: list[dict]) -> N
             player["pass_grade_expected"] = rel_grade
             player["pass_grade_relative"] = rel_grade
 
+        if abs_grade is not None and rel_grade is not None:
+            player["pass_grade_overall"] = round((abs_grade + rel_grade) / 2.0, 2)
+
     for player in players:
         if player.get("pass_grade_expected") is not None:
             player["pass_grade_relative"] = player.get("pass_grade_expected")
