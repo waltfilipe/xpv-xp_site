@@ -130,9 +130,15 @@ def _compute_profile_derived_metrics(player: dict) -> None:
     long_pg = _safe_float(player.get("long_balls"))
 
     if passes_pg is not None and team_passes is not None and team_passes > 0:
-        player["vol_passes_team_share_pct"] = round(passes_pg / team_passes * 100.0, 1)
+        player["vol_passes_team_share_pct"] = round(
+            min(100.0, passes_pg / team_passes * 100.0),
+            1,
+        )
     if long_pg is not None and team_long is not None and team_long > 0:
-        player["vol_long_team_share_pct"] = round(long_pg / team_long * 100.0, 1)
+        player["vol_long_team_share_pct"] = round(
+            min(100.0, long_pg / team_long * 100.0),
+            1,
+        )
 
     if passes_pg is not None and passes_pg > 0:
         player["build_prog_share_pct"] = _share_pct(player.get("progressive_passes"), passes_pg)
@@ -162,7 +168,8 @@ def _compute_profile_derived_metrics(player: dict) -> None:
         player.setdefault("eff_long_stratum_delta_pp", long_delta)
 
 
-def _team_pass_averages(eligible: list[dict]) -> dict[str, dict[str, float]]:
+def _team_pass_totals(eligible: list[dict]) -> dict[str, dict[str, float]]:
+    """Sum per-game pass volume for eligible pool midfielders on each team."""
     buckets: dict[str, list[dict]] = defaultdict(list)
     for player in eligible:
         league = str(player.get("league_source") or "").strip()
@@ -179,8 +186,8 @@ def _team_pass_averages(eligible: list[dict]) -> dict[str, dict[str, float]]:
         long_clean = [v for v in long_vals if v is not None]
         if passes_clean:
             out[key] = {
-                "passes": float(np.mean(passes_clean)),
-                "long": float(np.mean(long_clean)) if long_clean else 0.0,
+                "passes": float(np.sum(passes_clean)),
+                "long": float(np.sum(long_clean)) if long_clean else 0.0,
             }
     return out
 
@@ -325,15 +332,15 @@ def attach_profile_view_metrics(players: list[dict]) -> None:
     if not eligible:
         return
 
-    team_avgs = _team_pass_averages(eligible)
+    team_totals = _team_pass_totals(eligible)
     for player in eligible:
         league = str(player.get("league_source") or "").strip()
         team = str(player.get("team") or "").strip()
         team_key = f"{league}|{team}"
-        avgs = team_avgs.get(team_key)
-        if avgs:
-            player["team_passes_per_game"] = round(avgs["passes"], 2)
-            player["team_long_balls_per_game"] = round(avgs["long"], 2)
+        totals = team_totals.get(team_key)
+        if totals:
+            player["team_passes_per_game"] = round(totals["passes"], 2)
+            player["team_long_balls_per_game"] = round(totals["long"], 2)
         _compute_profile_derived_metrics(player)
 
     by_league: dict[str, list[dict]] = defaultdict(list)
