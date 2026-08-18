@@ -45,11 +45,6 @@ PASS_GRADE_REL_WEIGHTS: tuple[tuple[str, float], ...] = (
 PASS_SCORE_ABSOLUTE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("Volume", "pv_abs_volume", ("passes_total", "long_balls")),
     (
-        "Efficiency",
-        "pv_abs_efficiency",
-        ("xpass_coe_pct", "xpass_long_coe_pct"),
-    ),
-    (
         "Build-up",
         "pv_abs_buildup",
         ("progressive_passes", "final_third_passes", "special_line_break_p90"),
@@ -64,15 +59,15 @@ PASS_SCORE_ABSOLUTE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "chance_creation_xpv_per_game",
         ),
     ),
+    (
+        "Lethality",
+        "pv_abs_leth",
+        ("leth_xpv_per_pass", "leth_impact_rate_pct"),
+    ),
 )
 
 PASS_SCORE_RELATIVE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("Volume", "pv_rel_volume", ("vol_passes_team_share_pct", "vol_long_team_share_pct")),
-    (
-        "Efficiency",
-        "pv_rel_efficiency",
-        ("eff_short_stratum_delta_pp", "eff_long_stratum_delta_pp"),
-    ),
     (
         "Build-up",
         "pv_rel_buildup",
@@ -91,6 +86,11 @@ PASS_SCORE_RELATIVE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "chance_impact_ft_share_pct",
             "chance_creation_xpv_per_pass",
         ),
+    ),
+    (
+        "Lethality",
+        "pv_rel_leth",
+        ("leth_xpv_display", "leth_threat_display"),
     ),
 )
 
@@ -442,6 +442,17 @@ def _attach_weighted_pass_grades(eligible: list[dict], players: list[dict]) -> N
     for player in players:
         if player.get("pass_grade_expected") is not None:
             player["pass_grade_relative"] = player.get("pass_grade_expected")
+
+    pool_size = len(eligible)
+    ranked = [
+        (player, float(player["pass_grade_overall"]))
+        for player in eligible
+        if player.get("pass_grade_overall") is not None
+    ]
+    ranked.sort(key=lambda item: item[1], reverse=True)
+    for rank, (player, _) in enumerate(ranked, start=1):
+        player["pass_grade_overall_rank_in_pool"] = rank
+        player["pass_grade_overall_rank_pool_size"] = pool_size
 
 
 def _attach_pass_score_composites(

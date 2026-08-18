@@ -291,6 +291,8 @@ def build_profile_payload(
         "pass_grade_expected": xp.get("pass_grade_expected"),
         "pass_grade_relative": xp.get("pass_grade_relative") or xp.get("pass_grade_expected"),
         "pass_grade_overall": xp.get("pass_grade_overall"),
+        "pass_grade_overall_rank_in_pool": xp.get("pass_grade_overall_rank_in_pool"),
+        "pass_grade_overall_rank_pool_size": xp.get("pass_grade_overall_rank_pool_size"),
         "prod_grade_geral": xp.get("prod_grade_geral"),
         "prod_grade_rel": xp.get("prod_grade_rel"),
         "prod_grade_expected": xp.get("prod_grade_rel"),
