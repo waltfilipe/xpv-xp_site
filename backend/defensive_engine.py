@@ -21,6 +21,25 @@ DEFENSIVE_LEAGUE_FILE_MAP: dict[str, str] = {
     "ligue1": "Ligue1_defensive.csv",
 }
 
+MINUTES_LEAGUE_FILE_MAP: dict[str, str] = {
+    "premier_league": "Premier_minutes.csv",
+    "italia_seriea": "SerieA_minutes.csv",
+    "laliga": "LaLiga_minutes.csv",
+    "bundesliga": "Bundes_minutes.csv",
+    "ligue1": "Ligue1_minutes.csv",
+}
+
+
+def _minutes_league_sources() -> tuple[tuple[str, Path], ...]:
+    sources: list[tuple[str, Path]] = []
+    for league_source, filename in MINUTES_LEAGUE_FILE_MAP.items():
+        path = BACKEND_ROOT / filename
+        if path.is_file():
+            sources.append((league_source, path))
+    if sources:
+        return tuple(sources)
+    return _defensive_league_sources()
+
 
 def _defensive_league_sources() -> tuple[tuple[str, Path], ...]:
     sources: list[tuple[str, Path]] = []
@@ -91,9 +110,20 @@ def _parse_is_home(series: pd.Series) -> np.ndarray:
 
 @functools.lru_cache(maxsize=1)
 def load_match_minutes_frame() -> pd.DataFrame:
-    """Per-match minutes_played rows from top-five league defensive CSV exports."""
-    frame = _load_defensive_frames()
-    if frame.empty or "minutes_played" not in frame.columns:
+    """Per-match minutes_played rows from top-five league minutes CSV exports."""
+    frames: list[pd.DataFrame] = []
+    for league_source, path in _minutes_league_sources():
+        raw = pd.read_csv(path, low_memory=False)
+        if raw.empty:
+            continue
+        work = raw.copy()
+        work["player_id"] = work["player_id"].astype(str)
+        work["league_source"] = league_source
+        frames.append(work)
+    if not frames:
+        return pd.DataFrame()
+    frame = pd.concat(frames, ignore_index=True)
+    if "minutes_played" not in frame.columns:
         return pd.DataFrame()
     work = frame.copy()
     work["player_id"] = work["player_id"].astype(str)
@@ -108,7 +138,7 @@ def load_match_minutes_frame() -> pd.DataFrame:
 
 @functools.lru_cache(maxsize=1)
 def aggregate_player_minutes_info() -> dict[str, dict]:
-    """Season totals and participation % from SofaScore minutes_played in defensive CSVs."""
+    """Season totals and participation % from SofaScore minutes_played per match."""
     frame = load_match_minutes_frame()
     if frame.empty:
         return {}
