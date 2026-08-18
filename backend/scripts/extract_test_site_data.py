@@ -39,14 +39,15 @@ from xp_study_maps import draw_midfielder_common_passes_map, draw_midfielder_rar
 OUTPUT_DIR = Path("/agent/repos/test-site-xpxpv/data")
 POSITION_FAMILY = "midfielders"
 
-PLAYER_IDS: tuple[str, ...] = (
-    "1493305", "1086286", "1120669", "994546", "1127057", "979118", "1142562",
-    "1398526", "1389846", "1151803", "1109771", "1126569", "1138804", "1112327",
-    "1012657", "796047", "901882", "352802", "822600", "866469", "901850", "816763",
-    "286167", "826171", "911848", "327755", "814882", "991421", "927361", "359272",
-    "149593", "581314", "100389", "296434", "190883", "117777", "48480", "149370",
-    "44241", "147289", "913679", "96365", "51665", "1035996", "368120",
-)
+
+def _load_cohort_player_ids() -> tuple[str, ...]:
+    cohort_path = OUTPUT_DIR / "profile-cohort-blocks.json"
+    if not cohort_path.is_file():
+        raise SystemExit(
+            f"Missing {cohort_path}. Run: python scripts/build_profile_cohort_blocks.py"
+        )
+    data = json.loads(cohort_path.read_text(encoding="utf-8"))
+    return tuple(str(pid) for pid in data["all_player_ids"])
 
 PLAYER_LIST_FIELDS = (
     "player_id", "player_name", "position", "position_group", "position_family",
@@ -182,7 +183,8 @@ def main() -> None:
         import profile_view_engine as pve
 
         pve.attach_profile_view_metrics(list(xp_by_id_all.values()))
-    player_ids = set(PLAYER_IDS)
+    cohort_player_ids = _load_cohort_player_ids()
+    player_ids = set(cohort_player_ids)
     missing = player_ids - {str(p["player_id"]) for p in parts["analysis_players"]}
     if missing:
         raise SystemExit(f"Players not found in pool: {sorted(missing)}")
@@ -244,7 +246,7 @@ def main() -> None:
     _orig_prepare = profile_service._prepare_passes_for_round_series
     profile_service._prepare_passes_for_round_series = lambda _df: None
     try:
-        for pid in PLAYER_IDS:
+        for pid in cohort_player_ids:
             payload = build_profile_payload(
                 pid,
                 players_by_id=players_by_id,
@@ -261,7 +263,7 @@ def main() -> None:
         profile_service._prepare_passes_for_round_series = _orig_prepare
 
     pass_filters = [k for k, _ in xstats.maps_tab_pass_options()]
-    for pid in PLAYER_IDS:
+    for pid in cohort_player_ids:
         player = xp_by_id.get(pid) or progression_by_id.get(pid) or players_by_id.get(pid)
         if not player:
             continue
@@ -273,7 +275,7 @@ def main() -> None:
             except Exception as exc:
                 print(f"  WARNING: pass map {pid}/{pf}: {exc}")
 
-    for pid in PLAYER_IDS:
+    for pid in cohort_player_ids:
         player = xp_by_id.get(pid) or progression_by_id.get(pid) or players_by_id.get(pid)
         if not player:
             continue
@@ -308,10 +310,10 @@ def main() -> None:
         "common_map_b64": _grid_map_b64(agg.get("count_grid"), draw_midfielder_common_passes_map, "Passes comuns"),
         "rare_map_b64": _grid_map_b64(agg.get("mean_xp_grid"), draw_midfielder_rare_passes_map, "Passes raros (xP)"),
     })
-    _write_json(OUTPUT_DIR / "player-ids.json", list(PLAYER_IDS))
+    _write_json(OUTPUT_DIR / "player-ids.json", list(cohort_player_ids))
     _write_json(OUTPUT_DIR / "index.json", {
-        "player_count": len(PLAYER_IDS),
-        "player_ids": list(PLAYER_IDS),
+        "player_count": len(cohort_player_ids),
+        "player_ids": list(cohort_player_ids),
         "profiles": list(profiles.keys()),
     })
     print(f"\nDone — {len(profiles)} profiles in {OUTPUT_DIR}")
