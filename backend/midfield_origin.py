@@ -24,6 +24,8 @@ MIDFIELD_RATING_GROUPS: frozenset[str] = frozenset({
 })
 
 OFFENSIVE_ORIGIN_THRESHOLD = 58.0
+MIN_DEFENSIVE_ORIGIN_PCT = 30.0
+MAX_OFFENSIVE_ORIGIN_PCT_FOR_POOL = 100.0 - MIN_DEFENSIVE_ORIGIN_PCT
 MIN_ACTIONS_FOR_ORIGIN_SPLIT = 50
 MIDLINE_X = SB_FIELD_X / 2.0
 
@@ -148,3 +150,34 @@ def midfield_origin_fields(
             "campo_ofensivo" if pct >= OFFENSIVE_ORIGIN_THRESHOLD else "retorno_ou_misto"
         ),
     }
+
+
+def defensive_origin_pct(offensive_origin_pct: float | None) -> float | None:
+    if offensive_origin_pct is None:
+        return None
+    return round(100.0 - float(offensive_origin_pct), 1)
+
+
+def passes_defensive_origin_pool_filter(
+    player: dict,
+    *,
+    min_defensive_pct: float = MIN_DEFENSIVE_ORIGIN_PCT,
+) -> bool:
+    """Keep players with >= min_defensive_pct origin (own half). Unknown origin stays in pool."""
+    offensive = player.get("midfield_offensive_origin_pct")
+    if offensive is None:
+        return True
+    return float(offensive) <= MAX_OFFENSIVE_ORIGIN_PCT_FOR_POOL
+
+
+def filter_players_min_defensive_origin(
+    players: list[dict],
+    *,
+    min_defensive_pct: float = MIN_DEFENSIVE_ORIGIN_PCT,
+) -> list[dict]:
+    """Drop midfielders with < min_defensive_pct pass/carry origins in the defensive half."""
+    return [
+        player
+        for player in players
+        if passes_defensive_origin_pool_filter(player, min_defensive_pct=min_defensive_pct)
+    ]

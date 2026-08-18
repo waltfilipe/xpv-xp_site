@@ -62,6 +62,8 @@ def load_player_analysis_bundle(
             passes_by_player,
             empty_carries,
         )
+        analysis_players = mo.filter_players_min_defensive_origin(analysis_players)
+    pool_player_ids = frozenset(str(p["player_id"]) for p in analysis_players)
     _, players_by_id, pool_by_position = pe.compute_pass_ratings(analysis_players)
     carries_by_id: dict[str, dict] = {}
     carries_pool_by_position: dict[str, list[dict]] = {}
@@ -74,6 +76,7 @@ def load_player_analysis_bundle(
     _, xp_players = xe.build_european_league_xp_analytics(
         _xp_cache,
         position_family=family,
+        allowed_player_ids=pool_player_ids if family == "midfielders" else None,
     )
 
     origin_by_id = {

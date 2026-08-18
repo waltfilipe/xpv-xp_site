@@ -57,6 +57,13 @@ QTY_P90_METRICS: tuple[str, ...] = (
     "def_aerial_won_p90",
     "def_block_p90",
 )
+DEFENSE_SCORING_QTY_P90: tuple[str, ...] = (
+    "def_won_tackle_p90",
+    "def_interception_p90",
+    "def_clearance_p90",
+    "def_block_p90",
+    "def_recovery_p90",
+)
 QUAL_PCT_METRICS: tuple[str, ...] = (
     "def_tackle_won_pct",
     "def_aerial_won_pct",
@@ -296,18 +303,9 @@ def attach_defensive_contribution(players: list[dict]) -> None:
 
     for rows in pools.values():
         df = pd.DataFrame(rows)
-        qty_cols = [c for c in QTY_P90_METRICS if c in df.columns]
-        qual_cols = [c for c in QUAL_PCT_METRICS if c in df.columns]
+        qty_cols = [c for c in DEFENSE_SCORING_QTY_P90 if c in df.columns]
         qty_z = _mean_z_columns(df, tuple(qty_cols))
-        qual_z = _mean_z_columns(df, tuple(qual_cols)) if qual_cols else pd.Series(0.0, index=df.index)
-        err_shot_z = _zscore(df["def_err_shot_p90"]) if "def_err_shot_p90" in df.columns else pd.Series(0.0, index=df.index)
-        err_goal_z = _zscore(df["def_err_goal_p90"]) if "def_err_goal_p90" in df.columns else pd.Series(0.0, index=df.index)
-        merit_raw = (
-            QTY_WEIGHT * qty_z
-            + QUAL_WEIGHT * qual_z
-            - ERR_SHOT_WEIGHT * err_shot_z
-            - ERR_GOAL_WEIGHT * err_goal_z
-        )
+        merit_raw = qty_z
         minutes = pd.to_numeric(df.get("def_minutes", df.get("minutes")), errors="coerce").fillna(0.0)
         conf = (minutes / MINUTES_CONF_CAP).clip(upper=1.0)
         defense_core = merit_raw * conf

@@ -67,7 +67,7 @@ SEASON_ALL_EREDIVISIE_CSV_PATH = Path(__file__).resolve().parent / "eredivise_pa
 SEASON_ALL_PORTUGAL_CSV_PATH = Path(__file__).resolve().parent / "portugal_passes.csv"
 SEASON_ALL_TURKEY_CSV_PATH = Path(__file__).resolve().parent / "turkey_passes.csv"
 PLAYER_MATCH_STATS_PATH = Path(__file__).resolve().parent / "player_match_stats.csv"
-DATA_CACHE_VERSION = 69
+DATA_CACHE_VERSION = 70
 
 MIN_MINUTES_PCT = 0.30
 RATING_MIN_MINUTES_PCT = 0.30
