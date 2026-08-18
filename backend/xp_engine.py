@@ -16,7 +16,7 @@ from sklearn.pipeline import Pipeline
 import passes_engine as pe
 import xp_study_engine as xse
 
-XP_DATA_CACHE_VERSION = 67
+XP_DATA_CACHE_VERSION = 68
 XP_POSITION_RANK_METRICS: tuple[str, ...] = (
     "xp_m4_total",
     "xp_m4_per_pass",
@@ -930,6 +930,7 @@ def build_xp_analytics(
             "team": mins.get("team", str(grp["team"].mode().iloc[0] if not grp["team"].mode().empty else "—")),
             "minutes": mins.get("minutes"),
             "minutes_pct": mins.get("minutes_pct"),
+            "matches_played": mins.get("matches_played"),
             "passes_completed": int((grp["is_won"] & grp["has_end"]).sum()),
             **metrics,
         })
@@ -966,7 +967,7 @@ def build_european_league_xp_analytics(
     if season.empty:
         return [], []
 
-    minutes_info = pe._minutes_from_passes_frame(season)
+    minutes_info = pe._load_minutes_info(season)
     league_by_player: dict[str, str] = {}
     if "league_source" in season.columns:
         league_by_player = (
@@ -1013,6 +1014,7 @@ def build_european_league_xp_analytics(
             "team": mins.get("team", str(grp["team"].mode().iloc[0] if "team" in grp.columns and not grp["team"].mode().empty else "—")),
             "minutes": mins.get("minutes"),
             "minutes_pct": mins.get("minutes_pct"),
+            "matches_played": mins.get("matches_played"),
             "league": pe._european_league_label(league_source),
             "league_source": league_source,
             "passes_completed": completed,

@@ -132,7 +132,11 @@ def _share_pct(part: Any, total: Any) -> float | None:
 
 def _compute_chance_creation_xpv_per_game(player: dict) -> float | None:
     minutes = _safe_float(player.get("minutes"))
-    games = minutes / 90.0 if minutes and minutes > 0 else None
+    matches = _safe_float(player.get("matches_played"))
+    if matches is not None and matches > 0:
+        games = matches
+    else:
+        games = minutes / 90.0 if minutes and minutes > 0 else None
     cc_pg = _safe_float(player.get("chance_creation_xpv_per_game"))
     if cc_pg is not None:
         return round(cc_pg, 3)

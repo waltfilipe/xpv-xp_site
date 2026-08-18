@@ -67,7 +67,7 @@ SEASON_ALL_EREDIVISIE_CSV_PATH = Path(__file__).resolve().parent / "eredivise_pa
 SEASON_ALL_PORTUGAL_CSV_PATH = Path(__file__).resolve().parent / "portugal_passes.csv"
 SEASON_ALL_TURKEY_CSV_PATH = Path(__file__).resolve().parent / "turkey_passes.csv"
 PLAYER_MATCH_STATS_PATH = Path(__file__).resolve().parent / "player_match_stats.csv"
-DATA_CACHE_VERSION = 68
+DATA_CACHE_VERSION = 69
 
 MIN_MINUTES_PCT = 0.30
 RATING_MIN_MINUTES_PCT = 0.30
@@ -996,7 +996,7 @@ def _build_players_from_enriched_frame(
     from position_families import is_position_code_in_family, normalize_position_family
 
     family = normalize_position_family(position_family)
-    minutes_info = _minutes_from_passes_frame(frame)
+    minutes_info = _load_minutes_info(frame)
     registry = build_player_registry(frame)
     league_by_player = (
         frame.groupby("player_id", sort=False)["league_source"]
@@ -1191,7 +1191,7 @@ def build_serie_a_players(
         classification_model=classification_model,
         xt_surface_mode=xt_surface_mode,
     )
-    minutes_info = _minutes_from_passes_frame(frame)
+    minutes_info = _load_minutes_info(frame)
     registry = build_player_registry(frame)
 
     players: list[dict] = []
@@ -1373,7 +1373,7 @@ def _minutes_from_passes_frame(frame: pd.DataFrame) -> dict[str, dict]:
 
 
 @functools.lru_cache(maxsize=1)
-def _load_minutes_info_sofa() -> dict[str, dict]:
+def _load_minutes_info_legacy_csv() -> dict[str, dict]:
     if not PLAYER_MATCH_STATS_PATH.exists():
         return {}
     stats = pd.read_csv(PLAYER_MATCH_STATS_PATH, low_memory=False)
@@ -1391,23 +1391,36 @@ def _load_minutes_info_sofa() -> dict[str, dict]:
         team = str(grp["team"].mode().iloc[0] if not grp["team"].mode().empty else grp["team"].iloc[0])
         max_minutes = float(team_matches.get(team, 0) * 90)
         pct = (minutes / max_minutes) if max_minutes > 0 else None
+        matches = int(grp["event_id"].nunique()) if "event_id" in grp.columns else None
         out[pid] = {
             "team": team,
             "minutes": int(round(minutes)),
             "minutes_pct": round(pct, 4) if pct is not None else None,
+            "matches_played": matches,
             "eligible_ranking": pct is not None and pct >= MIN_MINUTES_PCT,
         }
+    return out
+
+
+@functools.lru_cache(maxsize=1)
+def _load_minutes_info_external() -> dict[str, dict]:
+    """SofaScore minutes from per-league defensive CSVs and optional legacy monolithic file."""
+    from defensive_engine import aggregate_player_minutes_info
+
+    out: dict[str, dict] = dict(aggregate_player_minutes_info())
+    legacy = _load_minutes_info_legacy_csv()
+    out.update(legacy)
     return out
 
 
 def _load_minutes_info(frame: pd.DataFrame) -> dict[str, dict]:
     """Prefer SofaScore minutes when available; otherwise derive from pass events."""
     derived = _minutes_from_passes_frame(frame)
-    sofa = _load_minutes_info_sofa()
-    if not sofa:
+    external = _load_minutes_info_external()
+    if not external:
         return derived
     merged = dict(derived)
-    merged.update(sofa)
+    merged.update(external)
     return merged
 
 

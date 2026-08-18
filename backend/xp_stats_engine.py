@@ -473,10 +473,28 @@ def compute_test_impact_v2_attempt_metrics(
 
 
 def estimate_match_minutes_from_passes(passes: pd.DataFrame) -> dict[int, int]:
-    """Estimate minutes played per match from relative pass volume."""
+    """Minutes played per match — SofaScore when available, else pass-volume heuristic."""
     if passes is None or passes.empty or "event_id" not in passes.columns:
         return {}
-    counts = passes.groupby(passes["event_id"].astype(int)).size()
+    work = passes.dropna(subset=["event_id"]).copy()
+    if work.empty:
+        return {}
+
+    player_ids = work["player_id"].astype(str).unique()
+    if len(player_ids) == 1 and "player_id" in work.columns:
+        from defensive_engine import player_event_minutes_map
+
+        lookup = player_event_minutes_map()
+        pid = str(player_ids[0])
+        out: dict[int, int] = {}
+        for event_id in work["event_id"].astype(int).unique():
+            mins = lookup.get((pid, int(event_id)))
+            if mins is not None and mins > 0:
+                out[int(event_id)] = mins
+        if out:
+            return out
+
+    counts = work.groupby(work["event_id"].astype(int)).size()
     if counts.empty:
         return {}
     median = float(counts.median()) or 1.0

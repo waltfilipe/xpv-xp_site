@@ -34,7 +34,7 @@ except ImportError:
 SEASON_ALL_CSV_PATH = Path(__file__).resolve().parent / "season_carries_dribbles.csv"
 SEASON_SERIEA_CARRY_CSV_PATH = Path(__file__).resolve().parent / "season_carries_dribbles_seriea.csv"
 PLAYER_MATCH_STATS_PATH = Path(__file__).resolve().parent / "player_match_stats.csv"
-DATA_CACHE_VERSION = 6
+DATA_CACHE_VERSION = 7
 
 CARRY_CATEGORIES = frozenset({"ball-carries", "dribbles"})
 
@@ -899,41 +899,20 @@ def _minutes_from_passes_frame(frame: pd.DataFrame) -> dict[str, dict]:
 
 
 @functools.lru_cache(maxsize=1)
-def _load_minutes_info_sofa() -> dict[str, dict]:
-    if not PLAYER_MATCH_STATS_PATH.exists():
-        return {}
-    stats = pd.read_csv(PLAYER_MATCH_STATS_PATH, low_memory=False)
-    if stats.empty or "player_id" not in stats.columns:
-        return {}
-    stats["player_id"] = stats["player_id"].astype(str)
-    stats["minutes_played"] = pd.to_numeric(stats.get("minutes_played", 0), errors="coerce").fillna(0.0)
-    is_home = stats["is_home"].astype(str).str.strip().str.lower().isin({"true", "1", "yes"})
-    stats["team"] = np.where(is_home, stats["home_team"], stats["away_team"])
-    team_matches = stats.groupby("team")["event_id"].nunique().to_dict() if "event_id" in stats.columns else {}
+def _load_minutes_info_external() -> dict[str, dict]:
+    import passes_engine as pe_mod
 
-    out: dict[str, dict] = {}
-    for pid, grp in stats.groupby("player_id", sort=False):
-        minutes = float(grp["minutes_played"].sum())
-        team = str(grp["team"].mode().iloc[0] if not grp["team"].mode().empty else grp["team"].iloc[0])
-        max_minutes = float(team_matches.get(team, 0) * 90)
-        pct = (minutes / max_minutes) if max_minutes > 0 else None
-        out[pid] = {
-            "team": team,
-            "minutes": int(round(minutes)),
-            "minutes_pct": round(pct, 4) if pct is not None else None,
-            "eligible_ranking": pct is not None and pct >= MIN_MINUTES_PCT,
-        }
-    return out
+    return pe_mod._load_minutes_info_external()
 
 
 def _load_minutes_info(frame: pd.DataFrame) -> dict[str, dict]:
     """Prefer SofaScore minutes when available; otherwise derive from pass events."""
     derived = _minutes_from_passes_frame(frame)
-    sofa = _load_minutes_info_sofa()
-    if not sofa:
+    external = _load_minutes_info_external()
+    if not external:
         return derived
     merged = dict(derived)
-    merged.update(sofa)
+    merged.update(external)
     return merged
 
 

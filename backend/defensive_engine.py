@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 from pathlib import Path
 
 import numpy as np
@@ -82,6 +83,74 @@ def _load_defensive_frames() -> pd.DataFrame:
     if not frames:
         return pd.DataFrame()
     return pd.concat(frames, ignore_index=True)
+
+
+def _parse_is_home(series: pd.Series) -> np.ndarray:
+    return series.astype(str).str.strip().str.lower().isin({"true", "1", "yes"})
+
+
+@functools.lru_cache(maxsize=1)
+def load_match_minutes_frame() -> pd.DataFrame:
+    """Per-match minutes_played rows from top-five league defensive CSV exports."""
+    frame = _load_defensive_frames()
+    if frame.empty or "minutes_played" not in frame.columns:
+        return pd.DataFrame()
+    work = frame.copy()
+    work["player_id"] = work["player_id"].astype(str)
+    work["minutes_played"] = pd.to_numeric(work["minutes_played"], errors="coerce").fillna(0.0)
+    if "event_id" in work.columns:
+        work["event_id"] = pd.to_numeric(work["event_id"], errors="coerce")
+    is_home = _parse_is_home(work["is_home"])
+    work["team"] = np.where(is_home, work["home_team"], work["away_team"])
+    work["team"] = work["team"].astype(str).str.strip()
+    return work
+
+
+@functools.lru_cache(maxsize=1)
+def aggregate_player_minutes_info() -> dict[str, dict]:
+    """Season totals and participation % from SofaScore minutes_played in defensive CSVs."""
+    frame = load_match_minutes_frame()
+    if frame.empty:
+        return {}
+
+    team_matches = (
+        frame.groupby("team", sort=False)["event_id"].nunique().to_dict()
+        if "event_id" in frame.columns
+        else {}
+    )
+
+    out: dict[str, dict] = {}
+    for pid, grp in frame.groupby("player_id", sort=False):
+        minutes = float(grp["minutes_played"].sum())
+        team = str(grp["team"].mode().iloc[0] if not grp["team"].mode().empty else grp["team"].iloc[0])
+        max_minutes = float(team_matches.get(team, 0) * 90)
+        pct = (minutes / max_minutes) if max_minutes > 0 else None
+        matches = int(grp["event_id"].nunique()) if "event_id" in grp.columns else None
+        out[str(pid)] = {
+            "team": team,
+            "minutes": int(round(minutes)),
+            "minutes_pct": round(pct, 4) if pct is not None else None,
+            "matches_played": matches,
+            "eligible_ranking": pct is not None and pct >= pe.MIN_MINUTES_PCT,
+        }
+    return out
+
+
+@functools.lru_cache(maxsize=1)
+def player_event_minutes_map() -> dict[tuple[str, int], int]:
+    """Lookup (player_id, event_id) -> minutes played in that match."""
+    frame = load_match_minutes_frame()
+    if frame.empty or "event_id" not in frame.columns:
+        return {}
+    out: dict[tuple[str, int], int] = {}
+    for row in frame.itertuples(index=False):
+        event_id = getattr(row, "event_id", None)
+        if event_id is None or pd.isna(event_id):
+            continue
+        pid = str(row.player_id)
+        mins = int(round(float(row.minutes_played)))
+        out[(pid, int(event_id))] = mins
+    return out
 
 
 def aggregate_defensive_player_stats(frame: pd.DataFrame | None = None) -> dict[str, dict]:

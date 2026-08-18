@@ -267,12 +267,24 @@ def aggregate_player_xpass_metrics(
 
         very_hard_mask = xpass < XPASS_HIGH_DIFFICULTY_THRESHOLD
         if "event_id" in attempts.columns:
-            per_game = (
+            per_match = (
                 attempts.assign(very_hard=very_hard_mask)
                 .groupby("event_id", sort=False)["very_hard"]
                 .sum()
             )
-            high_difficulty_per_game = float(per_game.mean()) if len(per_game) else 0.0
+            from defensive_engine import player_event_minutes_map
+
+            lookup = player_event_minutes_map()
+            pid = str(grp["player_id"].iloc[0])
+            rates: list[float] = []
+            for event_id, count in per_match.items():
+                ev = int(event_id)
+                match_mins = lookup.get((pid, ev))
+                if match_mins and match_mins > 0:
+                    rates.append(float(count) * 90.0 / float(match_mins))
+                else:
+                    rates.append(float(count))
+            high_difficulty_per_game = float(np.mean(rates)) if rates else 0.0
         else:
             high_difficulty_per_game = float(_per90(int(very_hard_mask.sum()), minutes) or 0.0)
 
@@ -389,7 +401,7 @@ def build_and_save_european_xpass(
         joblib.dump(model, XPASS_MODEL_PATH)
 
     scored = score_passes_xpass(season, model)
-    minutes_info = pe._minutes_from_passes_frame(scored)
+    minutes_info = pe._load_minutes_info(scored)
     players = aggregate_player_xpass_metrics(scored, minutes_info=minutes_info)
     _attach_ranks(players)
 
@@ -530,7 +542,7 @@ def attach_xpass_metrics_to_players(
         return
 
     scored = attach_xpass_to_passes(subset)
-    minutes_info = pe._minutes_from_passes_frame(scored)
+    minutes_info = pe._load_minutes_info(scored)
     computed = {
         str(row["player_id"]): row
         for row in aggregate_player_xpass_metrics(scored, minutes_info=minutes_info)
