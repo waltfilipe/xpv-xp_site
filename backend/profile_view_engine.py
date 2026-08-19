@@ -23,17 +23,11 @@ from xp_stats_engine import (
     display_score_letter_grade,
 )
 
-# Overall pass grade: equal weight across six pillars
-# (prod abs, prod rel, COE/pass, lethality abs, chance creation abs, build-up abs).
-_PASS_GRADE_OVERALL_W = 1.0 / 6.0
-
+# Overall pass grade: productivity 40%, precision 40%, lethality 20%.
 PASS_GRADE_OVERALL_WEIGHTS: tuple[tuple[str, float], ...] = (
-    ("prod_grade_pass_pool", _PASS_GRADE_OVERALL_W),
-    ("prod_grade_rel_pool", _PASS_GRADE_OVERALL_W),
-    ("prec_grade_pass_pool", _PASS_GRADE_OVERALL_W),
-    ("leth_grade_pass_pool", _PASS_GRADE_OVERALL_W),
-    ("pv_abs_chance_display", _PASS_GRADE_OVERALL_W),
-    ("pv_abs_buildup_display", _PASS_GRADE_OVERALL_W),
+    ("prod_grade_pass_pool", 0.4),
+    ("prec_grade_pass_pool", 0.4),
+    ("leth_grade_pass_pool", 0.2),
 )
 
 # Kept for absolute/relative profile views and legacy fields.
@@ -435,7 +429,7 @@ def _attach_lethality_pool_grades(eligible: list[dict]) -> None:
 
 
 def _attach_weighted_pass_grades(eligible: list[dict], players: list[dict]) -> None:
-    """Pass headline: six-pillar overall; also keep abs/rel five-pillar grades."""
+    """Pass headline: 40/40/20 overall; also keep abs/rel five-pillar grades."""
     if not eligible:
         return
 
