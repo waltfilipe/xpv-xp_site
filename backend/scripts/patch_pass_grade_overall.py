@@ -21,6 +21,8 @@ OUTPUT_DIR = Path("/agent/repos/test-site-xpxpv/data")
 POSITION_FAMILY = "midfielders"
 GRADE_KEYS = (
     "pass_grade_overall",
+    "pass_grade_overall_rank_in_league",
+    "pass_grade_overall_rank_pool_in_league",
     "pass_grade_overall_rank_in_pool",
     "pass_grade_overall_rank_pool_size",
 )
@@ -85,9 +87,9 @@ def main() -> None:
 
     sample = xp_by_id.get("795222")
     if sample:
-        prod = sample.get("prod_grade_pass_pool")
-        prec = sample.get("prec_grade_pass_pool")
-        leth = sample.get("leth_grade_pass_pool")
+        prod = sample.get("prod_grade_geral")
+        prec = sample.get("prec_grade_geral")
+        leth = sample.get("leth_grade_blend")
         overall = sample.get("pass_grade_overall")
         manual = round(0.4 * prod + 0.4 * prec + 0.2 * leth, 2)
         print(f"Frenkie de Jong: prod={prod} prec={prec} leth={leth} overall={overall} manual={manual}")

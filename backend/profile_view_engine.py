@@ -23,11 +23,11 @@ from xp_stats_engine import (
     display_score_letter_grade,
 )
 
-# Overall pass grade: productivity 40%, precision 40%, lethality 20%.
+# Overall pass grade: productivity 40%, precision 40%, lethality 20% (league-scoped).
 PASS_GRADE_OVERALL_WEIGHTS: tuple[tuple[str, float], ...] = (
-    ("prod_grade_pass_pool", 0.4),
-    ("prec_grade_pass_pool", 0.4),
-    ("leth_grade_pass_pool", 0.2),
+    ("prod_grade_geral", 0.4),
+    ("prec_grade_geral", 0.4),
+    ("leth_grade_blend", 0.2),
 )
 
 # Kept for absolute/relative profile views and legacy fields.
@@ -429,9 +429,13 @@ def _attach_lethality_pool_grades(eligible: list[dict]) -> None:
 
 
 def _attach_weighted_pass_grades(eligible: list[dict], players: list[dict]) -> None:
-    """Pass headline: 40/40/20 overall; also keep abs/rel five-pillar grades."""
+    """Pass headline: 40/40/20 overall (league); also keep abs/rel five-pillar grades."""
     if not eligible:
         return
+
+    from xp_stats_engine import _attach_league_profile_grades
+
+    _attach_league_profile_grades(players)
 
     _assign_pool_metric_grades(eligible, "prod_xpv_per_game", "prod_grade_pass_pool")
     _assign_pool_metric_grades(eligible, "prec_coe_per_pass", "prec_grade_pass_pool")
@@ -457,16 +461,22 @@ def _attach_weighted_pass_grades(eligible: list[dict], players: list[dict]) -> N
         if player.get("pass_grade_expected") is not None:
             player["pass_grade_relative"] = player.get("pass_grade_expected")
 
-    pool_size = len(eligible)
-    ranked = [
-        (player, float(player["pass_grade_overall"]))
-        for player in eligible
-        if player.get("pass_grade_overall") is not None
-    ]
-    ranked.sort(key=lambda item: item[1], reverse=True)
-    for rank, (player, _) in enumerate(ranked, start=1):
-        player["pass_grade_overall_rank_in_pool"] = rank
-        player["pass_grade_overall_rank_pool_size"] = pool_size
+    by_league: dict[str, list[tuple[dict, float]]] = defaultdict(list)
+    for player in eligible:
+        overall = player.get("pass_grade_overall")
+        if overall is None:
+            continue
+        league = str(player.get("league_source") or "").strip()
+        by_league[league].append((player, float(overall)))
+
+    for league_players in by_league.values():
+        league_players.sort(key=lambda item: item[1], reverse=True)
+        pool_size = len(league_players)
+        for rank, (player, _) in enumerate(league_players, start=1):
+            player["pass_grade_overall_rank_in_league"] = rank
+            player["pass_grade_overall_rank_pool_in_league"] = pool_size
+            player["pass_grade_overall_rank_in_pool"] = rank
+            player["pass_grade_overall_rank_pool_size"] = pool_size
 
 
 def _attach_pass_score_composites(
