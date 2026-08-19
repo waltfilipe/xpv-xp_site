@@ -23,7 +23,20 @@ from xp_stats_engine import (
     display_score_letter_grade,
 )
 
-# Five pillars; productivity and precision each carry 20% more weight than the other three.
+# Overall pass grade: equal weight across six pillars
+# (prod abs, prod rel, COE/pass, lethality abs, chance creation abs, build-up abs).
+_PASS_GRADE_OVERALL_W = 1.0 / 6.0
+
+PASS_GRADE_OVERALL_WEIGHTS: tuple[tuple[str, float], ...] = (
+    ("prod_grade_pass_pool", _PASS_GRADE_OVERALL_W),
+    ("prod_grade_rel_pool", _PASS_GRADE_OVERALL_W),
+    ("prec_grade_pass_pool", _PASS_GRADE_OVERALL_W),
+    ("leth_grade_pass_pool", _PASS_GRADE_OVERALL_W),
+    ("pv_abs_chance_display", _PASS_GRADE_OVERALL_W),
+    ("pv_abs_buildup_display", _PASS_GRADE_OVERALL_W),
+)
+
+# Kept for absolute/relative profile views and legacy fields.
 _PASS_GRADE_WEIGHT_OTHER = 1.0 / 5.2
 _PASS_GRADE_WEIGHT_PROD_PREC = 1.2 / 5.2
 
@@ -40,6 +53,12 @@ PASS_GRADE_REL_WEIGHTS: tuple[tuple[str, float], ...] = (
     ("pv_rel_buildup_display", _PASS_GRADE_WEIGHT_OTHER),
     ("pv_rel_chance_display", _PASS_GRADE_WEIGHT_OTHER),
     ("leth_grade_rel_pool", _PASS_GRADE_WEIGHT_OTHER),
+)
+
+# Precision short/long COE bars (not in pass-score specs after Efficiency removal).
+XP_PROFILE_POOL_METRICS: tuple[str, ...] = (
+    "xpass_coe_pct",
+    "xpass_long_coe_pct",
 )
 
 PASS_SCORE_ABSOLUTE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
@@ -416,7 +435,7 @@ def _attach_lethality_pool_grades(eligible: list[dict]) -> None:
 
 
 def _attach_weighted_pass_grades(eligible: list[dict], players: list[dict]) -> None:
-    """Pass headline: weighted five pillars (prod/prec +20%); pool-scoped prod/prec/lethality."""
+    """Pass headline: six-pillar overall; also keep abs/rel five-pillar grades."""
     if not eligible:
         return
 
@@ -436,8 +455,9 @@ def _attach_weighted_pass_grades(eligible: list[dict], players: list[dict]) -> N
             player["pass_grade_expected"] = rel_grade
             player["pass_grade_relative"] = rel_grade
 
-        if abs_grade is not None and rel_grade is not None:
-            player["pass_grade_overall"] = round((abs_grade + rel_grade) / 2.0, 2)
+        overall = _weighted_pillar_grade(PASS_GRADE_OVERALL_WEIGHTS, player)
+        if overall is not None:
+            player["pass_grade_overall"] = overall
 
     for player in players:
         if player.get("pass_grade_expected") is not None:
@@ -525,6 +545,7 @@ def attach_profile_view_metrics(players: list[dict]) -> None:
         _assign_league_ranks_and_bars(league_players, XP_BAR_LEAGUE_METRICS)
 
     _assign_pool_ranks_and_bars(eligible, PASS_SCORE_POOL_METRICS)
+    _assign_pool_ranks_and_bars(eligible, XP_PROFILE_POOL_METRICS)
     _attach_pass_score_composites(eligible, PASS_SCORE_ABSOLUTE_SPECS)
     _attach_pass_score_composites(eligible, PASS_SCORE_RELATIVE_SPECS)
 
