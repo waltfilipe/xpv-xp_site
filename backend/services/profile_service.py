@@ -313,4 +313,5 @@ def build_profile_payload(
         "test_impact_v2_p90": xp.get("test_impact_v2_p90"),
         "xp_indices": build_xp_indices(xp) if xp else [],
         "xp_round_grades": build_round_grade_series(xp, passes_by_player.get(player_id)) if xp else [],
+        "profile_cluster": xp.get("profile_cluster") if xp else None,
     }

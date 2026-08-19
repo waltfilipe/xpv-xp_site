@@ -183,6 +183,15 @@ def main() -> None:
         import profile_view_engine as pve
 
         pve.attach_profile_view_metrics(list(xp_by_id_all.values()))
+
+        import midfielder_profile_clusters as mpc
+
+        cluster_cache = mpc.build_cluster_assignments(list(xp_by_id_all.values()))
+        _write_json(OUTPUT_DIR / "profile-clusters.json", cluster_cache)
+        for pid, xp in xp_by_id_all.items():
+            cluster = cluster_cache.get("by_player_id", {}).get(str(pid))
+            if cluster:
+                xp["profile_cluster"] = cluster
     cohort_player_ids = _load_cohort_player_ids()
     player_ids = set(cohort_player_ids)
     missing = player_ids - {str(p["player_id"]) for p in parts["analysis_players"]}
