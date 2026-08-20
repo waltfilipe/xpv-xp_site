@@ -35,40 +35,55 @@ CLUSTER_KEYS: tuple[str, ...] = (
     "low_volume",
 )
 
+# low_volume is kept for k=4 fit only; players are surfaced as box_to_box (Organizador).
+DISPLAY_CLUSTER_REMAP: dict[str, str] = {
+    "low_volume": "box_to_box",
+}
+
+DISPLAY_CLUSTER_KEYS: tuple[str, ...] = (
+    "elite_engine",
+    "box_to_box",
+    "chance_creator",
+)
+
 CLUSTER_CATALOG: dict[str, dict[str, Any]] = {
     "elite_engine": {
         "icon": "fa-bolt",
         "accent": "#a3e635",
-        "title_en": "Elite game engine",
-        "title_pt": "Motor de jogo elite",
+        "title_en": "Elite",
+        "title_pt": "Elite",
         "summary_en": "Very high pass volume, xPV/game and COE/pass — organises and progresses at elite level.",
         "summary_pt": "Volume de passe, xPV/jogo e COE/pass muito altos — organiza e progride em nível elite.",
     },
     "box_to_box": {
-        "icon": "fa-arrows-left-right",
+        "icon": "fa-sitemap",
         "accent": "#38bdf8",
-        "title_en": "Productive box-to-box",
-        "title_pt": "Box-to-box produtivo",
-        "summary_en": "Solid volume and above-average xPV with positive precision — all-round midfield contribution.",
-        "summary_pt": "Volume sólido e xPV acima da média com precisão positiva — contribuição completa no meio.",
+        "title_en": "Organiser",
+        "title_pt": "Organizador",
+        "summary_en": "Solid volume and xPV with positive precision — organises and contributes across the midfield.",
+        "summary_pt": "Volume sólido e xPV com precisão positiva — organiza e contribui no meio-campo.",
     },
     "chance_creator": {
         "icon": "fa-wand-magic-sparkles",
         "accent": "#f472b6",
         "title_en": "Chance creator",
-        "title_pt": "Criador de chances",
+        "title_pt": "Criador de Chance",
         "summary_en": "Moderate volume but high key passes and chance xPV — chance creation over raw pass count.",
         "summary_pt": "Volume moderado, mas key passes e chance xPV altos — criação acima do volume bruto.",
     },
     "low_volume": {
-        "icon": "fa-shield-halved",
-        "accent": "#94a3b8",
-        "title_en": "Low-volume profile",
-        "title_pt": "Perfil de volume baixo",
-        "summary_en": "Lower pass volume and xPV/game — more conservative or off-ball midfield role in the pool.",
-        "summary_pt": "Menor volume de passes e xPV/jogo — papel mais contido ou fora da bola no pool.",
+        "icon": "fa-sitemap",
+        "accent": "#38bdf8",
+        "title_en": "Organiser",
+        "title_pt": "Organizador",
+        "summary_en": "Solid volume and xPV with positive precision — organises and contributes across the midfield.",
+        "summary_pt": "Volume sólido e xPV com precisão positiva — organiza e contribui no meio-campo.",
     },
 }
+
+
+def _display_cluster_key(raw_key: str) -> str:
+    return DISPLAY_CLUSTER_REMAP.get(raw_key, raw_key)
 
 
 def _winsorize(series: pd.Series, lower: float = 0.01, upper: float = 0.99) -> pd.Series:
@@ -130,15 +145,17 @@ def build_cluster_assignments(
     )
     raw_to_key = {int(raw_id): CLUSTER_KEYS[i] for i, raw_id in enumerate(order)}
 
+    df["cluster_key"] = df["raw_cluster"].map(lambda rid: raw_to_key[int(rid)])
+    df["display_key"] = df["cluster_key"].map(_display_cluster_key)
+
     clusters_out: list[dict[str, Any]] = []
-    for raw_id in order:
-        key = raw_to_key[int(raw_id)]
-        sub = df[df["raw_cluster"] == raw_id]
+    for rank, key in enumerate(DISPLAY_CLUSTER_KEYS):
+        sub = df[df["display_key"] == key]
         meta = CLUSTER_CATALOG[key]
         clusters_out.append(
             {
                 "key": key,
-                "rank": CLUSTER_KEYS.index(key),
+                "rank": rank,
                 "n": int(len(sub)),
                 "pool_pct": round(100.0 * len(sub) / len(df), 1),
                 "icon": meta["icon"],
@@ -151,15 +168,17 @@ def build_cluster_assignments(
             }
         )
 
+    cluster_meta_by_key = {c["key"]: c for c in clusters_out}
+
     by_player: dict[str, dict[str, Any]] = {}
     for _, row in df.iterrows():
         pid = str(row["player_id"])
-        cluster_key = raw_to_key[int(row["raw_cluster"])]
+        cluster_key = _display_cluster_key(raw_to_key[int(row["raw_cluster"])])
         meta = CLUSTER_CATALOG[cluster_key]
-        cluster_meta = next(c for c in clusters_out if c["key"] == cluster_key)
+        cluster_meta = cluster_meta_by_key[cluster_key]
         by_player[pid] = {
             "key": cluster_key,
-            "rank": CLUSTER_KEYS.index(cluster_key),
+            "rank": DISPLAY_CLUSTER_KEYS.index(cluster_key),
             "pool_pct": cluster_meta["pool_pct"],
             "icon": meta["icon"],
             "accent": meta["accent"],
@@ -170,7 +189,8 @@ def build_cluster_assignments(
         }
 
     return {
-        "k": CLUSTER_K,
+        "k": len(DISPLAY_CLUSTER_KEYS),
+        "k_fit": CLUSTER_K,
         "n_players": len(df),
         "features": [{"key": k, "label": label} for k, label in FEATURES],
         "clusters": clusters_out,
