@@ -44,7 +44,7 @@ CMAP_REPORT_PROGRESSIVE = LinearSegmentedColormap.from_list(
 )
 CMAP_REPORT_XPV_RED = LinearSegmentedColormap.from_list(
     "report_xpv_red",
-    ["#3f0d12", "#7f1d1d", "#b91c1c", "#ef4444", "#f87171", "#fecaca"],
+    ["#1a0508", "#450a0a", "#7f1d1d", "#991b1b", "#b91c1c", "#dc2626"],
 )
 CMAP_XT_GRID = LinearSegmentedColormap.from_list(
     "xt_grid", ["#1a1a2e", "#3b82f6", "#fbbf24", "#ef4444"]
@@ -1185,8 +1185,8 @@ def draw_report_impact_final_third_heatmap(passes) -> plt.Figure:
             if xp_col:
                 xp_values = work[xp_col].astype(float).to_numpy()
                 positive = xp_values[xp_values > 0]
-                vmax = max(float(np.percentile(positive, 92)) if len(positive) else 0.0, 0.05)
-                norm = PowerNorm(gamma=0.78, vmin=0.0, vmax=vmax)
+                vmax = max(float(np.percentile(positive, 88)) if len(positive) else 0.0, 0.04)
+                norm = PowerNorm(gamma=0.52, vmin=0.0, vmax=vmax)
             else:
                 xp_values = np.ones(len(work), dtype=float)
                 norm = None
@@ -1202,7 +1202,7 @@ def draw_report_impact_final_third_heatmap(passes) -> plt.Figure:
                 else:
                     color = "#ef4444"
                     t = 0.65
-                alpha = 0.78 + 0.2 * t
+                alpha = 0.84 + 0.16 * (t ** 1.35)
                 _delicate_arrows(
                     pitch,
                     ax,
