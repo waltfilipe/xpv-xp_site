@@ -564,6 +564,7 @@ def attach_profile_view_metrics(players: list[dict]) -> None:
     for league_players in by_league.values():
         _assign_league_ranks_and_bars(league_players, XP_BAR_LEAGUE_METRICS)
         _assign_league_ranks_and_bars(league_players, PASS_SCORE_POOL_METRICS)
+        _assign_league_ranks_and_bars(league_players, XP_PROFILE_POOL_METRICS)
 
     _assign_pool_ranks_and_bars(eligible, XP_BAR_LEAGUE_METRICS)
     _assign_pool_ranks_and_bars(eligible, PASS_SCORE_POOL_METRICS)

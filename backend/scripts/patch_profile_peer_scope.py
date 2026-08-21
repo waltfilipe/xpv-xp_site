@@ -44,6 +44,19 @@ def main() -> None:
     print("Recomputing profile view metrics…")
     pve.attach_profile_view_metrics(list(xp_by_id.values()))
 
+    import midfielder_profile_clusters as mpc
+
+    cluster_cache = mpc.build_cluster_assignments(list(xp_by_id.values()))
+    cluster_path = OUTPUT_DIR / "profile-clusters.json"
+    cluster_path.write_text(
+        json.dumps(cluster_cache, ensure_ascii=False, separators=(",", ":")),
+        encoding="utf-8",
+    )
+    for pid, xp in xp_by_id.items():
+        cluster = cluster_cache.get("by_player_id", {}).get(str(pid))
+        if cluster:
+            xp["profile_cluster"] = cluster
+
     import services.profile_service as profile_service
 
     _orig_prepare = profile_service._prepare_passes_for_round_series
