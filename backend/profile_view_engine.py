@@ -480,36 +480,52 @@ def _attach_weighted_pass_grades(eligible: list[dict], players: list[dict]) -> N
 
 
 def _attach_pass_score_composites(
-    pool_players: list[dict],
+    players: list[dict],
     specs: tuple[tuple[str, str, tuple[str, ...]], ...],
+    *,
+    scope: str = "pool",
 ) -> None:
-    if not pool_players:
+    if not players:
         return
-    df = pd.DataFrame(pool_players)
-    pool_size = len(pool_players)
+    df = pd.DataFrame(players)
+    pool_size = len(players)
     for _title, prefix, metric_cols in specs:
         available = [c for c in metric_cols if c in df.columns]
         if not available:
             continue
         composite = _mean_winsorized_z_columns(df, tuple(available))
         ranks = _rank_descending(composite)
-        for i, player in enumerate(pool_players):
+        for i, player in enumerate(players):
             comp = composite.iloc[i]
             rank_raw = ranks.iloc[i]
             if pd.isna(comp) or pd.isna(rank_raw):
-                player[f"{prefix}_index"] = None
-                player[f"{prefix}_display"] = None
-                player[f"{prefix}_letter"] = "—"
-                player[f"{prefix}_rank_in_group"] = None
-                player[f"{prefix}_rank_pool_in_group"] = pool_size
+                if scope == "league":
+                    player[f"{prefix}_league_index"] = None
+                    player[f"{prefix}_league_display"] = None
+                    player[f"{prefix}_league_letter"] = "—"
+                    player[f"{prefix}_rank_in_league"] = None
+                    player[f"{prefix}_rank_pool_in_league"] = pool_size
+                else:
+                    player[f"{prefix}_index"] = None
+                    player[f"{prefix}_display"] = None
+                    player[f"{prefix}_letter"] = "—"
+                    player[f"{prefix}_rank_in_group"] = None
+                    player[f"{prefix}_rank_pool_in_group"] = pool_size
                 continue
             rank = int(rank_raw)
             grade = _league_rank_probit_grade(rank, pool_size)
-            player[f"{prefix}_index"] = round(float(comp), 4)
-            player[f"{prefix}_display"] = grade
-            player[f"{prefix}_letter"] = display_score_letter_grade(grade)
-            player[f"{prefix}_rank_in_group"] = rank
-            player[f"{prefix}_rank_pool_in_group"] = pool_size
+            if scope == "league":
+                player[f"{prefix}_league_index"] = round(float(comp), 4)
+                player[f"{prefix}_league_display"] = grade
+                player[f"{prefix}_league_letter"] = display_score_letter_grade(grade)
+                player[f"{prefix}_rank_in_league"] = rank
+                player[f"{prefix}_rank_pool_in_league"] = pool_size
+            else:
+                player[f"{prefix}_index"] = round(float(comp), 4)
+                player[f"{prefix}_display"] = grade
+                player[f"{prefix}_letter"] = display_score_letter_grade(grade)
+                player[f"{prefix}_rank_in_group"] = rank
+                player[f"{prefix}_rank_pool_in_group"] = pool_size
 
 
 def attach_profile_view_metrics(players: list[dict]) -> None:
@@ -547,11 +563,16 @@ def attach_profile_view_metrics(players: list[dict]) -> None:
 
     for league_players in by_league.values():
         _assign_league_ranks_and_bars(league_players, XP_BAR_LEAGUE_METRICS)
+        _assign_league_ranks_and_bars(league_players, PASS_SCORE_POOL_METRICS)
 
+    _assign_pool_ranks_and_bars(eligible, XP_BAR_LEAGUE_METRICS)
     _assign_pool_ranks_and_bars(eligible, PASS_SCORE_POOL_METRICS)
     _assign_pool_ranks_and_bars(eligible, XP_PROFILE_POOL_METRICS)
-    _attach_pass_score_composites(eligible, PASS_SCORE_ABSOLUTE_SPECS)
-    _attach_pass_score_composites(eligible, PASS_SCORE_RELATIVE_SPECS)
+    _attach_pass_score_composites(eligible, PASS_SCORE_ABSOLUTE_SPECS, scope="pool")
+    _attach_pass_score_composites(eligible, PASS_SCORE_RELATIVE_SPECS, scope="pool")
+    for league_players in by_league.values():
+        _attach_pass_score_composites(league_players, PASS_SCORE_ABSOLUTE_SPECS, scope="league")
+        _attach_pass_score_composites(league_players, PASS_SCORE_RELATIVE_SPECS, scope="league")
 
     for player in eligible:
         bar = player.get("prec_z_coe_stratum_league_bar")

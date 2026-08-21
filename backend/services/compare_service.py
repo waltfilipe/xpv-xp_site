@@ -132,7 +132,7 @@ def build_compare_payload(
             "long_pass_share_ref_avg_pct": xp.get("long_pass_share_ref_avg_pct"),
             "long_pass_share_pctile": xp.get("long_pass_share_pctile"),
             "xp": xp,
-            "xp_bars": build_xp_profile_bars(xp),
+            "xp_bars": build_xp_profile_bars(xp, "pool"),
             "xp_indices": build_xp_indices(xp),
             "xp_game_consistency_score": xp.get("xp_game_consistency_score"),
             "test_impact_v2_p90": xp.get("test_impact_v2_p90"),

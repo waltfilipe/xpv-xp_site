@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 import progression_engine as pge
 from passes_maps import draw_action_origin_smooth_heatmap
@@ -15,14 +15,27 @@ from xp_stats_engine import (
 
 from services.figures import fig_to_b64
 
-XP_PROFILE_ABSOLUTE_BARS: tuple[tuple[str, str, str, str], ...] = (
+PeerScope = Literal["pool", "league"]
+ProfileViewMode = Literal["absolute", "relative"]
+
+XP_PROFILE_ABSOLUTE_BARS_LEAGUE: tuple[tuple[str, str, str, str], ...] = (
     ("productivity", "Productivity", "prod_geral_display", "prod_xpv_per_game"),
     ("precision", "Precision", "prec_coe_league_bar", "prec_coe_per_pass"),
 )
 
-XP_PROFILE_RELATIVE_BARS: tuple[tuple[str, str, str, str], ...] = (
+XP_PROFILE_RELATIVE_BARS_LEAGUE: tuple[tuple[str, str, str, str], ...] = (
     ("productivity", "Productivity", "prod_rel_display", "prod_rel_xpv"),
     ("precision", "Precision", "prec_stratum_league_bar", "prec_z_coe_stratum"),
+)
+
+XP_PROFILE_ABSOLUTE_BARS_POOL: tuple[tuple[str, str, str, str], ...] = (
+    ("productivity", "Productivity", "prod_xpv_per_game_pool_bar", "prod_xpv_per_game"),
+    ("precision", "Precision", "prec_coe_per_pass_pool_bar", "prec_coe_per_pass"),
+)
+
+XP_PROFILE_RELATIVE_BARS_POOL: tuple[tuple[str, str, str, str], ...] = (
+    ("productivity", "Productivity", "prod_rel_xpv_pool_bar", "prod_rel_xpv"),
+    ("precision", "Precision", "prec_z_coe_stratum_pool_bar", "prec_z_coe_stratum"),
 )
 
 XP_PA_REGULAR_SCORE_SPECS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...] = (
@@ -65,10 +78,19 @@ DEFENSIVE_INDEX_COMPONENTS: tuple[tuple[str, str], ...] = (
 )
 
 
-def _pass_score_component(xp_profile: dict, ck: str) -> dict[str, Any]:
+def _pass_score_component(xp_profile: dict, ck: str, peer_scope: PeerScope) -> dict[str, Any]:
     value = xp_profile.get(ck)
     if ck == "prec_coe_per_pass" and value is None:
         value = xp_profile.get("prec_coe_per_pass")
+    if peer_scope == "league":
+        return {
+            "key": ck,
+            "value": value,
+            "rank": xp_profile.get(f"{ck}_rank_in_league"),
+            "rank_pool": xp_profile.get(f"{ck}_rank_pool_in_league"),
+            "bar_display": xp_profile.get(f"{ck}_league_bar"),
+            "stratum_star": False,
+        }
     return {
         "key": ck,
         "value": value,
@@ -82,72 +104,113 @@ def _pass_score_component(xp_profile: dict, ck: str) -> dict[str, Any]:
 def _build_pass_score_sections(
     xp_profile: dict,
     specs: tuple[tuple[str, str, tuple[str, ...]], ...],
+    peer_scope: PeerScope,
 ) -> list[dict[str, Any]]:
     sections: list[dict[str, Any]] = []
     for title, prefix, component_keys in specs:
-        components = [_pass_score_component(xp_profile, ck) for ck in component_keys]
-        sections.append({
-            "title": title,
-            "display_score": xp_profile.get(f"{prefix}_display"),
-            "letter": xp_profile.get(f"{prefix}_letter"),
-            "index": xp_profile.get(f"{prefix}_index"),
-            "rank": xp_profile.get(f"{prefix}_rank_in_group"),
-            "rank_pool": xp_profile.get(f"{prefix}_rank_pool_in_group"),
-            "components": components,
-        })
+        components = [
+            _pass_score_component(xp_profile, ck, peer_scope) for ck in component_keys
+        ]
+        if peer_scope == "league":
+            sections.append({
+                "title": title,
+                "display_score": xp_profile.get(f"{prefix}_league_display"),
+                "letter": xp_profile.get(f"{prefix}_league_letter"),
+                "index": xp_profile.get(f"{prefix}_league_index"),
+                "rank": xp_profile.get(f"{prefix}_rank_in_league"),
+                "rank_pool": xp_profile.get(f"{prefix}_rank_pool_in_league"),
+                "components": components,
+            })
+        else:
+            sections.append({
+                "title": title,
+                "display_score": xp_profile.get(f"{prefix}_display"),
+                "letter": xp_profile.get(f"{prefix}_letter"),
+                "index": xp_profile.get(f"{prefix}_index"),
+                "rank": xp_profile.get(f"{prefix}_rank_in_group"),
+                "rank_pool": xp_profile.get(f"{prefix}_rank_pool_in_group"),
+                "components": components,
+            })
     return sections
 
 
-def build_pass_score_sections(xp_profile: dict) -> list[dict[str, Any]]:
+def build_pass_score_sections(xp_profile: dict, peer_scope: PeerScope = "pool") -> list[dict[str, Any]]:
     """Absolute pass scores (legacy alias)."""
-    return _build_pass_score_sections(xp_profile, PASS_SCORE_ABSOLUTE_SPECS)
+    return _build_pass_score_sections(xp_profile, PASS_SCORE_ABSOLUTE_SPECS, peer_scope)
+
+
+def _xp_bar_specs(mode: ProfileViewMode, peer_scope: PeerScope) -> tuple[tuple[str, str, str, str], ...]:
+    if mode == "relative":
+        return XP_PROFILE_RELATIVE_BARS_POOL if peer_scope == "pool" else XP_PROFILE_RELATIVE_BARS_LEAGUE
+    return XP_PROFILE_ABSOLUTE_BARS_POOL if peer_scope == "pool" else XP_PROFILE_ABSOLUTE_BARS_LEAGUE
 
 
 def _build_xp_profile_bars(
     xp_profile: dict,
     bar_specs: tuple[tuple[str, str, str, str], ...],
+    peer_scope: PeerScope,
 ) -> list[dict[str, Any]]:
     bars: list[dict[str, Any]] = []
     for key, label, display_key, raw_key in bar_specs:
         display_val = xp_profile.get(display_key)
         if display_val is None and display_key == "prec_coe_league_bar":
             display_val = xp_profile.get("prec_display")
+        if peer_scope == "pool":
+            rank = xp_profile.get(f"{raw_key}_rank_in_group")
+            rank_pool = xp_profile.get(f"{raw_key}_rank_pool_in_group")
+        else:
+            rank = xp_profile.get(f"{raw_key}_rank_in_league")
+            rank_pool = xp_profile.get(f"{raw_key}_rank_pool_in_league")
         bars.append({
             "key": key,
             "label": label,
             "value": display_val,
             "raw_value": xp_profile.get(raw_key),
             "raw_key": raw_key,
-            "rank": xp_profile.get(f"{raw_key}_rank_in_league"),
-            "rank_pool": xp_profile.get(f"{raw_key}_rank_pool_in_league"),
+            "rank": rank,
+            "rank_pool": rank_pool,
         })
     return bars
 
 
-def build_xp_profile_bars(xp_profile: dict) -> list[dict[str, Any]]:
-    return _build_xp_profile_bars(xp_profile, XP_PROFILE_ABSOLUTE_BARS)
+def build_xp_profile_bars(xp_profile: dict, peer_scope: PeerScope = "league") -> list[dict[str, Any]]:
+    return _build_xp_profile_bars(
+        xp_profile,
+        _xp_bar_specs("absolute", peer_scope),
+        peer_scope,
+    )
 
 
-def build_profile_view(xp_profile: dict, mode: str) -> dict[str, Any]:
+def build_profile_view(
+    xp_profile: dict,
+    mode: ProfileViewMode,
+    peer_scope: PeerScope = "pool",
+) -> dict[str, Any]:
+    specs = PASS_SCORE_RELATIVE_SPECS if mode == "relative" else PASS_SCORE_ABSOLUTE_SPECS
+    bar_specs = _xp_bar_specs(mode, peer_scope)
     if mode == "relative":
         return {
             "mode": "relative",
+            "peer_scope": peer_scope,
             "pass_grade": xp_profile.get("pass_grade_relative") or xp_profile.get("pass_grade_expected"),
-            "xp_bars": _build_xp_profile_bars(xp_profile, XP_PROFILE_RELATIVE_BARS),
-            "pass_scores": _build_pass_score_sections(xp_profile, PASS_SCORE_RELATIVE_SPECS),
+            "xp_bars": _build_xp_profile_bars(xp_profile, bar_specs, peer_scope),
+            "pass_scores": _build_pass_score_sections(xp_profile, specs, peer_scope),
         }
     return {
         "mode": "absolute",
+        "peer_scope": peer_scope,
         "pass_grade": xp_profile.get("pass_grade_general"),
-        "xp_bars": _build_xp_profile_bars(xp_profile, XP_PROFILE_ABSOLUTE_BARS),
-        "pass_scores": _build_pass_score_sections(xp_profile, PASS_SCORE_ABSOLUTE_SPECS),
+        "xp_bars": _build_xp_profile_bars(xp_profile, bar_specs, peer_scope),
+        "pass_scores": _build_pass_score_sections(xp_profile, specs, peer_scope),
     }
 
 
 def build_profile_views(xp_profile: dict) -> dict[str, Any]:
     return {
-        "absolute": build_profile_view(xp_profile, "absolute"),
-        "relative": build_profile_view(xp_profile, "relative"),
+        "absolute": build_profile_view(xp_profile, "absolute", "pool"),
+        "absolute_league": build_profile_view(xp_profile, "absolute", "league"),
+        "relative": build_profile_view(xp_profile, "relative", "pool"),
+        "relative_league": build_profile_view(xp_profile, "relative", "league"),
     }
 
 
@@ -281,7 +344,7 @@ def build_profile_payload(
         "xp": xp,
         "profile_views": profile_views,
         "pass_scores": absolute_view.get("pass_scores", []),
-        "xp_bars": absolute_view.get("xp_bars", []),
+        "xp_bars": profile_views.get("absolute_league", {}).get("xp_bars", absolute_view.get("xp_bars", [])),
         "origin_heatmap_b64": origin_heatmap_b64(player_id, passes_by_player, merged.get("player_name", "")),
         "long_pass_share_pct": xp.get("long_pass_share_pct") if xp else None,
         "long_pass_share_ref_avg_pct": xp.get("long_pass_share_ref_avg_pct") if xp else None,
