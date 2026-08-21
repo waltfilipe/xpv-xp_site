@@ -6,26 +6,12 @@ from typing import Any
 
 import progression_engine as pge
 from passes_maps import draw_action_origin_smooth_heatmap
+from profile_view_engine import PASS_SCORE_ABSOLUTE_SPECS
 
 from services.figures import fig_to_b64
-from services.profile_service import XP_PA_REGULAR_SCORE_SPECS, build_xp_indices, build_xp_profile_bars
+from services.profile_service import build_xp_indices, build_xp_profile_bars
 
-COMPARE_PILLAR_SPECS: tuple[tuple[str, str], ...] = (
-    ("xp_activity_display", "Productivity"),
-    ("xp_efficiency_display", "Precision"),
-    ("xp_edge_display", "Lethality"),
-)
-COMPARE_PASS_GRID_SPECS: tuple[tuple[str, str], ...] = (
-    ("pass_volume_display", "Volume"),
-    ("pass_efficiency_display", "Efficiency"),
-    ("pass_buildup_display", "Build-up"),
-    ("pass_chance_creation_display", "Chance creation"),
-)
-
-COMPARE_PASS_GRID_COMPONENTS: dict[str, tuple[str, ...]] = {
-    display_key: component_keys
-    for display_key, _index_key, _letter_key, _title, component_keys in XP_PA_REGULAR_SCORE_SPECS
-}
+COMPARE_PASS_GRID_SPECS = PASS_SCORE_ABSOLUTE_SPECS
 
 
 def _compare_source(
@@ -80,27 +66,17 @@ def build_compare_payload(
     source_b = _compare_source(prog_b, xp_b, pass_player=players_by_id.get(player_b_id))
 
     pillars: list[dict[str, Any]] = []
-    for key, label in COMPARE_PILLAR_SPECS:
-        val_a = _metric_value(source_a, key)
-        val_b = _metric_value(source_b, key)
-        pillars.append({
-            "key": key,
-            "label": label,
-            "value_a": val_a,
-            "value_b": val_b,
-            "winner": "a" if (val_a or 0) > (val_b or 0) else ("b" if (val_b or 0) > (val_a or 0) else "tie"),
-        })
 
     pass_grid: list[dict[str, Any]] = []
-    for key, label in COMPARE_PASS_GRID_SPECS:
-        val_a = _metric_value(source_a, key)
-        val_b = _metric_value(source_b, key)
-        letter_a = source_a.get(key.replace("_display", "_letter"))
-        letter_b = source_b.get(key.replace("_display", "_letter"))
-        score_a = _metric_value(source_a, key.replace("_display", "_index"))
-        score_b = _metric_value(source_b, key.replace("_display", "_index"))
+    for title, prefix, component_keys in COMPARE_PASS_GRID_SPECS:
+        val_a = _metric_value(source_a, f"{prefix}_display")
+        val_b = _metric_value(source_b, f"{prefix}_display")
+        letter_a = source_a.get(f"{prefix}_letter")
+        letter_b = source_b.get(f"{prefix}_letter")
+        score_a = _metric_value(source_a, f"{prefix}_display")
+        score_b = _metric_value(source_b, f"{prefix}_display")
         components: list[dict[str, Any]] = []
-        for comp_key in COMPARE_PASS_GRID_COMPONENTS.get(key, ()):
+        for comp_key in component_keys:
             comp_a = source_a.get(comp_key)
             comp_b = source_b.get(comp_key)
             try:
@@ -124,8 +100,8 @@ def build_compare_payload(
                 "winner": winner,
             })
         pass_grid.append({
-            "key": key,
-            "label": label,
+            "key": title.lower().replace(" ", "_"),
+            "label": title,
             "value_a": val_a,
             "value_b": val_b,
             "letter_a": letter_a,
@@ -155,6 +131,7 @@ def build_compare_payload(
             "long_pass_share_pct": xp.get("long_pass_share_pct"),
             "long_pass_share_ref_avg_pct": xp.get("long_pass_share_ref_avg_pct"),
             "long_pass_share_pctile": xp.get("long_pass_share_pctile"),
+            "xp": xp,
             "xp_bars": build_xp_profile_bars(xp),
             "xp_indices": build_xp_indices(xp),
             "xp_game_consistency_score": xp.get("xp_game_consistency_score"),
@@ -166,6 +143,5 @@ def build_compare_payload(
         "player_b": player_card(player_b_id, source_b, xp_b),
         "heatmap_a_b64": _heatmap_b64(player_a_id, passes_by_player, str(source_a.get("player_name", ""))),
         "heatmap_b_b64": _heatmap_b64(player_b_id, passes_by_player, str(source_b.get("player_name", ""))),
-        "pillars": pillars,
         "pass_grid": pass_grid,
     }
