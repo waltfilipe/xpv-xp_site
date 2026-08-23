@@ -25,6 +25,7 @@ from xp_stats_engine import (
     _zscore,
     display_score_letter_grade,
     pool_normal_pass_grade,
+    pool_rank_normal_pass_grade,
 )
 
 # Overall pass grade: productivity 40%, precision 40%, lethality 20% (league-scoped).
@@ -457,6 +458,10 @@ def _attach_pool_pass_grade_overall(eligible: list[dict]) -> None:
         + PASS_GRADE_OVERALL_WEIGHT_PREC * z_prec
         + PASS_GRADE_OVERALL_WEIGHT_LETH * z_leth
     )
+    ranks = _rank_descending(z_composite)
+    pool_size = int(ranks.notna().sum())
+    if pool_size < 2:
+        return
 
     for player in eligible:
         player.pop("pass_grade_overall", None)
@@ -467,21 +472,18 @@ def _attach_pool_pass_grade_overall(eligible: list[dict]) -> None:
 
     ranked: list[tuple[dict, float]] = []
     for i, player in enumerate(eligible):
-        z_val = z_composite.iloc[i]
-        if pd.isna(z_val):
+        rank_raw = ranks.iloc[i]
+        if pd.isna(rank_raw):
             continue
-        grade = pool_normal_pass_grade(float(z_val))
+        rank = int(rank_raw)
+        grade = pool_rank_normal_pass_grade(rank, pool_size)
         player["pass_grade_overall"] = grade
+        player["pass_grade_overall_rank_in_pool"] = rank
+        player["pass_grade_overall_rank_pool_size"] = pool_size
         ranked.append((player, grade))
 
     if not ranked:
         return
-
-    ranked.sort(key=lambda item: item[1], reverse=True)
-    pool_size = len(ranked)
-    for rank, (player, _) in enumerate(ranked, start=1):
-        player["pass_grade_overall_rank_in_pool"] = rank
-        player["pass_grade_overall_rank_pool_size"] = pool_size
 
     by_league: dict[str, list[tuple[dict, float]]] = defaultdict(list)
     for player, grade in ranked:

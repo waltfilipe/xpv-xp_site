@@ -3177,14 +3177,35 @@ def _league_rank_probit_grade(rank: int, pool_size: int) -> float:
 XP_RELATIVE_HEADLINE_CDF_SCALE = 0.48
 XP_RELATIVE_HEADLINE_CAP = 8.5
 
-# Pool-normal pass_grade_overall: composite z on raw prod/prec/leth metrics.
+# Pool-normal pass_grade_overall: composite z rank → normal grade on full pool.
 PASS_GRADE_OVERALL_POOL_MEAN = 6.5
-PASS_GRADE_OVERALL_POOL_SIGMA = 0.58
-PASS_GRADE_OVERALL_POOL_CAP = 8.5
+PASS_GRADE_OVERALL_POOL_SIGMA = 0.42
+PASS_GRADE_OVERALL_POOL_CAP = 7.95
 PASS_GRADE_OVERALL_POOL_FLOOR = XP_PRODUCTIVITY_SOFASCORE_FLOOR
 PASS_GRADE_OVERALL_WEIGHT_PROD = 0.40
 PASS_GRADE_OVERALL_WEIGHT_PREC = 0.40
 PASS_GRADE_OVERALL_WEIGHT_LETH = 0.20
+
+
+def pool_rank_normal_pass_grade(
+    rank: int,
+    pool_size: int,
+    *,
+    mean: float = PASS_GRADE_OVERALL_POOL_MEAN,
+    sigma: float = PASS_GRADE_OVERALL_POOL_SIGMA,
+    cap: float = PASS_GRADE_OVERALL_POOL_CAP,
+    floor: float = PASS_GRADE_OVERALL_POOL_FLOOR,
+) -> float:
+    """Map pool rank (1=best) to pass_grade_overall via rank-normal (mean≈6.5, σ configurable)."""
+    if pool_size <= 0 or rank <= 0:
+        return round(mean, 2)
+    if pool_size == 1:
+        return round(min(cap, max(floor, mean)), 2)
+    rank_pct = (float(pool_size) - float(rank)) / float(pool_size - 1)
+    rank_pct = float(np.clip(rank_pct, 0.001, 0.999))
+    z = float(norm.ppf(rank_pct))
+    raw = mean + sigma * z
+    return round(min(cap, max(floor, raw)), 2)
 
 
 def pool_normal_pass_grade(
@@ -3195,7 +3216,7 @@ def pool_normal_pass_grade(
     cap: float = PASS_GRADE_OVERALL_POOL_CAP,
     floor: float = PASS_GRADE_OVERALL_POOL_FLOOR,
 ) -> float:
-    """Map pool composite z to pass_grade_overall (normal-ish, mean≈6.5, elite cap 8.5)."""
+    """Map pool composite z linearly (legacy helper for simulations)."""
     raw = mean + sigma * float(composite_z)
     return round(min(cap, max(floor, raw)), 2)
 
