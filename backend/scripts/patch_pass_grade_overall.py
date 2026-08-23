@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Recompute pass_grade_overall (40/40/20) and patch static site profiles."""
+"""Recompute pass_grade_overall (pool-normal 40/40/20) and patch static site profiles."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ os.environ.setdefault("PASS_SCOUT_MODE", "local")
 
 from services.data_parts import clear_data_parts_cache, get_data_parts  # noqa: E402
 import profile_view_engine as pve  # noqa: E402
+from xp_stats_engine import EUROPEAN_TOP_FIVE_LEAGUES  # noqa: E402
 
 OUTPUT_DIR = Path("/agent/repos/test-site-xpxpv/data")
 POSITION_FAMILY = "midfielders"
@@ -31,21 +32,19 @@ GRADE_KEYS = (
 def main() -> None:
     print("Loading pool…")
     clear_data_parts_cache()
-    parts = get_data_parts(POSITION_FAMILY, require_passes=True)
+    parts = get_data_parts(POSITION_FAMILY, require_passes=False)
     xp_by_id = parts["xp_by_id"]
+    players = list(xp_by_id.values())
 
-    derived_path = OUTPUT_DIR / "pool-derived-metrics.json"
-    if derived_path.is_file():
-        derived_players = json.loads(derived_path.read_text(encoding="utf-8")).get("players", {})
-        for pid, xp in xp_by_id.items():
-            row = derived_players.get(str(pid), {})
-            if row.get("chance_creation_xpv_per_game") is not None:
-                xp["chance_creation_xpv_per_game"] = row["chance_creation_xpv_per_game"]
-            if row.get("chance_creation_xpv") is not None:
-                xp["chance_creation_xpv"] = row["chance_creation_xpv"]
+    eligible = [
+        p
+        for p in players
+        if p.get("xp_profile_bars_eligible")
+        and str(p.get("league_source") or "").strip() in EUROPEAN_TOP_FIVE_LEAGUES
+    ]
 
-    print("Recomputing profile view metrics…")
-    pve.attach_profile_view_metrics(list(xp_by_id.values()))
+    print(f"Recomputing pass_grade_overall for {len(eligible)} eligible players…")
+    pve._attach_pool_pass_grade_overall(eligible)
 
     profiles_dir = OUTPUT_DIR / "profiles"
     patched_profiles = 0
@@ -85,14 +84,21 @@ def main() -> None:
     else:
         print("pool-metrics.json not found, skipped")
 
-    sample = xp_by_id.get("795222")
+    sample = xp_by_id.get("363860")
     if sample:
-        prod = sample.get("prod_grade_geral")
-        prec = sample.get("prec_grade_geral")
-        leth = sample.get("leth_grade_blend")
-        overall = sample.get("pass_grade_overall")
-        manual = round(0.4 * prod + 0.4 * prec + 0.2 * leth, 2)
-        print(f"Frenkie de Jong: prod={prod} prec={prec} leth={leth} overall={overall} manual={manual}")
+        print(
+            f"Locatelli: overall={sample.get('pass_grade_overall')} "
+            f"rank={sample.get('pass_grade_overall_rank_in_pool')}/"
+            f"{sample.get('pass_grade_overall_rank_pool_size')}"
+        )
+
+    sample_b = xp_by_id.get("363856")
+    if sample_b:
+        print(
+            f"Barella: overall={sample_b.get('pass_grade_overall')} "
+            f"rank={sample_b.get('pass_grade_overall_rank_in_pool')}/"
+            f"{sample_b.get('pass_grade_overall_rank_pool_size')}"
+        )
 
     print(f"Done — patched {patched_profiles} profiles")
 

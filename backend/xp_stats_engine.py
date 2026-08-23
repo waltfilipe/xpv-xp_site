@@ -3177,6 +3177,28 @@ def _league_rank_probit_grade(rank: int, pool_size: int) -> float:
 XP_RELATIVE_HEADLINE_CDF_SCALE = 0.48
 XP_RELATIVE_HEADLINE_CAP = 8.5
 
+# Pool-normal pass_grade_overall: composite z on raw prod/prec/leth metrics.
+PASS_GRADE_OVERALL_POOL_MEAN = 6.5
+PASS_GRADE_OVERALL_POOL_SIGMA = 0.58
+PASS_GRADE_OVERALL_POOL_CAP = 8.5
+PASS_GRADE_OVERALL_POOL_FLOOR = XP_PRODUCTIVITY_SOFASCORE_FLOOR
+PASS_GRADE_OVERALL_WEIGHT_PROD = 0.40
+PASS_GRADE_OVERALL_WEIGHT_PREC = 0.40
+PASS_GRADE_OVERALL_WEIGHT_LETH = 0.20
+
+
+def pool_normal_pass_grade(
+    composite_z: float,
+    *,
+    mean: float = PASS_GRADE_OVERALL_POOL_MEAN,
+    sigma: float = PASS_GRADE_OVERALL_POOL_SIGMA,
+    cap: float = PASS_GRADE_OVERALL_POOL_CAP,
+    floor: float = PASS_GRADE_OVERALL_POOL_FLOOR,
+) -> float:
+    """Map pool composite z to pass_grade_overall (normal-ish, mean≈6.5, elite cap 8.5)."""
+    raw = mean + sigma * float(composite_z)
+    return round(min(cap, max(floor, raw)), 2)
+
 
 def _relative_headline_probit_grade(rank: int, pool_size: int) -> float:
     """Pool-relative headline grades: elite peers land in the 8.0–8.5 band."""
