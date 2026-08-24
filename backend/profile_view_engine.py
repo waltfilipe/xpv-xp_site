@@ -18,7 +18,6 @@ from xp_stats_engine import (
     PASS_GRADE_OVERALL_WEIGHT_PROD,
     XP_PASS_RATING_V2_LETHALITY_XPV_WEIGHT,
     _assign_pool_metric_grades,
-    _league_minmax_display,
     _league_rank_probit_grade,
     _mean_winsorized_z_columns,
     _rank_descending,
@@ -328,13 +327,22 @@ def _attach_efficiency_stratum_deltas(pool_players: list[dict]) -> None:
                 pool_players[int(idx)][delta_key] = round(float(coe.loc[idx]) - q_mean, 2)
 
 
+def _rank_percentile_bar_display(rank: int, cohort_size: int) -> float | None:
+    """Map rank (1 = best) to a 0–100 bar position within a peer cohort."""
+    if rank <= 0 or cohort_size <= 0:
+        return None
+    if cohort_size == 1:
+        return 100.0
+    pct = (float(cohort_size) - float(rank)) / float(cohort_size - 1) * 100.0
+    return round(float(np.clip(pct, 0.0, 100.0)), 1)
+
+
 def _assign_league_ranks_and_bars(
     league_players: list[dict],
     metric_keys: tuple[str, ...],
 ) -> None:
     for metric in metric_keys:
         ranked: list[tuple[dict, float]] = []
-        values: list[float] = []
         for player in league_players:
             raw = _safe_float(player.get(metric))
             if raw is None:
@@ -343,27 +351,21 @@ def _assign_league_ranks_and_bars(
                 player[f"{metric}_league_bar"] = None
                 continue
             ranked.append((player, raw))
-            values.append(raw)
 
         pool_size = len(league_players)
         if not ranked:
             continue
 
         ordered = sorted(ranked, key=lambda item: item[1], reverse=True)
-        for rank, (player, raw) in enumerate(ordered, start=1):
+        for rank, (player, _raw) in enumerate(ordered, start=1):
             player[f"{metric}_rank_in_league"] = rank
             player[f"{metric}_rank_pool_in_league"] = pool_size
-            player[f"{metric}_league_bar"] = _league_minmax_display(raw, values)
+            player[f"{metric}_league_bar"] = _rank_percentile_bar_display(rank, pool_size)
 
 
 def _pool_rank_bar_display(rank: int, pool_size: int) -> float | None:
     """Map pool rank (1 = best) to a 0–100 bar position."""
-    if rank <= 0 or pool_size <= 0:
-        return None
-    if pool_size == 1:
-        return 100.0
-    pct = (float(pool_size) - float(rank)) / float(pool_size - 1) * 100.0
-    return round(float(np.clip(pct, 0.0, 100.0)), 1)
+    return _rank_percentile_bar_display(rank, pool_size)
 
 
 def _assign_pool_ranks_and_bars(

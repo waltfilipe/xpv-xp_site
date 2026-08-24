@@ -19,12 +19,12 @@ PeerScope = Literal["pool", "league"]
 ProfileViewMode = Literal["absolute", "relative"]
 
 XP_PROFILE_ABSOLUTE_BARS_LEAGUE: tuple[tuple[str, str, str, str], ...] = (
-    ("productivity", "Productivity", "prod_geral_display", "prod_xpv_per_game"),
+    ("productivity", "Productivity", "prod_xpv_per_game_league_bar", "prod_xpv_per_game"),
     ("precision", "Precision", "prec_coe_league_bar", "prec_coe_per_pass"),
 )
 
 XP_PROFILE_RELATIVE_BARS_LEAGUE: tuple[tuple[str, str, str, str], ...] = (
-    ("productivity", "Productivity", "prod_rel_display", "prod_rel_xpv"),
+    ("productivity", "Productivity", "prod_rel_xpv_league_bar", "prod_rel_xpv"),
     ("precision", "Precision", "prec_stratum_league_bar", "prec_z_coe_stratum"),
 )
 
