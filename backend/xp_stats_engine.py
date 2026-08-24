@@ -3182,6 +3182,7 @@ PASS_GRADE_OVERALL_POOL_MEAN = 6.5
 PASS_GRADE_OVERALL_POOL_SIGMA = 0.42
 PASS_GRADE_OVERALL_POOL_CAP = 7.95
 PASS_GRADE_OVERALL_POOL_FLOOR = XP_PRODUCTIVITY_SOFASCORE_FLOOR
+PASS_GRADE_OVERALL_BOOST = 1.15
 PASS_GRADE_OVERALL_WEIGHT_PROD = 0.40
 PASS_GRADE_OVERALL_WEIGHT_PREC = 0.40
 PASS_GRADE_OVERALL_WEIGHT_LETH = 0.20
@@ -3195,17 +3196,21 @@ def pool_rank_normal_pass_grade(
     sigma: float = PASS_GRADE_OVERALL_POOL_SIGMA,
     cap: float = PASS_GRADE_OVERALL_POOL_CAP,
     floor: float = PASS_GRADE_OVERALL_POOL_FLOOR,
+    boost: float = PASS_GRADE_OVERALL_BOOST,
 ) -> float:
     """Map pool rank (1=best) to pass_grade_overall via rank-normal (mean≈6.5, σ configurable)."""
     if pool_size <= 0 or rank <= 0:
-        return round(mean, 2)
+        return round(mean * boost, 2)
     if pool_size == 1:
-        return round(min(cap, max(floor, mean)), 2)
+        return round(min(cap * boost, max(floor, mean * boost)), 2)
     rank_pct = (float(pool_size) - float(rank)) / float(pool_size - 1)
     rank_pct = float(np.clip(rank_pct, 0.001, 0.999))
     z = float(norm.ppf(rank_pct))
     raw = mean + sigma * z
-    return round(min(cap, max(floor, raw)), 2)
+    base = min(cap, max(floor, raw))
+    boosted_cap = cap * boost
+    boosted = base * boost
+    return round(min(boosted_cap, max(floor, boosted)), 2)
 
 
 def pool_normal_pass_grade(
