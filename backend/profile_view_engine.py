@@ -60,18 +60,22 @@ XP_PROFILE_POOL_METRICS: tuple[str, ...] = (
 )
 
 PASS_SCORE_ABSOLUTE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
-    ("Volume", "pv_abs_volume", ("passes_total", "long_balls")),
+    ("Volume", "pv_abs_volume", ("passes_total",)),
     (
         "Build-up",
         "pv_abs_buildup",
-        ("progressive_passes", "final_third_passes", "special_line_break_p90"),
+        (
+            "progressive_passes",
+            "buildup_final_third_exclusive_pg",
+            "buildup_line_break_exclusive_pg",
+        ),
     ),
     (
         "Chance creation",
         "pv_abs_chance",
         (
             "key_passes",
-            "passes_to_box",
+            "chance_box_exclusive_pg",
             "test_impact_v2_start_final_third_p90",
             "chance_creation_xpv_per_game",
         ),
@@ -84,14 +88,14 @@ PASS_SCORE_ABSOLUTE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
 )
 
 PASS_SCORE_RELATIVE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
-    ("Volume", "pv_rel_volume", ("vol_passes_team_share_pct", "vol_long_team_share_pct")),
+    ("Volume", "pv_rel_volume", ("vol_passes_team_share_pct",)),
     (
         "Build-up",
         "pv_rel_buildup",
         (
             "build_prog_share_pct",
-            "build_final_third_share_pct",
-            "build_line_break_share_pct",
+            "build_final_third_exclusive_share_pct",
+            "build_line_break_exclusive_share_pct",
         ),
     ),
     (
@@ -99,7 +103,7 @@ PASS_SCORE_RELATIVE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "pv_rel_chance",
         (
             "chance_key_share_pct",
-            "chance_box_share_pct",
+            "chance_box_exclusive_share_pct",
             "chance_impact_ft_share_pct",
             "chance_creation_xpv_per_pass",
         ),
@@ -161,7 +165,7 @@ def _compute_chance_creation_xpv_per_game(player: dict) -> float | None:
     if cc_xpv is not None and games:
         count = (
             (_safe_float(player.get("key_passes")) or 0.0)
-            + (_safe_float(player.get("passes_to_box")) or 0.0)
+            + (_safe_float(player.get("chance_box_exclusive_pg")) or 0.0)
             + (_safe_float(player.get("test_impact_v2_start_final_third_p90")) or 0.0)
         )
         if count > 0:
@@ -172,7 +176,7 @@ def _compute_chance_creation_xpv_per_game(player: dict) -> float | None:
 def _creation_passes_per_game(player: dict) -> float | None:
     parts = [
         _safe_float(player.get("key_passes")),
-        _safe_float(player.get("passes_to_box")),
+        _safe_float(player.get("chance_box_exclusive_pg")),
         _safe_float(player.get("test_impact_v2_start_final_third_p90")),
     ]
     if not any(p is not None for p in parts):
@@ -200,14 +204,16 @@ def _compute_profile_derived_metrics(player: dict) -> None:
 
     if passes_pg is not None and passes_pg > 0:
         player["build_prog_share_pct"] = _share_pct(player.get("progressive_passes"), passes_pg)
-        player["build_final_third_share_pct"] = _share_pct(
-            player.get("final_third_passes"), passes_pg,
+        player["build_final_third_exclusive_share_pct"] = _share_pct(
+            player.get("buildup_final_third_exclusive_pg"), passes_pg,
         )
-        player["build_line_break_share_pct"] = _share_pct(
-            player.get("special_line_break_p90"), passes_pg,
+        player["build_line_break_exclusive_share_pct"] = _share_pct(
+            player.get("buildup_line_break_exclusive_pg"), passes_pg,
         )
         player["chance_key_share_pct"] = _share_pct(player.get("key_passes"), passes_pg)
-        player["chance_box_share_pct"] = _share_pct(player.get("passes_to_box"), passes_pg)
+        player["chance_box_exclusive_share_pct"] = _share_pct(
+            player.get("chance_box_exclusive_pg"), passes_pg,
+        )
         player["chance_impact_ft_share_pct"] = _share_pct(
             player.get("test_impact_v2_start_final_third_p90"), passes_pg,
         )

@@ -1042,6 +1042,61 @@ def compute_extended_xp_stats(
     return out
 
 
+def _compute_deduplicated_pass_score_counts(enriched: pd.DataFrame) -> dict[str, int]:
+    """Mutually exclusive pass counts for build-up and chance-creation composites.
+
+    Build-up partition (each successful pass counted once):
+      progressive → final-third incremental → line-break incremental.
+    Chance partition: key passes → box passes not already counted as key.
+    """
+    empty = {
+        "buildup_final_third_exclusive_pg": 0,
+        "buildup_line_break_exclusive_pg": 0,
+        "chance_box_exclusive_pg": 0,
+    }
+    if enriched is None or enriched.empty:
+        return empty
+
+    succ = enriched[enriched["is_success"] & enriched["has_end"]].copy()
+    if succ.empty:
+        return empty
+    if "pass_distance" not in succ.columns:
+        succ["pass_distance"] = np.sqrt(
+            (succ["x_end"] - succ["x_start"]) ** 2 + (succ["y_end"] - succ["y_start"]) ** 2
+        )
+
+    prog = succ["prog_success"].to_numpy(dtype=bool)
+    ft = (
+        succ["has_end"].to_numpy(dtype=bool)
+        & (succ["x_end"].to_numpy(dtype=float) >= pe.FINAL_THIRD_LINE_X)
+    )
+    lb = compute_special_pass_masks(succ)["line_break"]
+    key = (
+        succ["is_key_pass"].to_numpy(dtype=bool)
+        if "is_key_pass" in succ.columns
+        else np.zeros(len(succ), dtype=bool)
+    )
+    box = pe._ended_in_penalty_box(succ).to_numpy(dtype=bool)
+
+    return {
+        "buildup_final_third_exclusive_pg": int((ft & ~prog).sum()),
+        "buildup_line_break_exclusive_pg": int((lb & ~prog & ~ft).sum()),
+        "chance_box_exclusive_pg": int((box & ~key).sum()),
+    }
+
+
+def _attach_deduplicated_pass_score_metrics(
+    metrics: dict[str, float | int],
+    enriched: pd.DataFrame,
+    minutes: float | None,
+) -> None:
+    counts = _compute_deduplicated_pass_score_counts(enriched)
+    mins = float(minutes or 0)
+    factor = 90.0 / mins if mins > 0 else 0.0
+    for key, total in counts.items():
+        metrics[key] = round(float(total) * factor, 3)
+
+
 def attach_regular_pass_stats_from_enriched(
     metrics: dict[str, float | int],
     enriched_passes: pd.DataFrame,
@@ -1063,6 +1118,7 @@ def attach_regular_pass_stats_from_enriched(
     metrics["final_third_passes"] = float(pass_metrics.get("final_third_passes_p90", 0) or 0)
     metrics["pass_completion_pct"] = pass_metrics.get("pass_completion_pct", 0.0)
     metrics["long_ball_completion_pct"] = pass_metrics.get("long_ball_completion_pct", 0.0)
+    _attach_deduplicated_pass_score_metrics(metrics, enriched_passes, minutes)
 
 
 def attach_regular_pass_stats(
@@ -1079,6 +1135,9 @@ def attach_regular_pass_stats(
             "final_third_passes",
             "passes_to_box",
             "key_passes",
+            "buildup_final_third_exclusive_pg",
+            "buildup_line_break_exclusive_pg",
+            "chance_box_exclusive_pg",
         ):
             metrics.setdefault(key, 0.0)
         metrics.setdefault("pass_completion_pct", 0.0)
@@ -1099,6 +1158,7 @@ def attach_regular_pass_stats(
     metrics["long_ball_completion_pct"] = pass_metrics.get("long_ball_completion_pct", 0.0)
     if pass_metrics.get("threat_pass_pct") is not None:
         metrics["threat_pass_pct"] = pass_metrics.get("threat_pass_pct")
+    _attach_deduplicated_pass_score_metrics(metrics, enriched, minutes)
 
 
 def apply_per90_metrics(metrics: dict[str, float | int], minutes: float | None) -> None:
@@ -1598,6 +1658,9 @@ XP_STATS_LABELS: dict[str, str] = {
     "special_diagonal_long_p90": "Long Diagonal (Per game)",
     "xp_line_break_total": "Line Break (xP)",
     "special_line_break_p90": "Line Break (Per game)",
+    "buildup_final_third_exclusive_pg": "Final third entries (non-progressive) / game",
+    "buildup_line_break_exclusive_pg": "Line breaks (exclusive) / game",
+    "chance_box_exclusive_pg": "Into-box passes (non-key) / game",
     "xp_inversion_total": "Inversions (xP)",
     "special_inversion_p90": "Inversions (Per game)",
     "xp_cross_total": "Crosses (xP)",
@@ -1888,7 +1951,6 @@ PASS_SCORE_WINSOR_LOWER_Q = 0.05
 PASS_SCORE_WINSOR_UPPER_Q = 0.95
 PASS_VOLUME_METRICS: tuple[str, ...] = (
     "passes_total",
-    "long_balls",
 )
 PASS_EFFICIENCY_METRICS: tuple[str, ...] = (
     "xpass_coe_pct",
@@ -1896,12 +1958,12 @@ PASS_EFFICIENCY_METRICS: tuple[str, ...] = (
 )
 PASS_BUILDUP_METRICS: tuple[str, ...] = (
     "progressive_passes",
-    "final_third_passes",
-    "special_line_break_p90",
+    "buildup_final_third_exclusive_pg",
+    "buildup_line_break_exclusive_pg",
 )
 PASS_CHANCE_CREATION_METRICS: tuple[str, ...] = (
     "key_passes",
-    "passes_to_box",
+    "chance_box_exclusive_pg",
     "test_impact_v2_start_final_third_p90",
 )
 PASS_IMPACT_METRICS: tuple[str, ...] = (
@@ -1930,10 +1992,10 @@ PASS_SCORE_LABELS: dict[str, str] = {
 }
 PASS_SCORE_TOOLTIPS: dict[str, str] = {
     "pass_volume_index": (
-        "Within-position composite of passes and long passes per game."
+        "Within-position volume score from total passes per game."
     ),
     "pass_volume_display": (
-        "Within-position composite of passes and long passes per game."
+        "Within-position volume score from total passes per game."
     ),
     "pass_efficiency_index": (
         "Within-position composite of per-pass COE (completion over expected) on short "
@@ -1944,20 +2006,20 @@ PASS_SCORE_TOOLTIPS: dict[str, str] = {
         "and long passes."
     ),
     "pass_buildup_index": (
-        "Within-position composite of progressive passes, final-third entries "
-        "and line-breaking passes per game."
+        "Within-position composite of progressive passes, non-progressive final-third "
+        "entries, and line-breaking passes not already counted above (no double counting)."
     ),
     "pass_buildup_display": (
-        "Within-position composite of progressive passes, final-third entries "
-        "and line-breaking passes per game."
+        "Within-position composite of progressive passes, non-progressive final-third "
+        "entries, and line-breaking passes not already counted above (no double counting)."
     ),
     "pass_chance_creation_index": (
-        "Within-position composite of key passes, passes into the box, and Test Impact v2 "
-        "passes originating in the final third per game."
+        "Within-position composite of key passes, non-key passes into the box, and "
+        "Test Impact v2 passes originating in the final third per game."
     ),
     "pass_chance_creation_display": (
-        "Within-position composite of key passes, passes into the box, and Test Impact v2 "
-        "passes originating in the final third per game."
+        "Within-position composite of key passes, non-key passes into the box, and "
+        "Test Impact v2 passes originating in the final third per game."
     ),
     "pass_impact_index": (
         "Within-position composite of Test Impact v2 volume, attempt-pool completion "

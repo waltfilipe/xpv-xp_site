@@ -39,7 +39,7 @@ XP_PROFILE_RELATIVE_BARS_POOL: tuple[tuple[str, str, str, str], ...] = (
 )
 
 XP_PA_REGULAR_SCORE_SPECS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...] = (
-    ("pass_volume_display", "pass_volume_index", "pass_volume_letter", "Volume", ("passes_total", "long_balls")),
+    ("pass_volume_display", "pass_volume_index", "pass_volume_letter", "Volume", ("passes_total",)),
     (
         "pass_efficiency_display",
         "pass_efficiency_index",
@@ -52,7 +52,11 @@ XP_PA_REGULAR_SCORE_SPECS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...
         "pass_buildup_index",
         "pass_buildup_letter",
         "Build-up",
-        ("progressive_passes", "final_third_passes", "special_line_break_p90"),
+        (
+            "progressive_passes",
+            "buildup_final_third_exclusive_pg",
+            "buildup_line_break_exclusive_pg",
+        ),
     ),
     (
         "pass_chance_creation_display",
@@ -61,7 +65,7 @@ XP_PA_REGULAR_SCORE_SPECS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...
         "Chance creation",
         (
             "key_passes",
-            "passes_to_box",
+            "chance_box_exclusive_pg",
             "test_impact_v2_start_final_third_p90",
             "chance_creation_xpv_per_game",
         ),
