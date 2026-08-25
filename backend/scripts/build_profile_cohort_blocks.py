@@ -20,17 +20,6 @@ os.environ.setdefault("PASS_SCOUT_MODE", "local")
 from services.player_bundle import load_player_analysis_bundle  # noqa: E402
 
 OUTPUT_PATH = Path("/agent/repos/test-site-xpxpv/data/profile-cohort-blocks.json")
-SITE_POOL_PATH = Path("/agent/repos/test-site-xpxpv/data/pool-metrics.json")
-
-
-def _site_player_ids() -> set[str] | None:
-    if not SITE_POOL_PATH.is_file():
-        return None
-    rows = json.loads(SITE_POOL_PATH.read_text(encoding="utf-8"))
-    if not isinstance(rows, list):
-        return None
-    ids = {str(row.get("player_id")) for row in rows if row.get("player_id") is not None}
-    return ids or None
 
 LEAGUE_ORDER = [
     "Premier League",
@@ -180,10 +169,6 @@ def main() -> int:
     pve.attach_profile_view_metrics(list(xp_by_id.values()))
 
     rows = _eligible_rows(xp_by_id)
-    site_ids = _site_player_ids()
-    if site_ids is not None:
-        rows = [row for row in rows if row["player_id"] in site_ids]
-        print(f"Restricted to site pool: {len(rows)} players", flush=True)
     print(f"Eligible rows: {len(rows)}", flush=True)
 
     categories: list[dict[str, Any]] = []
