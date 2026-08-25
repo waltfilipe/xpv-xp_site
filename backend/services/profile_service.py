@@ -6,7 +6,12 @@ from typing import Any, Literal
 
 import progression_engine as pge
 from passes_maps import draw_action_origin_smooth_heatmap
-from profile_view_engine import PASS_SCORE_ABSOLUTE_SPECS, PASS_SCORE_RELATIVE_SPECS
+from profile_view_engine import (
+    PASS_SCORE_ABSOLUTE_SPECS,
+    PASS_SCORE_REGULAR_EVAL_KEYS,
+    PASS_SCORE_RELATIVE_SPECS,
+    PassScoreSpec,
+)
 from xp_stats_engine import (
     XP_ROUND_SERIES_KEY,
     _index_tier_from_rank,
@@ -39,7 +44,7 @@ XP_PROFILE_RELATIVE_BARS_POOL: tuple[tuple[str, str, str, str], ...] = (
 )
 
 XP_PA_REGULAR_SCORE_SPECS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...] = (
-    ("pass_volume_display", "pass_volume_index", "pass_volume_letter", "Volume", ("passes_total",)),
+    ("pass_volume_display", "pass_volume_index", "pass_volume_letter", "Volume", ("passes_total", "long_balls")),
     (
         "pass_efficiency_display",
         "pass_efficiency_index",
@@ -54,8 +59,8 @@ XP_PA_REGULAR_SCORE_SPECS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...
         "Build-up",
         (
             "progressive_passes",
-            "buildup_final_third_exclusive_pg",
-            "buildup_line_break_exclusive_pg",
+            "final_third_passes",
+            "special_line_break_p90",
         ),
     ),
     (
@@ -65,7 +70,7 @@ XP_PA_REGULAR_SCORE_SPECS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...
         "Chance creation",
         (
             "key_passes",
-            "chance_box_exclusive_pg",
+            "passes_to_box",
             "test_impact_v2_start_final_third_p90",
             "chance_creation_xpv_per_game",
         ),
@@ -107,22 +112,46 @@ def _pass_score_component(xp_profile: dict, ck: str, peer_scope: PeerScope) -> d
 
 def _build_pass_score_sections(
     xp_profile: dict,
-    specs: tuple[tuple[str, str, tuple[str, ...]], ...],
+    specs: tuple[PassScoreSpec, ...],
     peer_scope: PeerScope,
 ) -> list[dict[str, Any]]:
     sections: list[dict[str, Any]] = []
-    for title, prefix, component_keys in specs:
+    for title, prefix, display_keys, _eval_keys in specs:
         components = [
-            _pass_score_component(xp_profile, ck, peer_scope) for ck in component_keys
+            _pass_score_component(xp_profile, ck, peer_scope) for ck in display_keys
         ]
+        regular = PASS_SCORE_REGULAR_EVAL_KEYS.get(title)
         if peer_scope == "league":
+            if regular:
+                letter_key, display_key, index_key = regular
+                sections.append({
+                    "title": title,
+                    "display_score": xp_profile.get(display_key),
+                    "letter": xp_profile.get(letter_key),
+                    "index": xp_profile.get(index_key),
+                    "rank": xp_profile.get(f"{index_key}_rank_in_group"),
+                    "rank_pool": xp_profile.get(f"{index_key}_rank_pool_in_group"),
+                    "components": components,
+                })
+            else:
+                sections.append({
+                    "title": title,
+                    "display_score": xp_profile.get(f"{prefix}_league_display"),
+                    "letter": xp_profile.get(f"{prefix}_league_letter"),
+                    "index": xp_profile.get(f"{prefix}_league_index"),
+                    "rank": xp_profile.get(f"{prefix}_rank_in_league"),
+                    "rank_pool": xp_profile.get(f"{prefix}_rank_pool_in_league"),
+                    "components": components,
+                })
+        elif regular:
+            letter_key, display_key, index_key = regular
             sections.append({
                 "title": title,
-                "display_score": xp_profile.get(f"{prefix}_league_display"),
-                "letter": xp_profile.get(f"{prefix}_league_letter"),
-                "index": xp_profile.get(f"{prefix}_league_index"),
-                "rank": xp_profile.get(f"{prefix}_rank_in_league"),
-                "rank_pool": xp_profile.get(f"{prefix}_rank_pool_in_league"),
+                "display_score": xp_profile.get(display_key),
+                "letter": xp_profile.get(letter_key),
+                "index": xp_profile.get(index_key),
+                "rank": xp_profile.get(f"{index_key}_rank_in_group"),
+                "rank_pool": xp_profile.get(f"{index_key}_rank_pool_in_group"),
                 "components": components,
             })
         else:

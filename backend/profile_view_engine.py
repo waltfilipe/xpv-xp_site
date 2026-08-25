@@ -59,11 +59,20 @@ XP_PROFILE_POOL_METRICS: tuple[str, ...] = (
     "xpass_long_coe_pct",
 )
 
-PASS_SCORE_ABSOLUTE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
-    ("Volume", "pv_abs_volume", ("passes_total",)),
+# Stats & Scores: display_keys shown in UI; eval_keys drive the section letter (via pass_*_letter).
+PassScoreSpec = tuple[str, str, tuple[str, ...], tuple[str, ...]]
+
+PASS_SCORE_ABSOLUTE_SPECS: tuple[PassScoreSpec, ...] = (
+    (
+        "Volume",
+        "pv_abs_volume",
+        ("passes_total", "long_balls"),
+        ("passes_total",),
+    ),
     (
         "Build-up",
         "pv_abs_buildup",
+        ("progressive_passes", "final_third_passes", "special_line_break_p90"),
         (
             "progressive_passes",
             "buildup_final_third_exclusive_pg",
@@ -75,23 +84,35 @@ PASS_SCORE_ABSOLUTE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "pv_abs_chance",
         (
             "key_passes",
-            "chance_box_exclusive_pg",
+            "passes_to_box",
             "test_impact_v2_start_final_third_p90",
             "chance_creation_xpv_per_game",
         ),
+        ("key_passes", "chance_box_exclusive_pg", "test_impact_v2_start_final_third_p90"),
     ),
     (
         "Lethality",
         "pv_abs_leth",
         ("leth_xpv_per_pass", "leth_impact_rate_pct"),
+        ("leth_xpv_per_pass", "leth_impact_rate_pct"),
     ),
 )
 
-PASS_SCORE_RELATIVE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
-    ("Volume", "pv_rel_volume", ("vol_passes_team_share_pct",)),
+PASS_SCORE_RELATIVE_SPECS: tuple[PassScoreSpec, ...] = (
+    (
+        "Volume",
+        "pv_rel_volume",
+        ("vol_passes_team_share_pct", "vol_long_team_share_pct"),
+        ("vol_passes_team_share_pct",),
+    ),
     (
         "Build-up",
         "pv_rel_buildup",
+        (
+            "build_prog_share_pct",
+            "build_final_third_share_pct",
+            "build_line_break_share_pct",
+        ),
         (
             "build_prog_share_pct",
             "build_final_third_exclusive_share_pct",
@@ -103,6 +124,12 @@ PASS_SCORE_RELATIVE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "pv_rel_chance",
         (
             "chance_key_share_pct",
+            "chance_box_share_pct",
+            "chance_impact_ft_share_pct",
+            "chance_creation_xpv_per_pass",
+        ),
+        (
+            "chance_key_share_pct",
             "chance_box_exclusive_share_pct",
             "chance_impact_ft_share_pct",
             "chance_creation_xpv_per_pass",
@@ -112,8 +139,20 @@ PASS_SCORE_RELATIVE_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "Lethality",
         "pv_rel_leth",
         ("leth_xpv_display", "leth_threat_display"),
+        ("leth_xpv_display", "leth_threat_display"),
     ),
 )
+
+# Section letters aligned with attach_regular_pass_scores (deduplicated evaluation).
+PASS_SCORE_REGULAR_EVAL_KEYS: dict[str, tuple[str, str, str]] = {
+    "Volume": ("pass_volume_letter", "pass_volume_display", "pass_volume_index"),
+    "Build-up": ("pass_buildup_letter", "pass_buildup_display", "pass_buildup_index"),
+    "Chance creation": (
+        "pass_chance_creation_letter",
+        "pass_chance_creation_display",
+        "pass_chance_creation_index",
+    ),
+}
 
 XP_BAR_LEAGUE_METRICS: tuple[str, ...] = (
     "prod_xpv_per_game",
@@ -125,8 +164,10 @@ XP_BAR_LEAGUE_METRICS: tuple[str, ...] = (
 PASS_SCORE_POOL_METRICS: tuple[str, ...] = tuple(
     dict.fromkeys(
         key
-        for _title, _prefix, keys in PASS_SCORE_ABSOLUTE_SPECS + PASS_SCORE_RELATIVE_SPECS
-        for key in keys
+        for _title, _prefix, display_keys, eval_keys in (
+            PASS_SCORE_ABSOLUTE_SPECS + PASS_SCORE_RELATIVE_SPECS
+        )
+        for key in display_keys + eval_keys
     )
 )
 
@@ -204,6 +245,12 @@ def _compute_profile_derived_metrics(player: dict) -> None:
 
     if passes_pg is not None and passes_pg > 0:
         player["build_prog_share_pct"] = _share_pct(player.get("progressive_passes"), passes_pg)
+        player["build_final_third_share_pct"] = _share_pct(
+            player.get("final_third_passes"), passes_pg,
+        )
+        player["build_line_break_share_pct"] = _share_pct(
+            player.get("special_line_break_p90"), passes_pg,
+        )
         player["build_final_third_exclusive_share_pct"] = _share_pct(
             player.get("buildup_final_third_exclusive_pg"), passes_pg,
         )
@@ -211,6 +258,7 @@ def _compute_profile_derived_metrics(player: dict) -> None:
             player.get("buildup_line_break_exclusive_pg"), passes_pg,
         )
         player["chance_key_share_pct"] = _share_pct(player.get("key_passes"), passes_pg)
+        player["chance_box_share_pct"] = _share_pct(player.get("passes_to_box"), passes_pg)
         player["chance_box_exclusive_share_pct"] = _share_pct(
             player.get("chance_box_exclusive_pg"), passes_pg,
         )
@@ -540,7 +588,7 @@ def _attach_weighted_pass_grades(eligible: list[dict], players: list[dict]) -> N
 
 def _attach_pass_score_composites(
     players: list[dict],
-    specs: tuple[tuple[str, str, tuple[str, ...]], ...],
+    specs: tuple[PassScoreSpec, ...],
     *,
     scope: str = "pool",
 ) -> None:
@@ -548,8 +596,8 @@ def _attach_pass_score_composites(
         return
     df = pd.DataFrame(players)
     pool_size = len(players)
-    for _title, prefix, metric_cols in specs:
-        available = [c for c in metric_cols if c in df.columns]
+    for _title, prefix, _display_keys, eval_keys in specs:
+        available = [c for c in eval_keys if c in df.columns]
         if not available:
             continue
         composite = _mean_winsorized_z_columns(df, tuple(available))
