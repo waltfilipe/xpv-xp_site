@@ -14,6 +14,7 @@ import {
   type PlayerOption,
   type ScatterData,
 } from "@/lib/api";
+import { imageSrcFromPayload } from "@/lib/imageSrc";
 
 function MapsContent() {
   const searchParams = useSearchParams();
@@ -27,7 +28,13 @@ function MapsContent() {
   const [passFilter, setPassFilter] = useState("progressive");
   const [scatter, setScatter] = useState<ScatterData | null>(null);
   const [passMap, setPassMap] = useState<{ pass_map_b64?: string | null; dest_map_b64?: string | null; caption: string } | null>(null);
-  const [aggregated, setAggregated] = useState<{ common_map_b64?: string | null; rare_map_b64?: string | null; quadrant_stats: { quadrant: string; passes: number; share_pct: number }[] } | null>(null);
+  const [aggregated, setAggregated] = useState<{
+    common_map_b64?: string | null;
+    rare_map_b64?: string | null;
+    common_map_url?: string | null;
+    rare_map_url?: string | null;
+    quadrant_stats: { quadrant: string; passes: number; share_pct: number }[];
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -123,8 +130,20 @@ function MapsContent() {
         <section style={{ marginTop: "2rem" }}>
           <h3 className="section-label" style={{ fontSize: "0.75rem", marginBottom: "0.75rem" }}>Aggregate view · Top 250 by volume</h3>
           <div className="maps-grid">
-            {aggregated.common_map_b64 && <img src={`data:image/png;base64,${aggregated.common_map_b64}`} alt="Common passes" className="map-img" />}
-            {aggregated.rare_map_b64 && <img src={`data:image/png;base64,${aggregated.rare_map_b64}`} alt="Rare passes" className="map-img" />}
+            {imageSrcFromPayload(aggregated.common_map_url, aggregated.common_map_b64) && (
+              <img
+                src={imageSrcFromPayload(aggregated.common_map_url, aggregated.common_map_b64)!}
+                alt="Common passes"
+                className="map-img"
+              />
+            )}
+            {imageSrcFromPayload(aggregated.rare_map_url, aggregated.rare_map_b64) && (
+              <img
+                src={imageSrcFromPayload(aggregated.rare_map_url, aggregated.rare_map_b64)!}
+                alt="Rare passes (xP)"
+                className="map-img"
+              />
+            )}
           </div>
         </section>
       )}

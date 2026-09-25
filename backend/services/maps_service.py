@@ -32,6 +32,9 @@ from services.filters import all_position_filters, player_matches_position_filte
 
 APP_LEAGUE = "European leagues"
 
+# Bump when aggregate PNG styling changes (invalidates in-process LRU cache).
+AGGREGATED_MAP_RENDER_VERSION = 2
+
 REPORT_PASS_MAP_KEYS: tuple[str, ...] = (
     "report_progressive_origin",
     "report_progressive_dest",
@@ -67,7 +70,9 @@ def _top_position_pass_pool(completed: pd.DataFrame, top_n: int) -> dict:
 def load_aggregated_maps(
     top_n: int = 250,
     position_family: str = DEFAULT_POSITION_FAMILY,
+    render_version: int = AGGREGATED_MAP_RENDER_VERSION,
 ) -> dict[str, Any]:
+    _ = render_version
     family = normalize_position_family(position_family)
     season = xe.load_european_league_season_passes(
         position_family=family,

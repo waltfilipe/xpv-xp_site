@@ -4,6 +4,7 @@
  */
 import type { ProfileFilterState } from "@/lib/profileParams";
 import { filtersToApiParams } from "@/lib/profileParams";
+import { fetchAggregatedMapsFromAssets, offlineMapsEnabled } from "@/lib/assets";
 
 function getApiBase(): string {
   if (typeof window !== "undefined") return "";
@@ -258,7 +259,15 @@ export function getMapsOptions() {
   }>("/api/maps/options");
 }
 
-export function getAggregatedMaps(positionFamily = "midfielders") {
+export async function getAggregatedMaps(positionFamily = "midfielders") {
+  if (offlineMapsEnabled()) {
+    return fetchAggregatedMapsFromAssets(positionFamily);
+  }
+  // Bundled PNGs in frontend/public (versioned ?v=…) — no backend restart required.
+  const bundled = await fetchAggregatedMapsFromAssets(positionFamily);
+  if (bundled.common_map_url || bundled.rare_map_url) {
+    return bundled;
+  }
   const qs = new URLSearchParams({ position_family: positionFamily });
   return fetchApi<{
     player_count: number;
@@ -266,5 +275,7 @@ export function getAggregatedMaps(positionFamily = "midfielders") {
     quadrant_stats: { quadrant: string; passes: number; share_pct: number }[];
     common_map_b64?: string | null;
     rare_map_b64?: string | null;
+    common_map_url?: string | null;
+    rare_map_url?: string | null;
   }>(`/api/maps/aggregated?${qs}`);
 }
