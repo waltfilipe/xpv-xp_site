@@ -10,7 +10,7 @@ import numpy as np
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.lines import Line2D
-from matplotlib.patches import Rectangle
+from matplotlib.patches import FancyArrowPatch, Rectangle
 from mplsoccer import Pitch
 
 from xp_study_engine import (
@@ -520,20 +520,59 @@ def draw_passes_destination_heatmap(
 CMAP_FREQ_GREEN = LinearSegmentedColormap.from_list(
     "freq_green", ["#1e293b", "#166534", "#22c55e", "#bbf7d0"]
 )
+# Dark = high volume, light = low volume (aggregate common-pass map).
+CMAP_FREQ_GREEN_DARK_HIGH = CMAP_FREQ_GREEN.reversed()
+
+AGGREGATE_QUADRANT_LABELS: dict[str, str] = {
+    "def_left": "Defensive · left",
+    "def_right": "Defensive · right",
+    "att_left": "Attacking · left",
+    "att_right": "Attacking · right",
+}
 
 
-def _draw_pitch_quadrants(ax) -> None:
+def _direction_of_attack_arrow(fig) -> None:
+    """Left-to-right attack direction below the pitch (colorbar shifts layout slightly)."""
+    ox = -0.04
+    y_arrow = 0.045
+    y_label = 0.012
+    fig.patches.append(
+        FancyArrowPatch(
+            (0.44 + ox, y_arrow),
+            (0.56 + ox, y_arrow),
+            transform=fig.transFigure,
+            arrowstyle="-|>",
+            mutation_scale=10.0,
+            linewidth=1.4,
+            color="#aaaaaa",
+            clip_on=False,
+        )
+    )
+    fig.text(
+        0.50 + ox,
+        y_label,
+        "Direction of Attack",
+        ha="center",
+        va="bottom",
+        transform=fig.transFigure,
+        fontsize=7.0,
+        color="#aaaaaa",
+    )
+
+
+def _draw_pitch_quadrants(ax, *, quadrant_labels: dict[str, str] | None = None) -> None:
     """Light quadrant guides: defensive/attacking halves and left/right lanes."""
+    labels = quadrant_labels or QUADRANT_LABELS
     ax.axvline(x=QUADRANT_X_SPLIT, color="#cbd5e1", lw=1.4, alpha=0.55, zorder=3)
     ax.axhline(y=QUADRANT_Y_SPLIT, color="#cbd5e1", lw=1.4, alpha=0.55, zorder=3)
     ax.axvline(x=FIELD_X / 3.0, color="#475569", lw=0.8, alpha=0.28, zorder=3)
     ax.axvline(x=2.0 * FIELD_X / 3.0, color="#475569", lw=0.8, alpha=0.28, zorder=3)
 
     label_specs = (
-        (FIELD_X * 0.25, FIELD_Y * 0.25, QUADRANT_LABELS["def_left"]),
-        (FIELD_X * 0.25, FIELD_Y * 0.75, QUADRANT_LABELS["def_right"]),
-        (FIELD_X * 0.75, FIELD_Y * 0.25, QUADRANT_LABELS["att_left"]),
-        (FIELD_X * 0.75, FIELD_Y * 0.75, QUADRANT_LABELS["att_right"]),
+        (FIELD_X * 0.25, FIELD_Y * 0.25, labels["def_left"]),
+        (FIELD_X * 0.25, FIELD_Y * 0.75, labels["def_right"]),
+        (FIELD_X * 0.75, FIELD_Y * 0.25, labels["att_left"]),
+        (FIELD_X * 0.75, FIELD_Y * 0.75, labels["att_right"]),
     )
     for x_pos, y_pos, label in label_specs:
         ax.text(
@@ -596,13 +635,14 @@ def _draw_destination_grid_map(
                 )
             )
 
-    _draw_pitch_quadrants(ax)
+    _draw_pitch_quadrants(ax, quadrant_labels=AGGREGATE_QUADRANT_LABELS)
     sm = ScalarMappable(norm=norm, cmap=cmap)
     sm.set_array([])
     cbar = fig.colorbar(sm, ax=ax, fraction=0.03, pad=0.02)
     cbar.set_label(cbar_label, color="white", fontsize=8)
     cbar.ax.yaxis.set_tick_params(color="white", labelcolor="white")
     ax.set_title(title, color="white", fontsize=10, pad=8)
+    _direction_of_attack_arrow(fig)
     return fig
 
 
@@ -617,8 +657,8 @@ def draw_midfielder_common_passes_map(
     return _draw_destination_grid_map(
         count_grid,
         title=title,
-        cbar_label="Passes no destino",
-        cmap=CMAP_FREQ_GREEN,
+        cbar_label="Passes at destination",
+        cmap=CMAP_FREQ_GREEN_DARK_HIGH,
         dest_cols=dest_cols,
         dest_rows=dest_rows,
     )
@@ -635,7 +675,7 @@ def draw_midfielder_rare_passes_map(
     return _draw_destination_grid_map(
         mean_xp_grid,
         title=title,
-        cbar_label="xP médio no destino",
+        cbar_label="Mean xP at destination",
         cmap=CMAP_XP_GRAY_RED,
         vmax=XP_PASS_MAX,
         dest_cols=dest_cols,

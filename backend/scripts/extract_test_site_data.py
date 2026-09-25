@@ -316,8 +316,8 @@ def main() -> None:
         "total_passes": int(len(completed)),
         "min_passes_cutoff": 0,
         "quadrant_stats": agg.get("quadrant_stats", []),
-        "common_map_b64": _grid_map_b64(agg.get("count_grid"), draw_midfielder_common_passes_map, "Passes comuns"),
-        "rare_map_b64": _grid_map_b64(agg.get("mean_xp_grid"), draw_midfielder_rare_passes_map, "Passes raros (xP)"),
+        "common_map_b64": _grid_map_b64(agg.get("count_grid"), draw_midfielder_common_passes_map, "Common passes"),
+        "rare_map_b64": _grid_map_b64(agg.get("mean_xp_grid"), draw_midfielder_rare_passes_map, "Rare passes (xP)"),
     })
     _write_json(OUTPUT_DIR / "player-ids.json", list(cohort_player_ids))
     _write_json(OUTPUT_DIR / "index.json", {

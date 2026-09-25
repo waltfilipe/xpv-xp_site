@@ -121,7 +121,7 @@ function MapsContent() {
 
       {aggregated && (
         <section style={{ marginTop: "2rem" }}>
-          <h3 className="section-label" style={{ fontSize: "0.75rem", marginBottom: "0.75rem" }}>Visão agregada · top 250 por volume</h3>
+          <h3 className="section-label" style={{ fontSize: "0.75rem", marginBottom: "0.75rem" }}>Aggregate view · Top 250 by volume</h3>
           <div className="maps-grid">
             {aggregated.common_map_b64 && <img src={`data:image/png;base64,${aggregated.common_map_b64}`} alt="Common passes" className="map-img" />}
             {aggregated.rare_map_b64 && <img src={`data:image/png;base64,${aggregated.rare_map_b64}`} alt="Rare passes" className="map-img" />}
